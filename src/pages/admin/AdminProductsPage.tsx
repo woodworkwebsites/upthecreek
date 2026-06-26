@@ -1,0 +1,148 @@
+import { useState, useEffect, useCallback } from 'react';
+import type { Product } from '../../../types/index.js';
+import { adminFetchProducts, adminSyncProducts } from '../../lib/api.js';
+import { useAdminToken } from '../../hooks/useAdmin.js';
+import { Button } from '../../components/ui/Button.js';
+import { PageLoader } from '../../components/ui/LoadingSpinner.js';
+import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
+import { formatPriceRange, formatDate } from '../../lib/utils.js';
+
+export default function AdminProductsPage() {
+  const { token } = useAdminToken();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [syncing,  setSyncing]  = useState(false);
+  const [syncMsg,  setSyncMsg]  = useState<string | null>(null);
+  const [error,    setError]    = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminFetchProducts(token);
+      setProducts(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load products');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function handleSync() {
+    if (!token) return;
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const result = await adminSyncProducts(token);
+      setSyncMsg(
+        `Synced ${result.productsSynced} of ${result.productsFound} products.` +
+        (result.errors.length > 0 ? ` Errors: ${result.errors.join(', ')}` : ''),
+      );
+      await load();
+    } catch (err) {
+      setSyncMsg(`Sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          Products
+        </h1>
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={syncing}
+          onClick={handleSync}
+        >
+          Sync from Printify
+        </Button>
+      </div>
+
+      {syncMsg && (
+        <div className={`rounded-xl border px-4 py-3 text-sm ${
+          syncMsg.includes('failed') || syncMsg.includes('Errors')
+            ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400'
+            : 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400'
+        }`}>
+          {syncMsg}
+        </div>
+      )}
+
+      {loading ? (
+        <PageLoader />
+      ) : error ? (
+        <ErrorMessage message={error} onRetry={load} />
+      ) : products.length === 0 ? (
+        <div className="rounded-2xl border border-gray-100 dark:border-gray-800 py-16 text-center">
+          <p className="text-gray-500 dark:text-gray-400 mb-3">No products cached yet.</p>
+          <Button variant="secondary" size="sm" loading={syncing} onClick={handleSync}>
+            Sync now
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {products.map((product) => {
+            const img = product.images.find((i) => i.isDefault) ?? product.images[0];
+            return (
+              <div
+                key={product.id}
+                className="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900"
+              >
+                {img ? (
+                  <div className="aspect-video overflow-hidden bg-gray-50 dark:bg-gray-800">
+                    <img
+                      src={img.src}
+                      alt={product.title}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-video bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+                    <span className="text-3xl opacity-30">🏓</span>
+                  </div>
+                )}
+                <div className="p-4 space-y-2">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                    {product.title}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {formatPriceRange(product.minPrice, product.maxPrice)}
+                  </p>
+                  <div className="flex gap-2 text-xs text-gray-400 dark:text-gray-500">
+                    <span>{product.variants.length} variants</span>
+                    <span>·</span>
+                    <span>{product.colors.length} colours</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {product.colors.slice(0, 8).map((c) => (
+                      <span
+                        key={c.name}
+                        title={c.name}
+                        className="h-3 w-3 rounded-full border border-gray-200 dark:border-gray-700"
+                        style={{ backgroundColor: c.hex }}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-300 dark:text-gray-600 font-mono truncate">
+                    {product.printifyId}
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Synced {formatDate(product.syncedAt)}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

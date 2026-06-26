@@ -1,0 +1,11 @@
+# Copy this file to .dev.vars for local development (never commit .dev.vars)
+
+STRIPE_SECRET_KEY=sk_test_replace_me
+STRIPE_WEBHOOK_SECRET=whsec_replace_me
+PRINTIFY_API_TOKEN=replace_me
+PRINTIFY_SHOP_ID=replace_me
+PRINTIFY_MODE=dry_run
+LIVE_ORDERS_ENABLED=false
+ADMIN_TOKEN=dev-token
+SITE_URL=http://localhost:8787
+ENVIRONMENT=local

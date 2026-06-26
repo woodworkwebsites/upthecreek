@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-cream text-navy-800;
+    font-feature-settings: 'kern' 1, 'liga' 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-black tracking-tight;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2;
+  }
+}
+
+@layer components {
+  /* ── Description body ─────────────────────────────────────────── */
+  .description-body p          { @apply mb-3; }
+  .description-body p:last-child { @apply mb-0; }
+  .description-body ul         { @apply mb-3 list-disc pl-5 space-y-1; }
+  .description-body ol         { @apply mb-3 list-decimal pl-5 space-y-1; }
+  .description-body li         { @apply leading-relaxed; }
+  .description-body strong     { @apply font-bold text-navy-800; }
+  .description-body em         { @apply italic; }
+  .description-body h1         { @apply mb-2 text-base font-black text-navy-800; }
+  .description-body h2         { @apply mb-2 text-sm font-bold text-navy-800; }
+  .description-body a          { @apply text-brand-500 underline underline-offset-2; }
+
+  /* ── Section label ────────────────────────────────────────────── */
+  .label {
+    @apply text-xs font-bold tracking-widest uppercase text-brand-500;
+  }
+
+  /* ── Trust badge row ──────────────────────────────────────────── */
+  .trust-badge {
+    @apply flex items-center gap-2 text-xs font-medium text-gray-500;
+  }
+  .trust-badge svg {
+    @apply h-4 w-4 text-brand-500 flex-shrink-0;
+  }
+}

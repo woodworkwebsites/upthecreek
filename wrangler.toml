@@ -1,0 +1,13 @@
+name = "up-the-creek-padel"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "up-the-creek-orders"
+database_id = "placeholder-replace-with-id-from-wrangler-d1-create"
+migrations_dir = "db/migrations"
+
+# Run: wrangler d1 create up-the-creek-orders
+# Then replace the database_id above with the returned ID.
