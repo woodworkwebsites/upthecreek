@@ -11,6 +11,7 @@ import {
 import { getProductByPrintifyId } from '../products/repository.js';
 import { buildPrintifyPayload, fulfillOrder } from '../printify/orders.js';
 import { getEffectivePrintifyMode } from '../env.js';
+import { getSetting } from '../settings/repository.js';
 import { logger } from '../logging.js';
 
 export async function handleStripeWebhook(
@@ -87,7 +88,8 @@ async function processCompletedSession(
     qty: number;
   }>;
 
-  const mode = getEffectivePrintifyMode(env);
+  const liveEnabled = (await getSetting(env.DB, 'live_orders_enabled')) === 'true';
+  const mode = getEffectivePrintifyMode(env, liveEnabled);
   const orderId = crypto.randomUUID();
 
   const customerEmail = session.customer_details?.email ?? session.customer_email ?? 'unknown';

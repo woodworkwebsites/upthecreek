@@ -6,6 +6,7 @@ const navItems = [
   { path: '/admin/orders',   label: 'Orders'   },
   { path: '/admin/products', label: 'Products' },
   { path: '/admin/logs',     label: 'Logs'     },
+  { path: '/admin/settings', label: 'Settings' },
 ];
 
 export default function AdminLayout() {

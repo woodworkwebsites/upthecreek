@@ -13,11 +13,12 @@ import {
   listWebhookLogs,
   listPrintifyLogs,
 } from '../orders/repository.js';
-import { getAllProductsForAdmin } from '../products/repository.js';
+import { getAllProductsForAdmin, updateSizeGuideImage } from '../products/repository.js';
 import { getProductByPrintifyId } from '../products/repository.js';
 import { syncProducts } from '../printify/sync.js';
 import { buildPrintifyPayload, fulfillOrder } from '../printify/orders.js';
 import { getEffectivePrintifyMode } from '../env.js';
+import { getAllSettings, setSetting, getSetting } from '../settings/repository.js';
 import { logger } from '../logging.js';
 
 export async function handleSyncProducts(env: Env): Promise<Response> {
@@ -51,6 +52,28 @@ export async function handleGetOrder(env: Env, id: string): Promise<Response> {
 export async function handleListProducts(env: Env): Promise<Response> {
   const products = await getAllProductsForAdmin(env.DB);
   return json({ products });
+}
+
+export async function handleUpdateProduct(
+  env: Env,
+  printifyId: string,
+  request: Request,
+): Promise<Response> {
+  let body: { sizeGuideImage?: string | null };
+  try {
+    body = await request.json() as { sizeGuideImage?: string | null };
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  if (!('sizeGuideImage' in body)) {
+    return json({ error: 'No recognised fields to update' }, 400);
+  }
+
+  const updated = await updateSizeGuideImage(env.DB, printifyId, body.sizeGuideImage ?? null);
+  if (!updated) return json({ error: 'Product not found' }, 404);
+
+  return json({ success: true });
 }
 
 export async function handleListLogs(env: Env): Promise<Response> {
@@ -130,7 +153,8 @@ export async function handleTestOrderHandoff(
   const variant = product.variants.find((v) => v.id === variantId);
   if (!variant) return json({ error: `Variant not found: ${variantId}` }, 404);
 
-  const mode = getEffectivePrintifyMode(env);
+  const liveEnabled = (await getSetting(env.DB, 'live_orders_enabled')) === 'true';
+  const mode = getEffectivePrintifyMode(env, liveEnabled);
   const orderId = crypto.randomUUID();
   const fakeSessionId = `cs_test_${crypto.randomUUID().replace(/-/g, '').substring(0, 24)}`;
 
@@ -207,6 +231,28 @@ export async function handleTestOrderHandoff(
     await updateOrderStatus(env.DB, orderId, 'failed', { error: message });
     return json({ error: message, orderId }, 500);
   }
+}
+
+export async function handleGetSettings(env: Env): Promise<Response> {
+  const settings = await getAllSettings(env.DB);
+  return json({ settings });
+}
+
+export async function handleUpdateSettings(env: Env, request: Request): Promise<Response> {
+  let body: Record<string, string>;
+  try {
+    body = await request.json() as Record<string, string>;
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const allowed = ['live_orders_enabled', 'printify_mode'];
+  for (const [key, value] of Object.entries(body)) {
+    if (!allowed.includes(key)) return json({ error: `Unknown setting: ${key}` }, 400);
+    await setSetting(env.DB, key, value);
+  }
+
+  return json({ success: true });
 }
 
 function json(data: unknown, status = 200): Response {

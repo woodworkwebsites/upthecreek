@@ -76,10 +76,36 @@ export async function adminFetchProducts(token: string): Promise<Product[]> {
   return data.products;
 }
 
+export async function adminUpdateProduct(
+  token: string,
+  printifyId: string,
+  data: { sizeGuideImage: string | null },
+): Promise<void> {
+  await adminFetch(`/api/admin/products/${printifyId}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function adminSyncProducts(
   token: string,
 ): Promise<{ productsFound: number; productsSynced: number; errors: string[] }> {
   return adminFetch('/api/admin/sync-products', token, { method: 'POST' });
+}
+
+export async function adminGetSettings(token: string): Promise<Record<string, string>> {
+  const data = await adminFetch<{ settings: Record<string, string> }>('/api/admin/settings', token);
+  return data.settings;
+}
+
+export async function adminUpdateSettings(
+  token: string,
+  settings: Record<string, string>,
+): Promise<void> {
+  await adminFetch('/api/admin/settings', token, {
+    method: 'PATCH',
+    body: JSON.stringify(settings),
+  });
 }
 
 export async function adminFetchLogs(token: string): Promise<{

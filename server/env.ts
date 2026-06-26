@@ -26,32 +26,22 @@ export function validateEnv(env: Env): void {
   }
 }
 
-export function getEffectivePrintifyMode(env: Env): PrintifyMode {
+export function getEffectivePrintifyMode(
+  env: Env,
+  liveEnabled: boolean,
+): PrintifyMode {
   const environment = env.ENVIRONMENT ?? 'local';
-  const requestedMode = (env.PRINTIFY_MODE ?? 'dry_run') as PrintifyMode;
-  const liveEnabled = env.LIVE_ORDERS_ENABLED === 'true';
 
-  if (environment === 'local') {
-    if (requestedMode === 'live') return 'dry_run';
-    return requestedMode === 'draft' ? 'draft' : 'dry_run';
-  }
+  if (environment === 'local') return 'dry_run';
 
-  if (requestedMode === 'live') {
-    if (!liveEnabled) {
-      throw new EnvError(
-        'Live mode requested but LIVE_ORDERS_ENABLED is not "true". ' +
-        'Set LIVE_ORDERS_ENABLED=true and ENVIRONMENT=production to enable live orders.',
-      );
-    }
+  if (liveEnabled) {
     if (environment !== 'production') {
-      throw new EnvError(
-        'Live mode is only allowed when ENVIRONMENT=production.',
-      );
+      throw new EnvError('Live orders can only be enabled in the production environment.');
     }
     return 'live';
   }
 
-  return requestedMode;
+  return 'draft';
 }
 
 export function requireAdminToken(request: Request, env: Env): void {

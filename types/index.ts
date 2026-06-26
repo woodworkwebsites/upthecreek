@@ -37,6 +37,7 @@ export interface ProductRow {
   min_price: number;
   max_price: number;
   is_enabled: number;
+  size_guide_image: string | null;
   synced_at: string;
   created_at: string;
   updated_at: string;
@@ -125,6 +126,7 @@ export interface Product {
   minPrice: number;
   maxPrice: number;
   isEnabled: boolean;
+  sizeGuideImage: string | null;
   syncedAt: string;
   createdAt: string;
   updatedAt: string;

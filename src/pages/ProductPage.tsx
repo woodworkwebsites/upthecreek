@@ -50,6 +50,7 @@ export default function ProductPage() {
   const [selectedSize,  setSelectedSize]  = useState<string | null>(null);
   const [quantity,      setQuantity]      = useState(1);
   const [basketMessage, setBasketMessage] = useState<string | null>(null);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const { addToBasket, itemCount } = useBasket();
 
   const availableVariants = useMemo<PrintifyVariant[]>(() => {
@@ -76,7 +77,9 @@ export default function ProductPage() {
     return product.variants.filter((v) => v.color === selectedColor).map((v) => v.id);
   }, [product, selectedColor]);
 
-  // Sticky mini-preview — shown on mobile once the main image has scrolled past
+  // Sticky mini-preview — shown on mobile once the main image has scrolled past.
+  // Depends on `product` so the effect re-runs after the loading state resolves
+  // and ImageGallery (which holds the sentinel ref) is actually in the DOM.
   const previewTriggerRef = useRef<HTMLDivElement>(null);
   const [stickyVisible, setStickyVisible] = useState(false);
   useEffect(() => {
@@ -88,7 +91,7 @@ export default function ProductPage() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [product]);
 
   const miniPreviewSrc = useMemo(() => {
     if (!product) return '';
@@ -237,12 +240,26 @@ export default function ProductPage() {
             />
 
             {/* size */}
-            <SizeSelector
-              sizes={product.sizes}
-              selected={selectedSize}
-              onSelect={setSelectedSize}
-              unavailable={unavailableSizes}
-            />
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Size</span>
+                {product.sizeGuideImage && (
+                  <button
+                    onClick={() => setSizeGuideOpen(true)}
+                    className="text-xs font-semibold text-navy-800 underline underline-offset-2 hover:text-brand-500 transition-colors"
+                  >
+                    Size guide
+                  </button>
+                )}
+              </div>
+              <SizeSelector
+                sizes={product.sizes}
+                selected={selectedSize}
+                onSelect={setSelectedSize}
+                unavailable={unavailableSizes}
+                hideLabel
+              />
+            </div>
 
             {/* quantity */}
             <div className="space-y-3">
@@ -342,6 +359,39 @@ export default function ProductPage() {
           </div>
         </div>
       </main>
+
+      {/* ── Size guide modal ────────────────────────────────────── */}
+      {sizeGuideOpen && product.sizeGuideImage && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-navy-900/70 p-4 backdrop-blur-sm"
+          onClick={() => setSizeGuideOpen(false)}
+        >
+          <div
+            className="relative max-w-2xl w-full rounded-3xl bg-white overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <p className="text-sm font-black text-navy-800 uppercase tracking-widest">Size Guide</p>
+              <button
+                onClick={() => setSizeGuideOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-navy-800 transition-colors"
+                aria-label="Close size guide"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4">
+              <img
+                src={product.sizeGuideImage}
+                alt="Size guide"
+                className="w-full object-contain max-h-[70vh]"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Footer ──────────────────────────────────────────────── */}
       <footer className="mt-16 bg-navy-800">

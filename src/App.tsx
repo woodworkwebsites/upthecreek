@@ -9,6 +9,7 @@ import AdminLayout    from './components/admin/AdminLayout.js';
 import AdminOrdersPage   from './pages/admin/AdminOrdersPage.js';
 import AdminProductsPage from './pages/admin/AdminProductsPage.js';
 import AdminLogsPage     from './pages/admin/AdminLogsPage.js';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage.js';
 import { BasketProvider } from './context/BasketContext.js';
 import { BasketBar } from './components/basket/BasketBar.js';
 
@@ -29,6 +30,7 @@ export default function App() {
               <Route path="orders"      element={<AdminOrdersPage />} />
               <Route path="products"    element={<AdminProductsPage />} />
               <Route path="logs"        element={<AdminLogsPage />} />
+              <Route path="settings"    element={<AdminSettingsPage />} />
             </Route>
             <Route path="*"             element={<NotFoundPage />} />
           </Routes>

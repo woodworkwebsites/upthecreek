@@ -1,11 +1,102 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Product } from '../../../types/index.js';
-import { adminFetchProducts, adminSyncProducts } from '../../lib/api.js';
+import { adminFetchProducts, adminSyncProducts, adminUpdateProduct } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatPriceRange, formatDate } from '../../lib/utils.js';
+
+function ProductCard({ product, token }: { product: Product; token: string }) {
+  const img = product.images.find((i) => i.isDefault) ?? product.images[0];
+  const [sizeGuideUrl, setSizeGuideUrl] = useState(product.sizeGuideImage ?? '');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  async function handleSaveSizeGuide() {
+    setSaving(true);
+    setSaved(false);
+    setSaveError(null);
+    try {
+      await adminUpdateProduct(token, product.printifyId, {
+        sizeGuideImage: sizeGuideUrl.trim() || null,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+      {img ? (
+        <div className="aspect-video overflow-hidden bg-gray-50 dark:bg-gray-800">
+          <img src={img.src} alt={product.title} className="h-full w-full object-cover" loading="lazy" />
+        </div>
+      ) : (
+        <div className="aspect-video bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+          <span className="text-3xl opacity-30">🏓</span>
+        </div>
+      )}
+      <div className="p-4 space-y-2">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{product.title}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {formatPriceRange(product.minPrice, product.maxPrice)}
+        </p>
+        <div className="flex gap-2 text-xs text-gray-400 dark:text-gray-500">
+          <span>{product.variants.length} variants</span>
+          <span>·</span>
+          <span>{product.colors.length} colours</span>
+        </div>
+        <div className="flex flex-wrap gap-1 pt-1">
+          {product.colors.slice(0, 8).map((c) => (
+            <span
+              key={c.name}
+              title={c.name}
+              className="h-3 w-3 rounded-full border border-gray-200 dark:border-gray-700"
+              style={{ backgroundColor: c.hex }}
+            />
+          ))}
+        </div>
+
+        {/* Size guide image */}
+        <div className="pt-2 border-t border-gray-100 dark:border-gray-800 space-y-1.5">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Size guide image URL</p>
+          <input
+            type="url"
+            value={sizeGuideUrl}
+            onChange={(e) => setSizeGuideUrl(e.target.value)}
+            placeholder="https://..."
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-navy-400 focus:outline-none"
+          />
+          {sizeGuideUrl && (
+            <div className="rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-800">
+              <img src={sizeGuideUrl} alt="Size guide preview" className="w-full object-contain max-h-32" />
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSaveSizeGuide}
+              disabled={saving}
+              className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+            {saved && <span className="text-xs text-green-600 dark:text-green-400">Saved</span>}
+            {saveError && <span className="text-xs text-red-600 dark:text-red-400">{saveError}</span>}
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-300 dark:text-gray-600 font-mono truncate">{product.printifyId}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">Synced {formatDate(product.syncedAt)}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminProductsPage() {
   const { token } = useAdminToken();
@@ -88,59 +179,9 @@ export default function AdminProductsPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => {
-            const img = product.images.find((i) => i.isDefault) ?? product.images[0];
-            return (
-              <div
-                key={product.id}
-                className="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900"
-              >
-                {img ? (
-                  <div className="aspect-video overflow-hidden bg-gray-50 dark:bg-gray-800">
-                    <img
-                      src={img.src}
-                      alt={product.title}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                ) : (
-                  <div className="aspect-video bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
-                    <span className="text-3xl opacity-30">🏓</span>
-                  </div>
-                )}
-                <div className="p-4 space-y-2">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                    {product.title}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {formatPriceRange(product.minPrice, product.maxPrice)}
-                  </p>
-                  <div className="flex gap-2 text-xs text-gray-400 dark:text-gray-500">
-                    <span>{product.variants.length} variants</span>
-                    <span>·</span>
-                    <span>{product.colors.length} colours</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {product.colors.slice(0, 8).map((c) => (
-                      <span
-                        key={c.name}
-                        title={c.name}
-                        className="h-3 w-3 rounded-full border border-gray-200 dark:border-gray-700"
-                        style={{ backgroundColor: c.hex }}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-300 dark:text-gray-600 font-mono truncate">
-                    {product.printifyId}
-                  </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    Synced {formatDate(product.syncedAt)}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} token={token!} />
+          ))}
         </div>
       )}
     </div>

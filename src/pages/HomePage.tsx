@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useProducts } from '../hooks/useProducts.js';
 import { ProductGrid } from '../components/product/ProductGrid.js';
 import { PageLoader } from '../components/ui/LoadingSpinner.js';
@@ -5,6 +7,14 @@ import { ErrorMessage } from '../components/ui/ErrorMessage.js';
 
 export default function HomePage() {
   const { products, loading, error } = useProducts();
+  const { hash } = useLocation();
+
+  useEffect(() => {
+    if (hash === '#collection') {
+      const el = document.getElementById('collection');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [hash]);
 
   return (
     <div className="min-h-screen bg-cream">

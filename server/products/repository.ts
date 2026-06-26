@@ -9,21 +9,22 @@ import type {
 
 function parseProduct(row: ProductRow): Product {
   return {
-    id:          row.id,
-    printifyId:  row.printify_id,
-    title:       row.title,
-    description: row.description,
-    category:    row.category,
-    images:      JSON.parse(row.images)   as PrintifyProductImage[],
-    variants:    JSON.parse(row.variants) as PrintifyVariant[],
-    colors:      JSON.parse(row.colors)   as PrintifyColor[],
-    sizes:       JSON.parse(row.sizes)    as string[],
-    minPrice:    row.min_price,
-    maxPrice:    row.max_price,
-    isEnabled:   row.is_enabled === 1,
-    syncedAt:    row.synced_at,
-    createdAt:   row.created_at,
-    updatedAt:   row.updated_at,
+    id:             row.id,
+    printifyId:     row.printify_id,
+    title:          row.title,
+    description:    row.description,
+    category:       row.category,
+    images:         JSON.parse(row.images)   as PrintifyProductImage[],
+    variants:       JSON.parse(row.variants) as PrintifyVariant[],
+    colors:         JSON.parse(row.colors)   as PrintifyColor[],
+    sizes:          JSON.parse(row.sizes)    as string[],
+    minPrice:       row.min_price,
+    maxPrice:       row.max_price,
+    isEnabled:      row.is_enabled === 1,
+    sizeGuideImage: row.size_guide_image ?? null,
+    syncedAt:       row.synced_at,
+    createdAt:      row.created_at,
+    updatedAt:      row.updated_at,
   };
 }
 
@@ -72,6 +73,18 @@ export interface UpsertProductData {
   sizes: string[];
   minPrice: number;
   maxPrice: number;
+}
+
+export async function updateSizeGuideImage(
+  db: D1Database,
+  printifyId: string,
+  sizeGuideImage: string | null,
+): Promise<boolean> {
+  const result = await db
+    .prepare(`UPDATE products SET size_guide_image = ?, updated_at = datetime('now') WHERE printify_id = ?`)
+    .bind(sizeGuideImage, printifyId)
+    .run();
+  return (result.meta?.changes ?? 0) > 0;
 }
 
 export async function upsertProduct(

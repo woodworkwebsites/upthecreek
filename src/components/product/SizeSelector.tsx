@@ -5,6 +5,7 @@ interface SizeSelectorProps {
   selected: string | null;
   onSelect: (size: string) => void;
   unavailable?: string[];
+  hideLabel?: boolean;
 }
 
 export function SizeSelector({
@@ -12,19 +13,25 @@ export function SizeSelector({
   selected,
   onSelect,
   unavailable = [],
+  hideLabel = false,
 }: SizeSelectorProps) {
   if (sizes.length === 0) return null;
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
-          Size
-        </span>
-        {selected && (
-          <span className="text-xs font-semibold text-navy-800">— {selected}</span>
-        )}
-      </div>
+      {!hideLabel && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
+            Size
+          </span>
+          {selected && (
+            <span className="text-xs font-semibold text-navy-800">— {selected}</span>
+          )}
+        </div>
+      )}
+      {hideLabel && selected && (
+        <span className="text-xs font-semibold text-navy-800">{selected}</span>
+      )}
       <div className="flex flex-wrap gap-2">
         {sizes.map((size) => {
           const isUnavailable = unavailable.includes(size);
