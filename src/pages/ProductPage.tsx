@@ -7,7 +7,7 @@ import { SizeSelector } from '../components/product/SizeSelector.js';
 import { Button } from '../components/ui/Button.js';
 import { PageLoader } from '../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../components/ui/ErrorMessage.js';
-import { createCheckout } from '../lib/api.js';
+import { useBasket } from '../context/BasketContext.js';
 import { formatPrice } from '../lib/utils.js';
 import type { PrintifyVariant } from '../../types/index.js';
 
@@ -49,8 +49,8 @@ export default function ProductPage() {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize,  setSelectedSize]  = useState<string | null>(null);
   const [quantity,      setQuantity]      = useState(1);
-  const [buying,        setBuying]        = useState(false);
-  const [buyError,      setBuyError]      = useState<string | null>(null);
+  const [basketMessage, setBasketMessage] = useState<string | null>(null);
+  const { addToBasket, itemCount } = useBasket();
 
   const availableVariants = useMemo<PrintifyVariant[]>(() => {
     if (!product) return [];
@@ -76,11 +76,11 @@ export default function ProductPage() {
     return product.variants.filter((v) => v.color === selectedColor).map((v) => v.id);
   }, [product, selectedColor]);
 
-  // Sticky mini-preview — shown on mobile once the gallery scrolls out of view
-  const galleryRef = useRef<HTMLDivElement>(null);
+  // Sticky mini-preview — shown on mobile once the main image has scrolled past
+  const previewTriggerRef = useRef<HTMLDivElement>(null);
   const [stickyVisible, setStickyVisible] = useState(false);
   useEffect(() => {
-    const el = galleryRef.current;
+    const el = previewTriggerRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => setStickyVisible(!entry.isIntersecting),
@@ -92,6 +92,12 @@ export default function ProductPage() {
 
   const miniPreviewSrc = useMemo(() => {
     if (!product) return '';
+    const colorImages = selectedColor
+      ? product.images.filter((img) => img.color === selectedColor)
+      : [];
+    if (colorImages.length > 0) {
+      return colorImages[0]?.src ?? '';
+    }
     if (activeVariantIds.length > 0) {
       const match = product.images.find(
         (img) => img.variantIds.length <= 10 && img.variantIds.some((id) => activeVariantIds.includes(id)),
@@ -99,26 +105,27 @@ export default function ProductPage() {
       if (match) return match.src;
     }
     return product.images.find((img) => img.isDefault)?.src ?? product.images[0]?.src ?? '';
-  }, [product, activeVariantIds]);
+  }, [product, activeVariantIds, selectedColor]);
 
   const unavailableSizes = useMemo(() => {
     if (!product || !selectedColor) return [];
     return product.sizes.filter((size) => !availableSizes.includes(size));
   }, [product, selectedColor, availableSizes]);
 
-  async function handleBuyNow() {
+  function handleAddToBasket() {
     if (!product || !selectedVariant) return;
-    setBuyError(null);
-    setBuying(true);
-    try {
-      const { url } = await createCheckout([
-        { printifyId: product.printifyId, variantId: selectedVariant.id, quantity },
-      ]);
-      window.location.href = url;
-    } catch (err) {
-      setBuyError(err instanceof Error ? err.message : 'Checkout failed. Please try again.');
-      setBuying(false);
-    }
+    setBasketMessage(null);
+    addToBasket({
+      printifyId: product.printifyId,
+      variantId: selectedVariant.id,
+      quantity,
+      title: product.title,
+      color: selectedVariant.color,
+      size: selectedVariant.size,
+      unitPrice: selectedVariant.price,
+      imageSrc: miniPreviewSrc,
+    });
+    setBasketMessage(`Added ${quantity} to basket.`);
   }
 
   if (loading) return <PageLoader />;
@@ -136,71 +143,76 @@ export default function ProductPage() {
   const needsSize   = selectedColor && !selectedSize;
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div id="top" className="min-h-screen bg-cream">
 
-      {/* ── Header ──────────────────────────────────────────────── */}
+      {/* ── Header — integrates mini-preview on scroll (mobile) ── */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <Link to="/" className="flex items-center">
+          <div className="flex h-16 items-center gap-3">
+
+            {/* Logo — sm+ only */}
+            <Link to="/" className="hidden sm:flex items-center">
               <img
-                src="/Up The Creek_Blue_Wordmark.svg"
+                src="/UTC-Wear-White.png"
                 alt="Up the Creek Padel"
                 className="h-9 w-auto object-contain"
               />
             </Link>
+
+            {/* Mini-preview — mobile only, fades in once image scrolls past */}
+            <div
+              className={`lg:hidden flex flex-1 items-center gap-2.5 overflow-hidden transition-opacity duration-300 ${
+                stickyVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              {miniPreviewSrc && (
+                <img
+                  src={miniPreviewSrc}
+                  alt={product.title}
+                  className="h-10 w-[30px] flex-shrink-0 rounded-lg object-cover object-top"
+                />
+              )}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-navy-800 leading-tight">{product.title}</p>
+                <p className="text-xs font-semibold text-gray-500">{displayPrice}</p>
+              </div>
+            </div>
+
+            {/* Back link — always visible, pushed right */}
             <Link
-              to="/"
-              className="text-xs font-bold tracking-widest uppercase text-gray-400 hover:text-navy-800 transition-colors"
+              to="/#collection"
+              className="ml-auto flex-shrink-0 text-xs font-bold tracking-widest uppercase text-gray-400 hover:text-navy-800 transition-colors"
             >
               ← Back to shop
             </Link>
+
           </div>
         </div>
       </header>
 
-      {/* ── Sticky mini-preview — mobile only ───────────────────── */}
-      <div
-        className={`lg:hidden fixed top-16 left-0 right-0 z-40 bg-white border-b border-gray-100 shadow-md transition-transform duration-300 ${
-          stickyVisible ? 'translate-y-0' : '-translate-y-full'
-        }`}
-      >
-        <div className="flex items-center gap-3 px-4 py-2">
-          {miniPreviewSrc && (
-            <img
-              src={miniPreviewSrc}
-              alt={product.title}
-              className="h-14 w-[42px] flex-shrink-0 rounded-md object-cover object-top"
-            />
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-black text-navy-800">{product.title}</p>
-            <p className="text-sm font-semibold text-navy-800">{displayPrice}</p>
-          </div>
-        </div>
-      </div>
-
       {/* ── Main ────────────────────────────────────────────────── */}
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 lg:py-16">
-        <div className="lg:grid lg:grid-cols-[1fr_440px] xl:grid-cols-[1fr_480px] lg:gap-16 xl:gap-24">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1.1fr)_440px] xl:grid-cols-[minmax(0,1.15fr)_480px] lg:gap-12 xl:gap-16">
 
           {/* gallery — sticky on desktop */}
-          <div ref={galleryRef} className="mb-10 lg:mb-0">
+          <div className="mb-10 lg:mb-0">
             <div className="lg:sticky lg:top-24">
               <ImageGallery
                 images={product.images}
                 activeVariantIds={activeVariantIds}
+                selectedColor={selectedColor}
+                previewTriggerRef={previewTriggerRef}
                 title={product.title}
               />
             </div>
           </div>
 
           {/* product details */}
-          <div className="space-y-4 sm:space-y-8">
+          <div className="space-y-5 sm:space-y-6 lg:pt-2">
 
             {/* title + price */}
             <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl font-black text-navy-800 tracking-tight leading-tight">
+              <h1 className="text-3xl sm:text-4xl font-black text-navy-800 tracking-tight leading-tight max-w-[11ch]">
                 {product.title}
               </h1>
               <p className="text-2xl font-black text-navy-800 mt-2">
@@ -276,23 +288,29 @@ export default function ProductPage() {
               </p>
             )}
 
-            {buyError && (
-              <p className="text-sm font-semibold text-red-600">{buyError}</p>
+            {basketMessage && (
+              <p className="text-sm font-semibold text-emerald-600">{basketMessage}</p>
             )}
 
             {/* CTA */}
             <Button
               size="lg"
-              onClick={handleBuyNow}
+              onClick={handleAddToBasket}
               disabled={!canBuy}
-              loading={buying}
               className="w-full uppercase text-sm tracking-widest"
             >
-              {buying ? 'Redirecting to checkout…' : 'Buy Now'}
+              Add to basket
             </Button>
 
+            <Link
+              to="/checkout"
+              className="block text-center text-sm font-bold uppercase tracking-widest text-navy-800 hover:text-brand-500 transition-colors"
+            >
+              View basket{itemCount > 0 ? ` (${itemCount})` : ''}
+            </Link>
+
             {/* trust badges */}
-            <div className="grid grid-cols-3 gap-3 pt-2">
+            <div className="grid grid-cols-3 gap-3 pt-2 lg:pt-4">
               <div className="trust-badge flex-col items-center text-center gap-1.5">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -315,7 +333,7 @@ export default function ProductPage() {
 
             {/* description */}
             {product.description && (
-              <div className="border-t border-gray-100 pt-8">
+              <div className="border-t border-gray-100 pt-7 lg:pt-8">
                 <p className="label mb-3">About this product</p>
                 <ProductDescription html={product.description} />
               </div>
@@ -330,7 +348,7 @@ export default function ProductPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <img
-              src="/UTC_WordMark_White_Trans_BG.png"
+              src="/UTC-Wear-White.png"
               alt="Up the Creek Padel"
               className="h-8 w-auto opacity-60"
             />

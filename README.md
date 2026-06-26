@@ -91,6 +91,7 @@ All variables live in `.dev.vars` locally and in Cloudflare Pages → Settings �
 2. Copy your **test** secret key (`sk_test_…`) into `.dev.vars`.
 3. Run `stripe listen --forward-to http://localhost:8788/api/webhooks/stripe` and copy the webhook secret.
 4. For production, create a webhook endpoint in the Stripe dashboard pointing at `https://yourdomain.com/api/webhooks/stripe`, selecting the `checkout.session.completed` event.
+5. Enable Stripe receipt emails in the Stripe dashboard if you want Stripe to send customer confirmation emails.
 
 ---
 

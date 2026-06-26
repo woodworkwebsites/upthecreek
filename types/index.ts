@@ -6,6 +6,7 @@ export interface PrintifyProductImage {
   src: string;
   isDefault: boolean;
   variantIds: number[];
+  color?: string;
 }
 
 export interface PrintifyVariant {
@@ -167,6 +168,15 @@ export interface CheckoutItem {
   printifyId: string;
   variantId: number;
   quantity: number;
+}
+
+export interface BasketItem extends CheckoutItem {
+  id: string;
+  title: string;
+  color: string;
+  size: string;
+  unitPrice: number;
+  imageSrc: string;
 }
 
 export interface CheckoutRequest {

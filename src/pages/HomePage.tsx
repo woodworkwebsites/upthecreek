@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useProducts } from '../hooks/useProducts.js';
 import { ProductGrid } from '../components/product/ProductGrid.js';
 import { PageLoader } from '../components/ui/LoadingSpinner.js';
@@ -6,11 +5,6 @@ import { ErrorMessage } from '../components/ui/ErrorMessage.js';
 
 export default function HomePage() {
   const { products, loading, error } = useProducts();
-  const [search, setSearch] = useState('');
-
-  const filtered = products.filter((p) =>
-    p.title.toLowerCase().includes(search.toLowerCase()),
-  );
 
   return (
     <div className="min-h-screen bg-cream">
@@ -40,13 +34,13 @@ export default function HomePage() {
         </div>
 
         {/* content — logo + single line of copy only */}
-        <div className="relative flex flex-col items-center gap-5 w-full animate-fade-up">
+        <div className="relative flex flex-col items-center gap-0 w-full animate-fade-up">
           <img
-            src="/UTC_WordMark_White_Trans_BG.png"
+            src="/UTC-Wear-White.png"
             alt="Up the Creek Padel"
             className="w-full h-auto"
           />
-          <p className="text-sm sm:text-base text-white/50 tracking-wide leading-relaxed max-w-md px-4">
+          <p className="mt-[50px] text-sm sm:text-base text-white/85 tracking-wide leading-relaxed max-w-md px-4">
             Original T-shirts for life inside and outside the glass.
           </p>
         </div>
@@ -66,24 +60,18 @@ export default function HomePage() {
 
       {/* ── Collection ──────────────────────────────────────────── */}
       <section id="collection" className="scroll-mt-0">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-20 sm:pt-12 sm:pb-28">
 
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-14">
-            <div>
-              <p className="label mb-2">The Range</p>
-              <h2 className="text-3xl sm:text-4xl font-black text-navy-800 tracking-tight">
-                The Collection
-              </h2>
-            </div>
-            {products.length > 4 && (
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search products…"
-                className="w-full sm:w-64 rounded-full border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-navy-800 placeholder-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition shadow-sm"
+          <div className="flex justify-center mb-14">
+            <h2 className="mt-0 flex flex-col items-center gap-1 sm:gap-2 text-3xl sm:text-4xl font-black font-sans text-navy-800 tracking-tight text-center">
+              <span className="block">The</span>
+              <img
+                src="/Up The Creek_Wordmark.png"
+                alt="Up the Creek"
+                className="h-24 sm:h-32 w-auto object-contain"
               />
-            )}
+              <span className="block">Collection</span>
+            </h2>
           </div>
 
           {loading ? (
@@ -91,7 +79,7 @@ export default function HomePage() {
           ) : error ? (
             <ErrorMessage message={error} />
           ) : (
-            <ProductGrid products={filtered} />
+            <ProductGrid products={products} />
           )}
         </div>
       </section>
@@ -100,11 +88,13 @@ export default function HomePage() {
       <footer className="bg-navy-800">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
           <div className="flex flex-col items-center gap-6 text-center">
+          <div className="flex flex-col items-center gap-0">
             <img
-              src="/UTC_WordMark_White_Trans_BG.png"
+              src="/UTC-Wear-White.png"
               alt="Up the Creek Padel"
               className="h-40 w-auto opacity-70"
             />
+            </div>
             <p className="text-sm text-white/40 max-w-sm leading-relaxed">
               Premium padel apparel. <br />Designed for the court, worn everywhere.
             </p>

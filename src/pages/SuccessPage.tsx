@@ -1,15 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useBasket } from '../context/BasketContext.js';
 
 export default function SuccessPage() {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const [visible, setVisible] = useState(false);
+  const { clearBasket } = useBasket();
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 60);
     return () => clearTimeout(t);
   }, []);
+
+  useEffect(() => {
+    if (sessionId) {
+      clearBasket();
+    }
+  }, [sessionId, clearBasket]);
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
@@ -18,12 +26,12 @@ export default function SuccessPage() {
       <header className="bg-white border-b border-gray-100 shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center">
-            <Link to="/">
-              <img
-                src="/Up The Creek_Blue_Wordmark.svg"
-                alt="Up the Creek Padel"
-                className="h-9 w-auto object-contain"
-              />
+          <Link to="/">
+            <img
+              src="/UTC-Wear-White.png"
+              alt="Up the Creek Padel"
+              className="h-9 w-auto object-contain"
+            />
             </Link>
           </div>
         </div>

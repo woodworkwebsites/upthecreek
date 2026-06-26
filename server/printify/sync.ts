@@ -92,6 +92,11 @@ function transformProduct(raw: PrintifyApiProduct): {
     };
   });
 
+  const variantColorById = new Map<number, string>();
+  for (const variant of variants) {
+    variantColorById.set(variant.id, variant.color);
+  }
+
   const publishedImages: PrintifyProductImage[] = raw.images
     .filter((img) => img.is_selected_for_publishing)
     .map((img) => {
@@ -100,10 +105,16 @@ function transformProduct(raw: PrintifyApiProduct): {
       //   https://images.printify.com/mockup/{blueprint}/{VARIANT_ID}/{placement}/...
       // Extract that ID so we can surface the right colour image when a colour is selected.
       const urlVariantId = extractVariantIdFromUrl(img.src);
+      const variantIds = urlVariantId !== null ? [urlVariantId] : img.variant_ids;
+      const color =
+        variantIds
+          .map((id) => variantColorById.get(id))
+          .find((value): value is string => !!value) ?? undefined;
       return {
         src:        img.src,
         isDefault:  img.is_default,
-        variantIds: urlVariantId !== null ? [urlVariantId] : img.variant_ids,
+        variantIds,
+        color,
       };
     });
 

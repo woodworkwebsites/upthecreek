@@ -82,6 +82,7 @@ export async function createCheckoutSession(
   return stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     mode: 'payment',
+    customer_creation: 'always',
     line_items: items.map((item) => ({
       price_data: {
         currency: 'gbp',
@@ -100,7 +101,7 @@ export async function createCheckoutSession(
       items: JSON.stringify(compactItems),
     },
     success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${siteUrl}/`,
+    cancel_url: `${siteUrl}/checkout`,
     phone_number_collection: { enabled: true },
   });
 }
