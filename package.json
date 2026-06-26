@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently --kill-others-on-fail -n \"vite,wrangler\" -c \"cyan,magenta\" \"vite\" \"wrangler pages dev --proxy 5173 --compatibility-date=2024-09-23 --port 8787\"",
-    "build": "vite build",
+    "build": "vite build && cp dist/index.html dist/404.html",
     "preview": "wrangler pages dev dist",
     "type-check": "tsc --noEmit",
     "db:migrate:local": "wrangler d1 migrations apply up-the-creek-orders --local",

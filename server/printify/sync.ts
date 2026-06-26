@@ -10,6 +10,11 @@ import { upsertProduct } from '../products/repository.js';
 import { writeSyncLog } from '../orders/repository.js';
 import { logger } from '../logging.js';
 
+function extractVariantIdFromUrl(src: string): number | null {
+  const match = src.match(/images\.printify\.com\/mockup\/[^/]+\/(\d+)\//);
+  return match ? parseInt(match[1], 10) : null;
+}
+
 function transformProduct(raw: PrintifyApiProduct): {
   id: string;
   printifyId: string;
@@ -89,11 +94,18 @@ function transformProduct(raw: PrintifyApiProduct): {
 
   const publishedImages: PrintifyProductImage[] = raw.images
     .filter((img) => img.is_selected_for_publishing)
-    .map((img) => ({
-      src:        img.src,
-      isDefault:  img.is_default,
-      variantIds: img.variant_ids,
-    }));
+    .map((img) => {
+      // Printify assigns all mockup images to "all variants" in the variantIds array,
+      // but each mockup URL encodes the specific variant it was rendered for:
+      //   https://images.printify.com/mockup/{blueprint}/{VARIANT_ID}/{placement}/...
+      // Extract that ID so we can surface the right colour image when a colour is selected.
+      const urlVariantId = extractVariantIdFromUrl(img.src);
+      return {
+        src:        img.src,
+        isDefault:  img.is_default,
+        variantIds: urlVariantId !== null ? [urlVariantId] : img.variant_ids,
+      };
+    });
 
   const prices = variants.map((v) => v.price);
   const minPrice = prices.length ? Math.min(...prices) : 0;

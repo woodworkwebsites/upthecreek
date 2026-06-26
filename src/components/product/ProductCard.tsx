@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Product } from '../../../types/index.js';
-import { formatPriceRange } from '../../lib/utils.js';
-import { cn } from '../../lib/utils.js';
+import { formatPriceRange, cn } from '../../lib/utils.js';
 
 interface ProductCardProps {
   product: Product;
@@ -16,7 +15,7 @@ export function ProductCard({ product }: ProductCardProps) {
       to={`/product/${product.id}`}
       className="group block focus:outline-none"
     >
-      {/* Image container — portrait 3:4 */}
+      {/* Image — portrait 3:4 */}
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gray-100">
         {defaultImage ? (
           <>
@@ -26,8 +25,8 @@ export function ProductCard({ product }: ProductCardProps) {
               className={cn(
                 'absolute inset-0 h-full w-full object-cover object-center transition-all duration-700',
                 altImage
-                  ? 'group-hover:opacity-0'
-                  : 'group-hover:scale-[1.04]',
+                  ? 'lg:group-hover:opacity-0'
+                  : 'lg:group-hover:scale-[1.04]',
               )}
               loading="lazy"
             />
@@ -35,7 +34,7 @@ export function ProductCard({ product }: ProductCardProps) {
               <img
                 src={altImage.src}
                 alt={`${product.title} alternate view`}
-                className="absolute inset-0 h-full w-full object-cover object-center opacity-0 scale-[1.04] group-hover:opacity-100 group-hover:scale-100 transition-all duration-700"
+                className="absolute inset-0 h-full w-full object-cover object-center opacity-0 scale-[1.04] lg:group-hover:opacity-100 lg:group-hover:scale-100 transition-all duration-700"
                 loading="lazy"
               />
             )}
@@ -55,8 +54,8 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         )}
 
-        {/* Hover CTA */}
-        <div className="absolute bottom-0 inset-x-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
+        {/* "View Product" — desktop only */}
+        <div className="absolute bottom-0 inset-x-0 translate-y-full lg:group-hover:translate-y-0 transition-transform duration-300 ease-out">
           <div className="bg-navy-800/90 backdrop-blur-sm py-3 text-center">
             <span className="text-[11px] font-bold text-white uppercase tracking-widest">
               View Product →
@@ -67,7 +66,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
       {/* Info */}
       <div className="mt-4 space-y-1 px-0.5">
-        <h3 className="text-sm font-bold text-navy-800 group-hover:text-brand-500 transition-colors leading-snug line-clamp-2">
+        <h3 className="text-sm font-bold text-navy-800 lg:group-hover:text-brand-500 transition-colors leading-snug line-clamp-2">
           {product.title}
         </h3>
         <p className="text-sm font-semibold text-gray-400">
@@ -84,7 +83,9 @@ export function ProductCard({ product }: ProductCardProps) {
               />
             ))}
             {product.colors.length > 7 && (
-              <span className="text-xs text-gray-400 font-semibold">+{product.colors.length - 7}</span>
+              <span className="text-xs text-gray-400 font-semibold">
+                +{product.colors.length - 7}
+              </span>
             )}
           </div>
         )}

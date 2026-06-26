@@ -8,10 +8,11 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
 
   body {
-    @apply bg-cream text-navy-800;
+    @apply bg-cream text-navy-800 font-sans;
     font-feature-settings: 'kern' 1, 'liga' 1;
   }
 

@@ -11,13 +11,19 @@ interface ImageGalleryProps {
 export function ImageGallery({ images, activeVariantIds, title }: ImageGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const relevantImages = activeVariantIds && activeVariantIds.length > 0
+  // When a colour is selected, only show images that are colour-specific.
+  // After sync, Printify mockup images have exactly 1 variantId (extracted from
+  // the URL). Lifestyle/studio shots that couldn't be mapped keep all ~55 variantIds.
+  // Anything with more than 10 variantIds is treated as a "global" image and excluded
+  // when a specific colour is active, so they don't swamp the colour-matched results.
+  const colorImages = activeVariantIds && activeVariantIds.length > 0
     ? images.filter((img) =>
-        img.isDefault || img.variantIds.some((id) => activeVariantIds.includes(id))
+        img.variantIds.length <= 10 &&
+        img.variantIds.some((id) => activeVariantIds.includes(id))
       )
-    : images;
+    : [];
 
-  const displayImages = relevantImages.length > 0 ? relevantImages : images;
+  const displayImages = colorImages.length > 0 ? colorImages : images;
 
   useEffect(() => {
     setActiveIndex(0);
@@ -26,19 +32,20 @@ export function ImageGallery({ images, activeVariantIds, title }: ImageGalleryPr
   const current = displayImages[activeIndex] ?? displayImages[0];
   if (!current) {
     return (
-      <div className="aspect-square w-full rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+      <div className="aspect-[3/4] w-full rounded-2xl bg-gray-100 flex items-center justify-center">
         <span className="text-gray-400 text-sm">No image</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="aspect-square w-full overflow-hidden rounded-2xl bg-gray-50 dark:bg-gray-900">
+    <div className="space-y-3">
+      {/* Main image — portrait 3:4 matches the shop card ratio */}
+      <div className="aspect-[3/4] w-full overflow-hidden rounded-2xl bg-gray-50">
         <img
           src={current.src}
           alt={title}
-          className="h-full w-full object-cover object-center transition-opacity duration-200"
+          className="h-full w-full object-cover object-top transition-opacity duration-200"
           loading="eager"
         />
       </div>
@@ -50,17 +57,17 @@ export function ImageGallery({ images, activeVariantIds, title }: ImageGalleryPr
               key={img.src}
               onClick={() => setActiveIndex(i)}
               className={cn(
-                'flex-shrink-0 h-16 w-16 overflow-hidden rounded-lg border-2 transition-all',
+                'flex-shrink-0 aspect-[3/4] w-[72px] overflow-hidden rounded-lg border-2 transition-all',
                 i === activeIndex
-                  ? 'border-gray-900 dark:border-white'
-                  : 'border-transparent opacity-60 hover:opacity-90',
+                  ? 'border-navy-800'
+                  : 'border-transparent opacity-50 hover:opacity-80',
               )}
               aria-label={`View image ${i + 1}`}
             >
               <img
                 src={img.src}
                 alt={`${title} ${i + 1}`}
-                className="h-full w-full object-cover object-center"
+                className="h-full w-full object-cover object-top"
                 loading="lazy"
               />
             </button>

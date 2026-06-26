@@ -6,7 +6,7 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "up-the-creek-orders"
-database_id = "placeholder-replace-with-id-from-wrangler-d1-create"
+database_id = "14104a69-04b7-4f59-af28-b661f8a39c3d"
 migrations_dir = "db/migrations"
 
 # Run: wrangler d1 create up-the-creek-orders
