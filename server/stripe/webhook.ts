@@ -111,11 +111,16 @@ async function processCompletedSession(
 
   await updateOrderStatus(env.DB, orderId, 'fulfillment_started');
 
-  // Stripe renamed 'shipping' → 'shipping_details' in newer API versions;
-  // fall back to the old field if the webhook endpoint is on an older version.
-  const shipping =
-    session.shipping_details ??
-    (session as unknown as Record<string, typeof session.shipping_details>)['shipping'];
+  // Stripe moved shipping across API versions:
+  //   < 2024-09-30: session.shipping / session.shipping_details
+  //   >= 2024-09-30: session.collected_information.shipping_details
+  const sessionAny = session as unknown as Record<string, unknown>;
+  type ShippingShape = { name?: string; address?: { country?: string; state?: string; line1?: string; line2?: string | null; city?: string; postal_code?: string } } | null;
+  const shipping: ShippingShape =
+    (sessionAny['collected_information'] as Record<string, ShippingShape> | undefined)?.['shipping_details'] ??
+    (session.shipping_details as ShippingShape) ??
+    (sessionAny['shipping'] as ShippingShape) ??
+    null;
 
   logger.info('Webhook shipping data', {
     sessionId,
