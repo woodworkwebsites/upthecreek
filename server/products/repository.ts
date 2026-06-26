@@ -61,6 +61,68 @@ export async function getAllProductsForAdmin(db: D1Database): Promise<Product[]>
   return (result.results ?? []).map(parseProduct);
 }
 
+export async function listProductPrintifyIds(db: D1Database): Promise<string[]> {
+  const result = await db
+    .prepare('SELECT printify_id FROM products')
+    .all<{ printify_id: string }>();
+
+  return (result.results ?? []).map((row) => row.printify_id);
+}
+
+export async function setProductsEnabledByPrintifyIds(
+  db: D1Database,
+  printifyIds: string[],
+  isEnabled: boolean,
+): Promise<number> {
+  if (printifyIds.length === 0) {
+    if (isEnabled) return 0;
+
+    const result = await db
+      .prepare('UPDATE products SET is_enabled = 0, updated_at = datetime(\'now\') WHERE is_enabled = 1')
+      .run();
+    return result.meta?.changes ?? 0;
+  }
+
+  const placeholders = printifyIds.map(() => '?').join(', ');
+  const result = await db
+    .prepare(`
+      UPDATE products
+      SET is_enabled = ?,
+          updated_at = datetime('now')
+      WHERE printify_id IN (${placeholders})
+    `)
+    .bind(isEnabled ? 1 : 0, ...printifyIds)
+    .run();
+
+  return result.meta?.changes ?? 0;
+}
+
+export async function disableProductsMissingFromPrintify(
+  db: D1Database,
+  printifyIds: string[],
+): Promise<number> {
+  if (printifyIds.length === 0) {
+    const result = await db
+      .prepare('UPDATE products SET is_enabled = 0, updated_at = datetime(\'now\') WHERE is_enabled = 1')
+      .run();
+    return result.meta?.changes ?? 0;
+  }
+
+  const placeholders = printifyIds.map(() => '?').join(', ');
+  const result = await db
+    .prepare(`
+      UPDATE products
+      SET is_enabled = 0,
+          updated_at = datetime('now')
+      WHERE printify_id NOT IN (${placeholders})
+        AND is_enabled = 1
+    `)
+    .bind(...printifyIds)
+    .run();
+
+  return result.meta?.changes ?? 0;
+}
+
 export interface UpsertProductData {
   id: string;
   printifyId: string;
@@ -98,6 +160,7 @@ export async function upsertProduct(
          min_price, max_price, is_enabled, synced_at, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'), datetime('now'))
       ON CONFLICT(printify_id) DO UPDATE SET
+        is_enabled  = 1,
         title       = excluded.title,
         description = excluded.description,
         category    = excluded.category,

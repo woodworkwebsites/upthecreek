@@ -9,5 +9,9 @@ database_name = "up-the-creek-orders"
 database_id = "2fc5d8b6-e3ec-4233-9009-597bfb9fd755"
 migrations_dir = "db/migrations"
 
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "up-the-creek"
+
 # Run: wrangler d1 create up-the-creek-orders
 # Then replace the database_id above with the returned ID.

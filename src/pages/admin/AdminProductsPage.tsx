@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Product } from '../../../types/index.js';
-import { adminFetchProducts, adminSyncProducts, adminUpdateProduct } from '../../lib/api.js';
+import { adminFetchProducts, adminSyncProducts, adminUpdateProduct, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -10,9 +10,22 @@ import { formatPriceRange, formatDate } from '../../lib/utils.js';
 function ProductCard({ product, token }: { product: Product; token: string }) {
   const img = product.images.find((i) => i.isDefault) ?? product.images[0];
   const [sizeGuideUrl, setSizeGuideUrl] = useState(product.sizeGuideImage ?? '');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setFilePreview(null);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(selectedFile);
+    setFilePreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [selectedFile]);
 
   async function handleSaveSizeGuide() {
     setSaving(true);
@@ -26,6 +39,28 @@ function ProductCard({ product, token }: { product: Product; token: string }) {
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUploadSizeGuide() {
+    if (!selectedFile) {
+      setSaveError('Choose an image first');
+      return;
+    }
+
+    setSaving(true);
+    setSaved(false);
+    setSaveError(null);
+    try {
+      const result = await adminUploadSizeGuideImage(token, product.printifyId, selectedFile);
+      setSizeGuideUrl(result.sizeGuideImage);
+      setSelectedFile(null);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setSaving(false);
     }
@@ -65,7 +100,38 @@ function ProductCard({ product, token }: { product: Product; token: string }) {
 
         {/* Size guide image */}
         <div className="pt-2 border-t border-gray-100 dark:border-gray-800 space-y-1.5">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Size guide image URL</p>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Upload size guide image</p>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 file:mr-3 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700"
+          />
+          {selectedFile && (
+            <div className="text-[11px] text-gray-500 dark:text-gray-400">
+              Selected: {selectedFile.name}
+            </div>
+          )}
+          {(filePreview || sizeGuideUrl) && (
+            <div className="rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-800">
+              <img
+                src={filePreview ?? sizeGuideUrl}
+                alt="Size guide preview"
+                className="w-full object-contain max-h-32"
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleUploadSizeGuide}
+              disabled={saving || !selectedFile}
+              className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
+            >
+              {saving ? 'Uploading…' : 'Upload & save'}
+            </button>
+            <span className="text-[11px] text-gray-400 dark:text-gray-500">Stored in R2</span>
+          </div>
+          <p className="pt-1 text-[11px] text-gray-400 dark:text-gray-500">Or paste a URL manually</p>
           <input
             type="url"
             value={sizeGuideUrl}
@@ -73,11 +139,6 @@ function ProductCard({ product, token }: { product: Product; token: string }) {
             placeholder="https://..."
             className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-navy-400 focus:outline-none"
           />
-          {sizeGuideUrl && (
-            <div className="rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-800">
-              <img src={sizeGuideUrl} alt="Size guide preview" className="w-full object-contain max-h-32" />
-            </div>
-          )}
           <div className="flex items-center gap-2">
             <button
               onClick={handleSaveSizeGuide}

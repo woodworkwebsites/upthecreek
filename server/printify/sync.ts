@@ -5,17 +5,23 @@ import type {
   PrintifyVariant,
   PrintifyColor,
 } from '../../types/index.js';
+import type { Env } from '../../types/env.js';
 import { listProducts } from './client.js';
-import { upsertProduct } from '../products/repository.js';
+import {
+  disableProductsMissingFromPrintify,
+  setProductsEnabledByPrintifyIds,
+  upsertProduct,
+} from '../products/repository.js';
 import { writeSyncLog } from '../orders/repository.js';
 import { logger } from '../logging.js';
+import { storeRemoteAsset } from '../assets/storage.js';
 
 function extractVariantIdFromUrl(src: string): number | null {
   const match = src.match(/images\.printify\.com\/mockup\/[^/]+\/(\d+)\//);
   return match ? parseInt(match[1], 10) : null;
 }
 
-function transformProduct(raw: PrintifyApiProduct): {
+async function transformProduct(raw: PrintifyApiProduct, env: Env): Promise<{
   id: string;
   printifyId: string;
   title: string;
@@ -27,7 +33,7 @@ function transformProduct(raw: PrintifyApiProduct): {
   sizes: string[];
   minPrice: number;
   maxPrice: number;
-} {
+}> {
   const colorOption = raw.options.find(
     (o) => o.name.toLowerCase().includes('color'),
   );
@@ -97,9 +103,9 @@ function transformProduct(raw: PrintifyApiProduct): {
     variantColorById.set(variant.id, variant.color);
   }
 
-  const publishedImages: PrintifyProductImage[] = raw.images
+  const publishedImages: PrintifyProductImage[] = await Promise.all(raw.images
     .filter((img) => img.is_selected_for_publishing)
-    .map((img) => {
+    .map(async (img) => {
       // Printify assigns all mockup images to "all variants" in the variantIds array,
       // but each mockup URL encodes the specific variant it was rendered for:
       //   https://images.printify.com/mockup/{blueprint}/{VARIANT_ID}/{placement}/...
@@ -110,13 +116,31 @@ function transformProduct(raw: PrintifyApiProduct): {
         variantIds
           .map((id) => variantColorById.get(id))
           .find((value): value is string => !!value) ?? undefined;
+      const stored = await storeRemoteAsset(
+        env.IMAGES,
+        env.SITE_URL,
+        img.src,
+        {
+          kind: 'product-image',
+          keyPrefix: `product-images/${raw.id}`,
+          keySeed: `${raw.id}:${img.src}:${variantIds.join(',')}:${img.is_default ? 'default' : 'alt'}`,
+          metadata: {
+            printifyId: raw.id,
+            variantIds: JSON.stringify(variantIds),
+            color: color ?? '',
+          },
+        },
+      );
       return {
-        src:        img.src,
+        src:        stored.url,
         isDefault:  img.is_default,
         variantIds,
         color,
+        assetKind:  'product-image' as const,
+        storageKey: stored.key,
+        sourceUrl:  img.src,
       };
-    });
+    }));
 
   const prices = variants.map((v) => v.price);
   const minPrice = prices.length ? Math.min(...prices) : 0;
@@ -155,6 +179,7 @@ export interface SyncResult {
 
 export async function syncProducts(
   db: D1Database,
+  env: Env,
   token: string,
   shopId: string,
 ): Promise<SyncResult> {
@@ -175,11 +200,13 @@ export async function syncProducts(
   logger.info(`Fetched ${rawProducts.length} products from Printify`);
 
   let synced = 0;
+  const syncedPrintifyIds: string[] = [];
 
   for (const raw of rawProducts) {
     try {
-      const transformed = transformProduct(raw);
+      const transformed = await transformProduct(raw, env);
       await upsertProduct(db, transformed);
+      syncedPrintifyIds.push(raw.id);
       synced++;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -187,6 +214,22 @@ export async function syncProducts(
       errors.push(`${raw.id}: ${message}`);
     }
   }
+
+  const reenabled = await setProductsEnabledByPrintifyIds(
+    db,
+    syncedPrintifyIds,
+    true,
+  );
+
+  const hidden = await disableProductsMissingFromPrintify(
+    db,
+    syncedPrintifyIds,
+  );
+
+  logger.info('Product enablement reconciled', {
+    reenabled,
+    hidden,
+  });
 
   logger.info('Product sync complete', { synced, errors: errors.length });
 

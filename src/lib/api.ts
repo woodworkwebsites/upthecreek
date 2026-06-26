@@ -87,6 +87,30 @@ export async function adminUpdateProduct(
   });
 }
 
+export async function adminUploadSizeGuideImage(
+  token: string,
+  printifyId: string,
+  file: File,
+): Promise<{ sizeGuideImage: string }> {
+  const form = new FormData();
+  form.append('file', file);
+
+  const res = await fetch(`/api/admin/products/${printifyId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: form,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
+
+  return res.json() as Promise<{ sizeGuideImage: string }>;
+}
+
 export async function adminSyncProducts(
   token: string,
 ): Promise<{ productsFound: number; productsSynced: number; errors: string[] }> {

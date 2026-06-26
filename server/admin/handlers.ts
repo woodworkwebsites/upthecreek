@@ -20,12 +20,14 @@ import { buildPrintifyPayload, fulfillOrder } from '../printify/orders.js';
 import { getEffectivePrintifyMode } from '../env.js';
 import { getAllSettings, setSetting, getSetting } from '../settings/repository.js';
 import { logger } from '../logging.js';
+import { storeAssetData } from '../assets/storage.js';
 
 export async function handleSyncProducts(env: Env): Promise<Response> {
   logger.info('Admin: triggering product sync');
   try {
     const result = await syncProducts(
       env.DB,
+      env,
       env.PRINTIFY_API_TOKEN,
       env.PRINTIFY_SHOP_ID,
     );
@@ -59,6 +61,47 @@ export async function handleUpdateProduct(
   printifyId: string,
   request: Request,
 ): Promise<Response> {
+  const contentType = request.headers.get('content-type') ?? '';
+
+  if (contentType.includes('multipart/form-data')) {
+    const form = await request.formData();
+    const file = form.get('file');
+
+    if (!(file instanceof File)) {
+      return json({ error: 'Missing file upload' }, 400);
+    }
+
+    if (file.size === 0) {
+      return json({ error: 'Uploaded file is empty' }, 400);
+    }
+
+    if (!file.type.startsWith('image/')) {
+      return json({ error: 'Size guide upload must be an image' }, 400);
+    }
+
+    const uploaded = await storeAssetData(
+      env.IMAGES,
+      new URL(request.url).origin,
+      await file.arrayBuffer(),
+      file.type,
+      {
+        kind: 'size-guide',
+        keyPrefix: `size-guides/${printifyId}`,
+        keySeed: `${printifyId}:${file.name}:${file.size}:${file.type}`,
+        sourceHint: file.name,
+        metadata: {
+          printifyId,
+        },
+      },
+    );
+
+    const sizeGuideImage = uploaded.url;
+    const updated = await updateSizeGuideImage(env.DB, printifyId, sizeGuideImage);
+    if (!updated) return json({ error: 'Product not found' }, 404);
+
+    return json({ success: true, sizeGuideImage });
+  }
+
   let body: { sizeGuideImage?: string | null };
   try {
     body = await request.json() as { sizeGuideImage?: string | null };
@@ -232,6 +275,7 @@ export async function handleTestOrderHandoff(
     return json({ error: message, orderId }, 500);
   }
 }
+
 
 export async function handleGetSettings(env: Env): Promise<Response> {
   const settings = await getAllSettings(env.DB);
