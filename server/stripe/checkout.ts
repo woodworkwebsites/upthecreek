@@ -77,7 +77,11 @@ export async function createCheckoutSession(
     qty: i.quantity,
   }));
 
-  logger.info('Creating Stripe checkout session', { itemCount: items.length });
+  logger.info('Creating Stripe checkout session', {
+    itemCount: items.length,
+    images: items.map((i) => i.images),
+    siteUrl,
+  });
 
   return stripe.checkout.sessions.create({
     payment_method_types: ['card'],
