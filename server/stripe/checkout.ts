@@ -59,7 +59,10 @@ export async function resolveLineItems(
       color:      variant.color,
       size:       variant.size,
       unitPrice:  variant.price,
-      images:     product.images.filter((i) => i.isDefault).map((i) => i.src).slice(0, 1),
+      images:     product.images
+        .filter((i) => i.isDefault && typeof i.src === 'string' && i.src.startsWith('https://'))
+        .map((i) => i.src)
+        .slice(0, 1),
     });
   }
 
