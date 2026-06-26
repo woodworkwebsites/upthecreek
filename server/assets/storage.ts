@@ -7,26 +7,8 @@ export interface StoredAsset {
   url: string;
 }
 
-export async function buildRemoteAssetReference(
-  siteUrl: string,
-  sourceUrl: string,
-  options: {
-    keyPrefix: string;
-    keySeed: string;
-  },
-): Promise<StoredAsset> {
-  const ext = extensionFromContentType('', sourceUrl);
-  const key = `${options.keyPrefix}/${await stableHash(`${options.keySeed}|${sourceUrl}`)}.${ext}`;
-
-  return {
-    key,
-    url: buildAssetUrl(siteUrl, key),
-  };
-}
-
 export async function storeRemoteAsset(
   bucket: R2Bucket,
-  siteUrl: string,
   sourceUrl: string,
   options: {
     kind: AssetKind;
@@ -56,13 +38,12 @@ export async function storeRemoteAsset(
 
   return {
     key,
-    url: buildAssetUrl(siteUrl, key),
+    url: buildAssetUrl(key),
   };
 }
 
 export async function storeAssetData(
   bucket: R2Bucket,
-  siteUrl: string,
   body: ArrayBuffer | Uint8Array,
   contentType: string,
   options: {
@@ -86,16 +67,12 @@ export async function storeAssetData(
 
   return {
     key,
-    url: buildAssetUrl(siteUrl, key),
+    url: buildAssetUrl(key),
   };
 }
 
-export function buildAssetUrl(siteUrl: string, key: string): string {
-  try {
-    return `${new URL(siteUrl).origin}/api/images/${encodeURIComponent(key)}`;
-  } catch {
-    return `/api/images/${encodeURIComponent(key)}`;
-  }
+export function buildAssetUrl(key: string): string {
+  return `/api/images/${encodeURIComponent(key)}`;
 }
 
 export async function serveAsset(bucket: R2Bucket, key: string): Promise<Response> {

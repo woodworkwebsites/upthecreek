@@ -26,7 +26,7 @@ export async function handleStripeWebhook(
 
   const rawBody = await request.text();
 
-  const { secretKey, webhookSecret } = getStripeKeys(env);
+  const { secretKey, webhookSecret } = getStripeKeys(request, env);
   const stripe = createStripeClient(secretKey);
 
   let event: Stripe.Event;
@@ -54,7 +54,7 @@ export async function handleStripeWebhook(
   const session = event.data.object as Stripe.Checkout.Session;
 
   try {
-    await processCompletedSession(session, env);
+    await processCompletedSession(session, request, env);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     logger.error('Webhook processing failed', { sessionId: session.id, error: message });
@@ -68,6 +68,7 @@ export async function handleStripeWebhook(
 
 async function processCompletedSession(
   session: Stripe.Checkout.Session,
+  request: Request,
   env: Env,
 ): Promise<void> {
   const sessionId = session.id;
@@ -90,7 +91,7 @@ async function processCompletedSession(
   }>;
 
   const liveEnabled = (await getSetting(env.DB, 'live_orders_enabled')) === 'true';
-  const mode = getEffectivePrintifyMode(env, liveEnabled);
+  const mode = getEffectivePrintifyMode(request, liveEnabled);
   const orderId = crypto.randomUUID();
 
   const customerEmail = session.customer_details?.email ?? session.customer_email ?? 'unknown';

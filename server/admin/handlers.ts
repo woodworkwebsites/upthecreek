@@ -109,7 +109,6 @@ export async function handleUpdateProduct(
 
     const uploaded = await storeAssetData(
       env.IMAGES,
-      new URL(request.url).origin,
       await file.arrayBuffer(),
       file.type,
       {
@@ -225,7 +224,7 @@ export async function handleTestOrderHandoff(
   if (!variant) return json({ error: `Variant not found: ${variantId}` }, 404);
 
   const liveEnabled = (await getSetting(env.DB, 'live_orders_enabled')) === 'true';
-  const mode = getEffectivePrintifyMode(env, liveEnabled);
+  const mode = getEffectivePrintifyMode(request, liveEnabled);
   const orderId = crypto.randomUUID();
   const fakeSessionId = `cs_test_${crypto.randomUUID().replace(/-/g, '').substring(0, 24)}`;
 
@@ -318,7 +317,7 @@ export async function handleUpdateSettings(env: Env, request: Request): Promise<
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  const allowed = ['live_orders_enabled', 'printify_mode'];
+  const allowed = ['live_orders_enabled'];
   for (const [key, value] of Object.entries(body)) {
     if (!allowed.includes(key)) return json({ error: `Unknown setting: ${key}` }, 400);
     await setSetting(env.DB, key, value);

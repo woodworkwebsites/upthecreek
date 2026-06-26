@@ -172,7 +172,6 @@ async function transformProduct(raw: PrintifyApiProduct, env: Env): Promise<{
   for (const image of core.images) {
     const stored = await storeRemoteAsset(
       env.IMAGES,
-      env.SITE_URL,
       image.src,
       {
         kind: 'product-image',

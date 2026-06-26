@@ -28,11 +28,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const { secretKey } = getStripeKeys(context.env);
+    const { secretKey } = getStripeKeys(context.request, context.env);
     const stripe = createStripeClient(secretKey);
     const resolved = await resolveLineItems(context.env.DB, items);
-    const siteUrl = getSiteUrl(context.request, context.env.SITE_URL);
-    const session  = await createCheckoutSession(stripe, resolved, siteUrl);
+    const session  = await createCheckoutSession(stripe, resolved, new URL(context.request.url).origin);
 
     logger.info('Checkout session created', { sessionId: session.id });
 
@@ -51,22 +50,4 @@ function json(data: unknown, status = 200): Response {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
-}
-
-function getSiteUrl(request: Request, configuredSiteUrl: string): string {
-  const requestOrigin = new URL(request.url).origin;
-  if (isValidAbsoluteUrl(configuredSiteUrl)) {
-    return configuredSiteUrl;
-  }
-
-  return requestOrigin;
-}
-
-function isValidAbsoluteUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return Boolean(url.protocol && url.host);
-  } catch {
-    return false;
-  }
 }
