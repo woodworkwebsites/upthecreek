@@ -6,7 +6,7 @@ import type {
   PrintifyColor,
 } from '../../types/index.js';
 import type { Env } from '../../types/env.js';
-import { listProducts } from './client.js';
+import { listProducts, listProductsPage } from './client.js';
 import {
   disableProductsMissingFromPrintify,
   setProductsEnabledByPrintifyIds,
@@ -21,19 +21,24 @@ function extractVariantIdFromUrl(src: string): number | null {
   return match ? parseInt(match[1], 10) : null;
 }
 
-async function transformProduct(raw: PrintifyApiProduct, env: Env): Promise<{
-  id: string;
-  printifyId: string;
+type ProductCore = {
   title: string;
   description: string;
   category: string;
-  images: PrintifyProductImage[];
+  images: Array<{
+    src: string;
+    isDefault: boolean;
+    variantIds: number[];
+    color?: string;
+  }>;
   variants: PrintifyVariant[];
   colors: PrintifyColor[];
   sizes: string[];
   minPrice: number;
   maxPrice: number;
-}> {
+};
+
+function buildProductCore(raw: PrintifyApiProduct): ProductCore {
   const colorOption = raw.options.find(
     (o) => o.name.toLowerCase().includes('color'),
   );
@@ -103,44 +108,23 @@ async function transformProduct(raw: PrintifyApiProduct, env: Env): Promise<{
     variantColorById.set(variant.id, variant.color);
   }
 
-  const publishedImages: PrintifyProductImage[] = await Promise.all(raw.images
-    .filter((img) => img.is_selected_for_publishing)
-    .map(async (img) => {
-      // Printify assigns all mockup images to "all variants" in the variantIds array,
-      // but each mockup URL encodes the specific variant it was rendered for:
-      //   https://images.printify.com/mockup/{blueprint}/{VARIANT_ID}/{placement}/...
-      // Extract that ID so we can surface the right colour image when a colour is selected.
+  const images = raw.images
+    .filter((image) => image.is_selected_for_publishing)
+    .map((img) => {
       const urlVariantId = extractVariantIdFromUrl(img.src);
       const variantIds = urlVariantId !== null ? [urlVariantId] : img.variant_ids;
       const color =
         variantIds
           .map((id) => variantColorById.get(id))
           .find((value): value is string => !!value) ?? undefined;
-      const stored = await storeRemoteAsset(
-        env.IMAGES,
-        env.SITE_URL,
-        img.src,
-        {
-          kind: 'product-image',
-          keyPrefix: `product-images/${raw.id}`,
-          keySeed: `${raw.id}:${img.src}:${variantIds.join(',')}:${img.is_default ? 'default' : 'alt'}`,
-          metadata: {
-            printifyId: raw.id,
-            variantIds: JSON.stringify(variantIds),
-            color: color ?? '',
-          },
-        },
-      );
+
       return {
-        src:        stored.url,
-        isDefault:  img.is_default,
+        src: img.src,
+        isDefault: img.is_default,
         variantIds,
         color,
-        assetKind:  'product-image' as const,
-        storageKey: stored.key,
-        sourceUrl:  img.src,
       };
-    }));
+    });
 
   const prices = variants.map((v) => v.price);
   const minPrice = prices.length ? Math.min(...prices) : 0;
@@ -157,12 +141,10 @@ async function transformProduct(raw: PrintifyApiProduct, env: Env): Promise<{
   });
 
   return {
-    id:          crypto.randomUUID(),
-    printifyId:  raw.id,
     title:       raw.title,
     description: raw.description,
     category:    'apparel',
-    images:      publishedImages,
+    images,
     variants,
     colors,
     sizes,
@@ -171,10 +153,321 @@ async function transformProduct(raw: PrintifyApiProduct, env: Env): Promise<{
   };
 }
 
+async function transformProduct(raw: PrintifyApiProduct, env: Env): Promise<{
+  id: string;
+  printifyId: string;
+  title: string;
+  description: string;
+  category: string;
+  images: PrintifyProductImage[];
+  variants: PrintifyVariant[];
+  colors: PrintifyColor[];
+  sizes: string[];
+  minPrice: number;
+  maxPrice: number;
+}> {
+  const core = buildProductCore(raw);
+  const publishedImages: PrintifyProductImage[] = [];
+
+  for (const image of core.images) {
+    const stored = await storeRemoteAsset(
+      env.IMAGES,
+      env.SITE_URL,
+      image.src,
+      {
+        kind: 'product-image',
+        keyPrefix: `product-images/${raw.id}`,
+        keySeed: `${raw.id}:${image.src}:${image.variantIds.join(',')}:${image.isDefault ? 'default' : 'alt'}`,
+        metadata: {
+          printifyId: raw.id,
+          variantIds: JSON.stringify(image.variantIds),
+          color: image.color ?? '',
+        },
+      },
+    );
+
+    publishedImages.push({
+      src: stored.url,
+      isDefault: image.isDefault,
+      variantIds: image.variantIds,
+      color: image.color,
+      assetKind: 'product-image' as const,
+      storageKey: stored.key,
+      sourceUrl: image.src,
+    });
+  }
+
+  return {
+    id:          crypto.randomUUID(),
+    printifyId:  raw.id,
+    title:       core.title,
+    description: core.description,
+    category:    core.category,
+    images:      publishedImages,
+    variants:    core.variants,
+    colors:      core.colors,
+    sizes:       core.sizes,
+    minPrice:    core.minPrice,
+    maxPrice:    core.maxPrice,
+  };
+}
+
 export interface SyncResult {
   productsFound: number;
   productsSynced: number;
+  productsUnchanged: number;
+  productsNew: number;
+  productsUpdated: number;
+  productsRemoved: number;
   errors: string[];
+  currentPage: number;
+  lastPage: number;
+  hasMore: boolean;
+  syncedPrintifyIds: string[];
+  seenPrintifyIds: string[];
+  changedProducts: Array<{
+    printifyId: string;
+    title: string;
+    status: 'new' | 'updated';
+  }>;
+  removedPrintifyIds: string[];
+}
+
+function normalizeImageSnapshot(image: PrintifyProductImage): {
+  sourceUrl: string;
+  isDefault: boolean;
+  variantIds: number[];
+  color?: string;
+} {
+  return {
+    sourceUrl: image.sourceUrl ?? image.src,
+    isDefault: image.isDefault,
+    variantIds: image.variantIds,
+    color: image.color,
+  };
+}
+
+function snapshotProduct(product: {
+  title: string;
+  description: string;
+  category: string;
+  images: Array<{
+    src: string;
+    isDefault: boolean;
+    variantIds: number[];
+    color?: string;
+  }>;
+  variants: PrintifyVariant[];
+  colors: PrintifyColor[];
+  sizes: string[];
+  minPrice: number;
+  maxPrice: number;
+}): string {
+  return JSON.stringify({
+    title: product.title,
+    description: product.description,
+    category: product.category,
+    images: product.images.map(normalizeImageSnapshot),
+    variants: product.variants,
+    colors: product.colors,
+    sizes: product.sizes,
+    minPrice: product.minPrice,
+    maxPrice: product.maxPrice,
+  });
+}
+
+export function previewProduct(raw: PrintifyApiProduct) {
+  return buildProductCore(raw);
+}
+
+async function syncProductsPage(
+  db: D1Database,
+  env: Env,
+  token: string,
+  shopId: string,
+  page: number,
+  limit: number,
+): Promise<SyncResult> {
+  const errors: string[] = [];
+
+  logger.info('Starting product sync page from Printify', { page, limit });
+
+  const response = await listProductsPage(token, shopId, page, limit);
+  const rawProducts = response.data ?? [];
+
+  logger.info(`Fetched ${rawProducts.length} products from Printify`, {
+    page: response.current_page,
+    lastPage: response.last_page,
+  });
+
+  let synced = 0;
+  let unchanged = 0;
+  let newCount = 0;
+  let updatedCount = 0;
+  const syncedPrintifyIds: string[] = [];
+  const seenPrintifyIds = rawProducts.map((raw) => raw.id);
+  const changedProducts: Array<{ printifyId: string; title: string; status: 'new' | 'updated' }> = [];
+
+  for (const raw of rawProducts) {
+    try {
+      const existing = await db
+        .prepare('SELECT * FROM products WHERE printify_id = ?')
+        .bind(raw.id)
+        .first<import('../../types/index.js').ProductRow>();
+      const core = buildProductCore(raw);
+      const transformedSnapshot = snapshotProduct(core);
+      const existingSnapshot = existing ? snapshotProduct({
+        title: existing.title,
+        description: existing.description,
+        category: existing.category,
+        images: JSON.parse(existing.images) as PrintifyProductImage[],
+        variants: JSON.parse(existing.variants) as PrintifyVariant[],
+        colors: JSON.parse(existing.colors) as PrintifyColor[],
+        sizes: JSON.parse(existing.sizes) as string[],
+        minPrice: existing.min_price,
+        maxPrice: existing.max_price,
+      }) : null;
+
+      if (existingSnapshot === transformedSnapshot) {
+        unchanged++;
+        continue;
+      }
+
+      const transformed = await transformProduct(raw, env);
+      await upsertProduct(db, transformed);
+      syncedPrintifyIds.push(raw.id);
+      synced++;
+      if (existing) {
+        updatedCount++;
+        changedProducts.push({ printifyId: raw.id, title: raw.title, status: 'updated' });
+      } else {
+        newCount++;
+        changedProducts.push({ printifyId: raw.id, title: raw.title, status: 'new' });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`Failed to sync product ${raw.id}`, { error: message });
+      errors.push(`${raw.id}: ${message}`);
+    }
+  }
+
+  await writeSyncLog(
+    db,
+    errors.length === 0 ? 'success' : 'error',
+    synced,
+    errors.length > 0 ? errors.join('; ') : null,
+  );
+
+  return {
+    productsFound: rawProducts.length,
+    productsSynced: synced,
+    productsUnchanged: unchanged,
+    productsNew: newCount,
+    productsUpdated: updatedCount,
+    productsRemoved: 0,
+    errors,
+    currentPage: response.current_page,
+    lastPage: response.last_page,
+    hasMore: response.current_page < response.last_page,
+    syncedPrintifyIds,
+    seenPrintifyIds,
+    changedProducts,
+    removedPrintifyIds: [],
+  };
+}
+
+export async function previewPrintifySync(
+  db: D1Database,
+  _env: Env,
+  token: string,
+  shopId: string,
+): Promise<{
+  productsFound: number;
+  newProducts: Array<{ printifyId: string; title: string }>;
+  updatedProducts: Array<{ printifyId: string; title: string }>;
+  removedProducts: Array<{ printifyId: string; title: string }>;
+}> {
+  const rawProducts = await listProducts(token, shopId);
+  const existingRows = await db.prepare('SELECT * FROM products').all<import('../../types/index.js').ProductRow>();
+  const existingByPrintifyId = new Map(
+    (existingRows.results ?? []).map((row) => [row.printify_id, row]),
+  );
+
+  const newProducts: Array<{ printifyId: string; title: string }> = [];
+  const updatedProducts: Array<{ printifyId: string; title: string }> = [];
+  const seen = new Set<string>();
+
+  for (const raw of rawProducts) {
+    seen.add(raw.id);
+    const core = buildProductCore(raw);
+    const existing = existingByPrintifyId.get(raw.id);
+    const transformedSnapshot = snapshotProduct(core);
+    const existingSnapshot = existing ? snapshotProduct({
+      title: existing.title,
+      description: existing.description,
+      category: existing.category,
+      images: JSON.parse(existing.images) as PrintifyProductImage[],
+      variants: JSON.parse(existing.variants) as PrintifyVariant[],
+      colors: JSON.parse(existing.colors) as PrintifyColor[],
+      sizes: JSON.parse(existing.sizes) as string[],
+      minPrice: existing.min_price,
+      maxPrice: existing.max_price,
+    }) : null;
+
+    if (!existing) {
+      newProducts.push({ printifyId: raw.id, title: raw.title });
+      continue;
+    }
+
+    if (existingSnapshot !== transformedSnapshot) {
+      updatedProducts.push({ printifyId: raw.id, title: raw.title });
+    }
+  }
+
+  const removedProducts = (existingRows.results ?? [])
+    .filter((row) => !seen.has(row.printify_id))
+    .map((row) => ({ printifyId: row.printify_id, title: row.title }));
+
+  return {
+    productsFound: rawProducts.length,
+    newProducts,
+    updatedProducts,
+    removedProducts,
+  };
+}
+
+export async function syncProductsPageByPage(
+  db: D1Database,
+  env: Env,
+  token: string,
+  shopId: string,
+  page = 1,
+  limit = 1,
+): Promise<SyncResult> {
+  return syncProductsPage(db, env, token, shopId, page, limit);
+}
+
+export async function reconcileSyncedProducts(
+  db: D1Database,
+  syncedPrintifyIds: string[],
+): Promise<{ reenabled: number; hidden: number }> {
+  const reenabled = await setProductsEnabledByPrintifyIds(
+    db,
+    syncedPrintifyIds,
+    true,
+  );
+
+  const hidden = await disableProductsMissingFromPrintify(
+    db,
+    syncedPrintifyIds,
+  );
+
+  logger.info('Product enablement reconciled', {
+    reenabled,
+    hidden,
+  });
+
+  return { reenabled, hidden };
 }
 
 export async function syncProducts(
@@ -215,22 +508,6 @@ export async function syncProducts(
     }
   }
 
-  const reenabled = await setProductsEnabledByPrintifyIds(
-    db,
-    syncedPrintifyIds,
-    true,
-  );
-
-  const hidden = await disableProductsMissingFromPrintify(
-    db,
-    syncedPrintifyIds,
-  );
-
-  logger.info('Product enablement reconciled', {
-    reenabled,
-    hidden,
-  });
-
   logger.info('Product sync complete', { synced, errors: errors.length });
 
   await writeSyncLog(
@@ -244,5 +521,9 @@ export async function syncProducts(
     productsFound: rawProducts.length,
     productsSynced: synced,
     errors,
+    currentPage: 1,
+    lastPage: 1,
+    hasMore: false,
+    syncedPrintifyIds,
   };
 }

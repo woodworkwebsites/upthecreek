@@ -15,21 +15,49 @@ import {
 } from '../orders/repository.js';
 import { getAllProductsForAdmin, updateSizeGuideImage } from '../products/repository.js';
 import { getProductByPrintifyId } from '../products/repository.js';
-import { syncProducts } from '../printify/sync.js';
+import { previewPrintifySync, reconcileSyncedProducts, syncProductsPageByPage } from '../printify/sync.js';
 import { buildPrintifyPayload, fulfillOrder } from '../printify/orders.js';
 import { getEffectivePrintifyMode } from '../env.js';
 import { getAllSettings, setSetting, getSetting } from '../settings/repository.js';
 import { logger } from '../logging.js';
 import { storeAssetData } from '../assets/storage.js';
 
-export async function handleSyncProducts(env: Env): Promise<Response> {
+type SyncProductsRequest = {
+  preview?: boolean;
+  page?: number;
+  limit?: number;
+  finalize?: boolean;
+  syncedPrintifyIds?: string[];
+};
+
+export async function handleSyncProducts(env: Env, request: Request): Promise<Response> {
   logger.info('Admin: triggering product sync');
   try {
-    const result = await syncProducts(
+    const body = await request.json().catch(() => ({})) as SyncProductsRequest;
+
+    if (body.finalize) {
+      const syncedPrintifyIds = body.syncedPrintifyIds ?? [];
+      const result = await reconcileSyncedProducts(env.DB, syncedPrintifyIds);
+      return json({ success: true, finalized: true, ...result });
+    }
+
+    if (body.preview) {
+      const result = await previewPrintifySync(
+        env.DB,
+        env,
+        env.PRINTIFY_API_TOKEN,
+        env.PRINTIFY_SHOP_ID,
+      );
+      return json({ success: true, preview: true, ...result });
+    }
+
+    const result = await syncProductsPageByPage(
       env.DB,
       env,
       env.PRINTIFY_API_TOKEN,
       env.PRINTIFY_SHOP_ID,
+      body.page ?? 1,
+      body.limit ?? 1,
     );
     return json({ success: true, ...result });
   } catch (err) {

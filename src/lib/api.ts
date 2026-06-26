@@ -113,8 +113,33 @@ export async function adminUploadSizeGuideImage(
 
 export async function adminSyncProducts(
   token: string,
-): Promise<{ productsFound: number; productsSynced: number; errors: string[] }> {
-  return adminFetch('/api/admin/sync-products', token, { method: 'POST' });
+  body: { preview?: boolean; page?: number; limit?: number; finalize?: boolean; syncedPrintifyIds?: string[] } = {},
+): Promise<{
+  success: boolean;
+  preview?: boolean;
+  productsFound?: number;
+  productsSynced?: number;
+  productsUnchanged?: number;
+  productsNew?: number;
+  productsUpdated?: number;
+  productsRemoved?: number;
+  errors?: string[];
+  currentPage?: number;
+  lastPage?: number;
+  hasMore?: boolean;
+  syncedPrintifyIds?: string[];
+  seenPrintifyIds?: string[];
+  finalized?: boolean;
+  reenabled?: number;
+  hidden?: number;
+  newProducts?: Array<{ printifyId: string; title: string }>;
+  updatedProducts?: Array<{ printifyId: string; title: string }>;
+  removedProducts?: Array<{ printifyId: string; title: string }>;
+}> {
+  return adminFetch('/api/admin/sync-products', token, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 
 export async function adminGetSettings(token: string): Promise<Record<string, string>> {

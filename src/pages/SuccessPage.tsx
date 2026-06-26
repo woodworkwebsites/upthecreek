@@ -28,7 +28,7 @@ export default function SuccessPage() {
           <div className="flex h-16 items-center">
           <Link to="/">
             <img
-              src="/UTC-Wear-White.png"
+              src="/UTC-Apparel-Black.png"
               alt="Up the Creek Padel"
               className="h-9 w-auto object-contain"
             />

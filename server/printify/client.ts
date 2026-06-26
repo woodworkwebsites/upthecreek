@@ -51,6 +51,26 @@ export async function listProducts(
   return all;
 }
 
+export async function listProductsPage(
+  token: string,
+  shopId: string,
+  page: number,
+  limit = 1,
+): Promise<{
+  data: PrintifyApiProduct[];
+  last_page: number;
+  current_page: number;
+}> {
+  return printifyFetch<{
+    data: PrintifyApiProduct[];
+    last_page: number;
+    current_page: number;
+  }>(
+    token,
+    `/shops/${shopId}/products.json?limit=${limit}&page=${page}`,
+  );
+}
+
 export async function getProduct(
   token: string,
   shopId: string,

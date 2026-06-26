@@ -166,6 +166,13 @@ export default function AdminProductsPage() {
   const [syncing,  setSyncing]  = useState(false);
   const [syncMsg,  setSyncMsg]  = useState<string | null>(null);
   const [error,    setError]    = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    productsFound: number;
+    newProducts: Array<{ printifyId: string; title: string }>;
+    updatedProducts: Array<{ printifyId: string; title: string }>;
+    removedProducts: Array<{ printifyId: string; title: string }>;
+  } | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -183,19 +190,72 @@ export default function AdminProductsPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  async function handleSync() {
+  async function handleApproveSync() {
+    if (!token) return;
+    if (!previewData) return;
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const seenPrintifyIds: string[] = [];
+      let page = 1;
+      let productsFound = 0;
+      let productsSynced = 0;
+      let productsUnchanged = 0;
+      let productsNew = 0;
+      let productsUpdated = 0;
+      let productsRemoved = previewData.removedProducts.length;
+      const errors: string[] = [];
+
+      while (true) {
+        const result = await adminSyncProducts(token, { page, limit: 1 });
+        productsFound += result.productsFound ?? 0;
+        productsSynced += result.productsSynced ?? 0;
+        productsUnchanged += result.productsUnchanged ?? 0;
+        productsNew += result.productsNew ?? 0;
+        productsUpdated += result.productsUpdated ?? 0;
+        productsRemoved += result.productsRemoved ?? 0;
+        errors.push(...(result.errors ?? []));
+        seenPrintifyIds.push(...(result.seenPrintifyIds ?? []));
+
+        if (!result.hasMore) break;
+        page = (result.currentPage ?? page) + 1;
+      }
+
+      await adminSyncProducts(token, {
+        finalize: true,
+        syncedPrintifyIds: seenPrintifyIds,
+      });
+
+      setSyncMsg(
+        `Synced ${productsSynced} of ${productsFound} products.` +
+        ` New: ${productsNew}, updated: ${productsUpdated}, unchanged: ${productsUnchanged}, removed: ${productsRemoved}.` +
+        (errors.length > 0 ? ` Errors: ${errors.join(', ')}` : ''),
+      );
+      setPreviewOpen(false);
+      setPreviewData(null);
+      await load();
+    } catch (err) {
+      setSyncMsg(`Sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handlePreviewSync() {
     if (!token) return;
     setSyncing(true);
     setSyncMsg(null);
     try {
-      const result = await adminSyncProducts(token);
-      setSyncMsg(
-        `Synced ${result.productsSynced} of ${result.productsFound} products.` +
-        (result.errors.length > 0 ? ` Errors: ${result.errors.join(', ')}` : ''),
-      );
-      await load();
+      const result = await adminSyncProducts(token, { preview: true });
+      setPreviewData({
+        productsFound: result.productsFound ?? 0,
+        newProducts: result.newProducts ?? [],
+        updatedProducts: result.updatedProducts ?? [],
+        removedProducts: result.removedProducts ?? [],
+      });
+      setPreviewOpen(true);
     } catch (err) {
-      setSyncMsg(`Sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setSyncMsg(`Preview failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setSyncing(false);
     }
@@ -211,7 +271,7 @@ export default function AdminProductsPage() {
           variant="secondary"
           size="sm"
           loading={syncing}
-          onClick={handleSync}
+          onClick={handlePreviewSync}
         >
           Sync from Printify
         </Button>
@@ -234,7 +294,7 @@ export default function AdminProductsPage() {
       ) : products.length === 0 ? (
         <div className="rounded-2xl border border-gray-100 dark:border-gray-800 py-16 text-center">
           <p className="text-gray-500 dark:text-gray-400 mb-3">No products cached yet.</p>
-          <Button variant="secondary" size="sm" loading={syncing} onClick={handleSync}>
+          <Button variant="secondary" size="sm" loading={syncing} onClick={handlePreviewSync}>
             Sync now
           </Button>
         </div>
@@ -243,6 +303,90 @@ export default function AdminProductsPage() {
           {products.map((product) => (
             <ProductCard key={product.id} product={product} token={token!} />
           ))}
+        </div>
+      )}
+
+      {previewOpen && previewData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Approve sync changes</h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Printify returned {previewData.productsFound} products. Import the delta into R2 and D1?
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+                <div className="text-xs uppercase tracking-wide text-gray-500">New</div>
+                <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">{previewData.newProducts.length}</div>
+              </div>
+              <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+                <div className="text-xs uppercase tracking-wide text-gray-500">Updated</div>
+                <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">{previewData.updatedProducts.length}</div>
+              </div>
+              <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+                <div className="text-xs uppercase tracking-wide text-gray-500">Removed</div>
+                <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">{previewData.removedProducts.length}</div>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">New products</h3>
+                <div className="max-h-56 space-y-2 overflow-auto rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+                  {previewData.newProducts.length === 0 ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">None</p>
+                  ) : previewData.newProducts.map((product) => (
+                    <div key={product.printifyId} className="text-sm text-gray-700 dark:text-gray-300">
+                      {product.title}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Updated products</h3>
+                <div className="max-h-56 space-y-2 overflow-auto rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+                  {previewData.updatedProducts.length === 0 ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">None</p>
+                  ) : previewData.updatedProducts.map((product) => (
+                    <div key={product.printifyId} className="text-sm text-gray-700 dark:text-gray-300">
+                      {product.title}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Removed products</h3>
+              <div className="max-h-40 space-y-2 overflow-auto rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+                {previewData.removedProducts.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">None</p>
+                ) : previewData.removedProducts.map((product) => (
+                  <div key={product.printifyId} className="text-sm text-gray-700 dark:text-gray-300">
+                    {product.title}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setPreviewOpen(false);
+                  setPreviewData(null);
+                }}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <Button loading={syncing} onClick={handleApproveSync}>
+                Approve import
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
