@@ -10,7 +10,7 @@ import {
 } from '../orders/repository.js';
 import { getProductByPrintifyId } from '../products/repository.js';
 import { buildPrintifyPayload, fulfillOrder } from '../printify/orders.js';
-import { getEffectivePrintifyMode } from '../env.js';
+import { getEffectivePrintifyMode, getStripeKeys } from '../env.js';
 import { getSetting } from '../settings/repository.js';
 import { logger } from '../logging.js';
 
@@ -26,14 +26,15 @@ export async function handleStripeWebhook(
 
   const rawBody = await request.text();
 
-  const stripe = createStripeClient(env.STRIPE_SECRET_KEY);
+  const { secretKey, webhookSecret } = getStripeKeys(env);
+  const stripe = createStripeClient(secretKey);
 
   let event: Stripe.Event;
   try {
     event = await stripe.webhooks.constructEventAsync(
       rawBody,
       signature,
-      env.STRIPE_WEBHOOK_SECRET,
+      webhookSecret,
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

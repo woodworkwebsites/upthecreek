@@ -10,8 +10,10 @@ export class EnvError extends Error {
 
 export function validateEnv(env: Env): void {
   const required: (keyof Env)[] = [
-    'STRIPE_SECRET_KEY',
-    'STRIPE_WEBHOOK_SECRET',
+    'STRIPE_SECRET_KEY_TEST',
+    'STRIPE_SECRET_KEY_LIVE',
+    'STRIPE_WEBHOOK_SECRET_TEST',
+    'STRIPE_WEBHOOK_SECRET_LIVE',
     'PRINTIFY_API_TOKEN',
     'PRINTIFY_SHOP_ID',
     'ADMIN_TOKEN',
@@ -24,6 +26,17 @@ export function validateEnv(env: Env): void {
       throw new EnvError(`Missing required environment variable: ${key}`);
     }
   }
+}
+
+export function getStripeKeys(env: Env): {
+  secretKey: string;
+  webhookSecret: string;
+} {
+  const isProduction = env.ENVIRONMENT === 'production';
+  return {
+    secretKey:     isProduction ? env.STRIPE_SECRET_KEY_LIVE     : env.STRIPE_SECRET_KEY_TEST,
+    webhookSecret: isProduction ? env.STRIPE_WEBHOOK_SECRET_LIVE : env.STRIPE_WEBHOOK_SECRET_TEST,
+  };
 }
 
 export function getEffectivePrintifyMode(
