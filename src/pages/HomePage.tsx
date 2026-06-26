@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useProducts } from '../hooks/useProducts.js';
 import { ProductGrid } from '../components/product/ProductGrid.js';
 import { PageLoader } from '../components/ui/LoadingSpinner.js';
@@ -16,38 +15,21 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-cream">
 
-      {/* ── Sticky header ───────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <Link to="/" className="flex items-center">
-              <img
-                src="/Up The Creek_Blue_Wordmark.svg"
-                alt="Up the Creek Padel"
-                className="h-9 w-auto object-contain"
-              />
-            </Link>
-            <a
-              href="#collection"
-              className="text-xs font-bold tracking-widest uppercase text-navy-800 hover:text-brand-500 transition-colors"
-            >
-              Shop
-            </a>
-          </div>
-        </div>
-      </header>
-
       {/* ── Hero ────────────────────────────────────────────────── */}
-      <section className="relative bg-navy-800 min-h-[92vh] flex flex-col items-center justify-center text-center overflow-hidden px-4">
+      <section className="relative bg-navy-900 min-h-screen flex flex-col items-center justify-center text-center overflow-hidden">
 
-        {/* dot-grid texture */}
-        <div
-          className="absolute inset-0 opacity-[0.035] pointer-events-none"
-          style={{
-            backgroundImage: 'radial-gradient(circle, white 1.5px, transparent 1.5px)',
-            backgroundSize: '28px 28px',
-          }}
+        {/* background video — object-top keeps the top of the shot in frame */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 h-full w-full object-cover object-top"
+          src="/UTCBGVid (1).mp4"
         />
+
+        {/* dark overlay */}
+        <div className="absolute inset-0 bg-navy-900/65" />
 
         {/* corner brackets */}
         <div className="absolute inset-6 pointer-events-none hidden sm:block">
@@ -57,47 +39,33 @@ export default function HomePage() {
           <div className="absolute bottom-0 right-0 w-12 h-12 border-r-2 border-b-2 border-white/10" />
         </div>
 
-        {/* content */}
-        <div className="relative flex flex-col items-center gap-6 max-w-3xl animate-fade-up">
-
-          {/* wordmark */}
+        {/* content — logo + single line of copy only */}
+        <div className="relative flex flex-col items-center gap-5 w-full animate-fade-up">
           <img
             src="/UTC_WordMark_White_Trans_BG.png"
             alt="Up the Creek Padel"
-            className="h-140 sm:h-120 w-auto mx-auto"
+            className="w-full h-auto"
           />
-
-          {/* headline */}
-          <h1 className="text-5xl sm:text-6xl lg:text-[5.5rem] font-black text-white leading-[0.92] tracking-tight">
-            Padel Gear with something to say
-          </h1>
-
-          <p className="text-base sm:text-lg text-white/55 max-w-md leading-relaxed">
-            Original T-shirts for players who understand the game, the culture and the chaos that comes with both.
+          <p className="text-sm sm:text-base text-white/50 tracking-wide leading-relaxed max-w-md px-4">
+            Original T-shirts for life inside and outside the glass.
           </p>
-
         </div>
 
-        {/* scroll cue — animated chevron pointing down */}
+        {/* scroll cue */}
         <a
           href="#collection"
           aria-label="Scroll to collection"
           className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/30 hover:text-white/60 transition-colors"
         >
           <span className="text-[10px] tracking-widest uppercase font-bold">Explore</span>
-          <svg
-            className="h-6 w-6 animate-bounce"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="h-6 w-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </a>
       </section>
 
       {/* ── Collection ──────────────────────────────────────────── */}
-      <section id="collection" className="scroll-mt-16">
+      <section id="collection" className="scroll-mt-0">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
 
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-14">
