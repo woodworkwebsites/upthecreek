@@ -36,11 +36,11 @@ function isProductionHost(request: Request): boolean {
   );
 }
 
-export function getStripeKeys(request: Request, env: Env): {
+export function getStripeKeys(request: Request, env: Env, forceTestMode = false): {
   secretKey: string;
   webhookSecret: string;
 } {
-  const isProduction = isProductionHost(request);
+  const isProduction = !forceTestMode && isProductionHost(request);
   return {
     secretKey:     isProduction ? env.STRIPE_SECRET_KEY_LIVE     : env.STRIPE_SECRET_KEY_TEST,
     webhookSecret: isProduction ? env.STRIPE_WEBHOOK_SECRET_LIVE : env.STRIPE_WEBHOOK_SECRET_TEST,

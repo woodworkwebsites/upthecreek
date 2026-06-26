@@ -6,6 +6,7 @@ import {
   createCheckoutSession,
 } from '../../../server/stripe/checkout.js';
 import { getStripeKeys } from '../../../server/env.js';
+import { getSetting } from '../../../server/settings/repository.js';
 import { logger } from '../../../server/logging.js';
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -28,7 +29,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const { secretKey } = getStripeKeys(context.request, context.env);
+    const stripeTestMode = (await getSetting(context.env.DB, 'stripe_test_mode')) === 'true';
+    const { secretKey } = getStripeKeys(context.request, context.env, stripeTestMode);
     const stripe = createStripeClient(secretKey);
     const resolved = await resolveLineItems(context.env.DB, items);
     const session  = await createCheckoutSession(stripe, resolved, new URL(context.request.url).origin);

@@ -26,7 +26,8 @@ export async function handleStripeWebhook(
 
   const rawBody = await request.text();
 
-  const { secretKey, webhookSecret } = getStripeKeys(request, env);
+  const stripeTestMode = (await getSetting(env.DB, 'stripe_test_mode')) === 'true';
+  const { secretKey, webhookSecret } = getStripeKeys(request, env, stripeTestMode);
   const stripe = createStripeClient(secretKey);
 
   let event: Stripe.Event;
