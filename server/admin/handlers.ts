@@ -317,7 +317,7 @@ export async function handleUpdateSettings(env: Env, request: Request): Promise<
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  const allowed = ['live_orders_enabled'];
+  const allowed = ['live_orders_enabled', 'stripe_test_mode'];
   for (const [key, value] of Object.entries(body)) {
     if (!allowed.includes(key)) return json({ error: `Unknown setting: ${key}` }, 400);
     await setSetting(env.DB, key, value);
