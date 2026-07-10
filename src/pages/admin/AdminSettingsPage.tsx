@@ -84,31 +84,53 @@ export default function AdminSettingsPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-1">
+          <div className="grid grid-cols-2 gap-1">
           <button
             onClick={() => handleSetFulfillmentProvider('printify')}
             disabled={saving}
-            className={`rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-50 ${
+            aria-pressed={fulfillmentProvider === 'printify'}
+            className={`rounded-xl border px-4 py-4 text-left transition-all disabled:opacity-50 ${
               fulfillmentProvider === 'printify'
-                ? 'border-navy-800 bg-navy-800/5 dark:border-navy-400 dark:bg-navy-400/10'
-                : 'border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                ? 'border-navy-800 bg-navy-800 text-white shadow-lg shadow-navy-900/20 ring-2 ring-navy-800 ring-offset-2 ring-offset-gray-50 dark:ring-offset-gray-800/40'
+                : 'border-transparent bg-white/80 text-gray-700 hover:bg-white dark:bg-gray-900/80 dark:text-gray-300 dark:hover:bg-gray-900'
             }`}
           >
-            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Printify</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Automatic order submission</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-black">Printify</p>
+              {fulfillmentProvider === 'printify' && (
+                <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
+                  Selected
+                </span>
+              )}
+            </div>
+            <p className={`mt-1 text-xs font-medium ${fulfillmentProvider === 'printify' ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+              Automatic order submission
+            </p>
           </button>
           <button
             onClick={() => handleSetFulfillmentProvider('manual')}
             disabled={saving}
-            className={`rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-50 ${
+            aria-pressed={fulfillmentProvider === 'manual'}
+            className={`rounded-xl border px-4 py-4 text-left transition-all disabled:opacity-50 ${
               fulfillmentProvider === 'manual'
-                ? 'border-navy-800 bg-navy-800/5 dark:border-navy-400 dark:bg-navy-400/10'
-                : 'border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                ? 'border-emerald-700 bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 ring-2 ring-emerald-600 ring-offset-2 ring-offset-gray-50 dark:ring-offset-gray-800/40'
+                : 'border-transparent bg-white/80 text-gray-700 hover:bg-white dark:bg-gray-900/80 dark:text-gray-300 dark:hover:bg-gray-900'
             }`}
           >
-            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Manual</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">SellShirts — dispatch yourself</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-black">Manual</p>
+              {fulfillmentProvider === 'manual' && (
+                <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
+                  Selected
+                </span>
+              )}
+            </div>
+            <p className={`mt-1 text-xs font-medium ${fulfillmentProvider === 'manual' ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+              SellShirts - dispatch yourself
+            </p>
           </button>
+        </div>
         </div>
       </div>
 
