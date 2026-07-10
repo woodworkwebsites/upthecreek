@@ -89,6 +89,13 @@ export async function serveAsset(bucket: R2Bucket, key: string): Promise<Respons
   });
 }
 
+export async function deleteAsset(bucket: R2Bucket, key: string): Promise<boolean> {
+  const existing = await bucket.get(key);
+  if (!existing) return false;
+  await bucket.delete(key);
+  return true;
+}
+
 function extensionFromContentType(contentType: string, sourceUrl: string): string {
   if (contentType.includes('png')) return 'png';
   if (contentType.includes('jpeg') || contentType.includes('jpg')) return 'jpg';

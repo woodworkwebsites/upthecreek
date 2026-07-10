@@ -5,6 +5,7 @@ import type {
   PrintifyProductImage,
   PrintifyVariant,
   PrintifyColor,
+  PricingMatrixRow,
 } from '../../types/index.js';
 import { deriveProductAggregates } from './aggregates.js';
 
@@ -15,6 +16,16 @@ function parseJsonArray<T>(value: string | null | undefined): T[] {
     return Array.isArray(parsed) ? parsed as T[] : [];
   } catch {
     return [];
+  }
+}
+
+function parseJsonObject<T>(value: string | null | undefined): T | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed as T : null;
+  } catch {
+    return null;
   }
 }
 
@@ -34,10 +45,13 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const rawImages = parseJsonArray<PrintifyProductImage>(row.images);
   const rawVariants = parseJsonArray<PrintifyVariant>(row.variants);
   const rawColors = parseJsonArray<PrintifyColor>(row.colors);
+  const rawCustomColors = parseJsonArray<PrintifyColor>(row.custom_colors);
+  const pricingMatrix = parseJsonObject<PricingMatrixRow>(row.pricing_matrix);
 
   const colors = view === 'admin'
     ? rawColors
     : rawColors.filter((color) => !hiddenColorSet.has(color.name));
+  const customColors = rawCustomColors;
 
   const variants = view === 'admin'
     ? rawVariants
@@ -70,9 +84,11 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     audience:       row.audience,
     productType:    row.product_type,
     garment:        row.garment,
+    pricingMatrix,
     images,
     variants,
     colors,
+    customColors,
     hiddenColors,
     sizes:          aggregates.sizes,
     minPrice:       aggregates.minPrice,
@@ -189,9 +205,11 @@ export interface UpsertProductData {
   audience: string;
   productType: string;
   garment: string;
+  pricingMatrix?: PricingMatrixRow | null;
   images: PrintifyProductImage[];
   variants: PrintifyVariant[];
   colors: PrintifyColor[];
+  customColors?: PrintifyColor[];
   hiddenColors?: string[];
   sizes: string[];
   minPrice: number;
@@ -252,6 +270,7 @@ export interface UpdateProductFields {
   audience?: string;
   productType?: string;
   garment?: string;
+  customColors?: PrintifyColor[];
   isEnabled?: boolean;
   sizeGuideImage?: string | null;
   hiddenColors?: string[];
@@ -295,6 +314,16 @@ export async function updateProductFields(
     values.push(fields.garment);
   }
 
+  if (fields.pricingMatrix !== undefined) {
+    sets.push('pricing_matrix = ?');
+    values.push(JSON.stringify(fields.pricingMatrix));
+  }
+
+  if (fields.customColors !== undefined) {
+    sets.push('custom_colors = ?');
+    values.push(JSON.stringify(fields.customColors));
+  }
+
   if (fields.isEnabled !== undefined) {
     sets.push('is_enabled = ?');
     values.push(fields.isEnabled ? 1 : 0);
@@ -327,14 +356,15 @@ export async function upsertProduct(
   await db
     .prepare(`
       INSERT INTO products
-        (id, printify_id, title, description, category, audience, product_type, garment, images, variants, colors, hidden_colors, sizes,
+        (id, printify_id, title, description, category, audience, product_type, garment, pricing_matrix, images, variants, colors, custom_colors, hidden_colors, sizes,
          min_price, max_price, is_enabled, synced_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'), datetime('now'))
       ON CONFLICT(printify_id) DO UPDATE SET
         is_enabled  = 1,
         title       = excluded.title,
         description = excluded.description,
         category    = excluded.category,
+        pricing_matrix = excluded.pricing_matrix,
         images      = excluded.images,
         variants    = excluded.variants,
         colors      = excluded.colors,
@@ -353,9 +383,11 @@ export async function upsertProduct(
       data.audience,
       data.productType,
       data.garment,
+      JSON.stringify(data.pricingMatrix ?? null),
       JSON.stringify(data.images),
       JSON.stringify(data.variants),
       JSON.stringify(data.colors),
+      JSON.stringify(data.customColors ?? []),
       JSON.stringify(normalizeHiddenColors(data.hiddenColors ?? [])),
       JSON.stringify(data.sizes),
       data.minPrice,

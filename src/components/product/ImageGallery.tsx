@@ -46,6 +46,20 @@ export function ImageGallery({
     setActiveIndex(0);
   }, [activeVariantIds, selectedColor]);
 
+  useEffect(() => {
+    if (activeIndex >= displayImages.length) {
+      setActiveIndex(0);
+    }
+  }, [activeIndex, displayImages.length]);
+
+  function goPrevious() {
+    setActiveIndex((index) => (index - 1 + displayImages.length) % displayImages.length);
+  }
+
+  function goNext() {
+    setActiveIndex((index) => (index + 1) % displayImages.length);
+  }
+
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.targetTouches[0].clientX;
     touchStartY.current = e.targetTouches[0].clientY;
@@ -79,9 +93,29 @@ export function ImageGallery({
         <img
           src={current.src}
           alt={title}
-          className="h-full w-full object-cover object-top transition-opacity duration-200"
+          className="h-full w-full object-contain object-center transition-opacity duration-200"
           loading="eager"
         />
+        {displayImages.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={goPrevious}
+              aria-label="Previous image"
+              className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-gray-950/70 p-2 text-white shadow-lg shadow-black/20 backdrop-blur-sm transition hover:bg-gray-950"
+            >
+              <span className="block text-lg leading-none">‹</span>
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              aria-label="Next image"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-gray-950/70 p-2 text-white shadow-lg shadow-black/20 backdrop-blur-sm transition hover:bg-gray-950"
+            >
+              <span className="block text-lg leading-none">›</span>
+            </button>
+          </>
+        )}
         {/* Dot indicators — mobile only */}
         {displayImages.length > 1 && (
           <div className="lg:hidden absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
@@ -118,7 +152,7 @@ export function ImageGallery({
               <img
                 src={img.src}
                 alt={`${title} ${i + 1}`}
-                className="h-full w-full object-cover object-top"
+                className="h-full w-full object-contain object-center bg-white"
                 loading="lazy"
               />
             </button>

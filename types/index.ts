@@ -27,6 +27,17 @@ export interface PrintifyColor {
   hex: string;
 }
 
+export interface PricingMatrixRow {
+  audience: string;
+  product: string;
+  garment: string;
+  printSurface: string;
+  manufacturingCost: string;
+  saleCost: string;
+  delivery: string;
+  salePrice: string;
+}
+
 // ─── D1 Row types (snake_case matching column names) ─────────────────────────
 
 export interface ProductRow {
@@ -38,9 +49,11 @@ export interface ProductRow {
   audience: string;
   product_type: string;
   garment: string;
+  pricing_matrix: string; // JSON
   images: string;     // JSON
   variants: string;   // JSON
   colors: string;     // JSON
+  custom_colors: string; // JSON
   hidden_colors: string; // JSON
   sizes: string;      // JSON
   min_price: number;
@@ -142,9 +155,11 @@ export interface Product {
   audience: string;
   productType: string;
   garment: string;
+  pricingMatrix: PricingMatrixRow | null;
   images: PrintifyProductImage[];
   variants: PrintifyVariant[];
   colors: PrintifyColor[];
+  customColors: PrintifyColor[];
   hiddenColors: string[];
   sizes: string[];
   minPrice: number;

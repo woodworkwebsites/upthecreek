@@ -1,5 +1,6 @@
 import type {
   Product,
+  PricingMatrixRow,
   Order,
   CheckoutItem,
   CheckoutResponse,
@@ -109,6 +110,8 @@ export async function adminUpdateProduct(
     audience?: string;
     productType?: string;
     garment?: string;
+    customColors?: Array<{ name: string; hex: string }>;
+    pricingMatrix?: PricingMatrixRow | null;
     isEnabled?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: string[];
@@ -170,6 +173,24 @@ export async function adminUploadProductImage(
   }
 
   return res.json() as Promise<{ image: { src: string; isDefault: boolean; variantIds: number[]; color?: string } }>;
+}
+
+export async function adminDeleteProductImage(
+  token: string,
+  printifyId: string,
+  storageKey: string,
+): Promise<void> {
+  const res = await fetch(`/api/admin/products/${printifyId}/images?storageKey=${encodeURIComponent(storageKey)}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
 }
 
 export async function adminCreateProduct(

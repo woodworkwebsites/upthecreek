@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Product } from '../../../types/index.js';
-import { adminCreateProduct, adminFetchProducts, adminGetSettings, adminSyncProducts, adminUpdateProduct, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
+import { adminCreateProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminSyncProducts, adminUpdateProduct, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -445,6 +445,103 @@ function InlineDraftProductRow({
   );
 }
 
+function mergeColors(
+  primary: Array<{ name: string; hex: string }>,
+  secondary: Array<{ name: string; hex: string }>,
+): Array<{ name: string; hex: string }> {
+  const seen = new Set<string>();
+  const merged: Array<{ name: string; hex: string }> = [];
+  for (const color of [...primary, ...secondary]) {
+    const name = color.name.trim();
+    if (!name || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    merged.push({ name, hex: color.hex || '#111827' });
+  }
+  return merged;
+}
+
+function colorListSignature(colors: Array<{ name: string; hex: string }>): string {
+  return JSON.stringify(
+    colors
+      .map((color) => ({ name: color.name.trim(), hex: color.hex.trim() || '#111827' }))
+      .filter((color) => color.name.length > 0)
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  );
+}
+
+function pricingMatrixSignature(matrix: {
+  audience: string;
+  product: string;
+  garment: string;
+  printSurface: string;
+  manufacturingCost: string;
+  saleCost: string;
+  delivery: string;
+  salePrice: string;
+} | null): string {
+  return JSON.stringify(matrix ?? null);
+}
+
+function normalizePricingMatrix(matrix: {
+  audience: string;
+  product: string;
+  garment: string;
+  printSurface: string;
+  manufacturingCost: string;
+  saleCost: string;
+  delivery: string;
+  salePrice: string;
+}) {
+  return {
+    audience: matrix.audience.trim(),
+    product: matrix.product.trim(),
+    garment: matrix.garment.trim(),
+    printSurface: matrix.printSurface.trim(),
+    manufacturingCost: matrix.manufacturingCost.trim(),
+    saleCost: matrix.saleCost.trim(),
+    delivery: matrix.delivery.trim(),
+    salePrice: matrix.salePrice.trim(),
+  };
+}
+
+function emptyPricingMatrix() {
+  return {
+    audience: '',
+    product: '',
+    garment: '',
+    printSurface: '',
+    manufacturingCost: '',
+    saleCost: '',
+    delivery: '',
+    salePrice: '',
+  };
+}
+
+function matchPricingPreset(
+  product: Product,
+  catalog: CatalogOptions,
+): {
+  audience: string;
+  product: string;
+  garment: string;
+  printSurface: string;
+  manufacturingCost: string;
+  saleCost: string;
+  delivery: string;
+  salePrice: string;
+} | null {
+  const bySelection = catalog.pricingRows.find(
+    (row) =>
+      row.audience === product.audience &&
+      row.product === product.productType &&
+      row.garment === product.garment,
+  );
+  const byGarment = catalog.pricingRows.find((row) => row.garment === product.garment);
+  const preset = bySelection ?? byGarment ?? catalog.pricingRows[0];
+  if (!preset) return null;
+  return normalizePricingMatrix(preset);
+}
+
 function ProductRow({ product, token, catalog }: { product: Product; token: string; catalog: CatalogOptions }) {
   const img = product.images.find((i) => i.isDefault) ?? product.images[0];
   const [images, setImages] = useState(product.images);
@@ -454,6 +551,10 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   const [productType, setProductType] = useState(product.productType || '');
   const [garmentType, setGarmentType] = useState(product.garment || '');
   const [sizeGuideUrl, setSizeGuideUrl] = useState(product.sizeGuideImage ?? '');
+  const [customColors, setCustomColors] = useState(product.customColors ?? []);
+  const [pricingMatrix, setPricingMatrix] = useState(
+    product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? emptyPricingMatrix(),
+  );
   const [hiddenColors, setHiddenColors] = useState<string[]>(product.hiddenColors ?? []);
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -464,6 +565,8 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   const [imageUploadDefault, setImageUploadDefault] = useState(false);
   const [imageSaving, setImageSaving] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [newColorHex, setNewColorHex] = useState('#111827');
+  const newColorNameRef = useRef<HTMLInputElement | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -478,10 +581,12 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
     setProductType(product.productType || '');
     setGarmentType(product.garment || '');
     setSizeGuideUrl(product.sizeGuideImage ?? '');
+    setCustomColors(product.customColors ?? []);
+    setPricingMatrix(product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? emptyPricingMatrix());
     setHiddenColors(product.hiddenColors ?? []);
     setIsEnabled(product.isEnabled);
     setImages(product.images);
-  }, [product]);
+  }, [product, catalog]);
 
   useEffect(() => {
     if (!imageUploadFile) {
@@ -500,6 +605,30 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
         ? current.filter((value) => value !== colorName)
         : [...current, colorName],
     );
+  }
+
+  function addCustomColor() {
+    const name = newColorNameRef.current?.value.trim() ?? '';
+    if (!name) return;
+
+    setCustomColors((current) => {
+      const existsAlready = [...product.colors, ...current].some(
+        (color) => color.name.toLowerCase() === name.toLowerCase(),
+      );
+      if (existsAlready) {
+        return current;
+      }
+      return [...current, { name, hex: newColorHex }];
+    });
+    setNewColorHex('#111827');
+    if (newColorNameRef.current) {
+      newColorNameRef.current.value = '';
+    }
+  }
+
+  function removeCustomColor(colorName: string) {
+    setCustomColors((current) => current.filter((color) => color.name !== colorName));
+    setHiddenColors((current) => current.filter((name) => name !== colorName));
   }
 
   async function handleUploadProductImage() {
@@ -528,7 +657,6 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
       setImageUploadFile(null);
       setImageUploadColor('');
       setImageUploadDefault(false);
-      setImageModalOpen(false);
     } catch (err) {
       setImageError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
@@ -536,15 +664,26 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
     }
   }
 
-  const visibleColors = product.colors.filter((color) => !hiddenColors.includes(color.name));
+  const allColors = mergeColors(product.colors, customColors);
+  const visibleColors = allColors.filter((color) => !hiddenColors.includes(color.name));
   const hiddenCount = hiddenColors.length;
-  const colorOrder = new Map(catalog.colors.map((color, index) => [color.name, index] as const));
+  const colorOrder = new Map(allColors.map((color, index) => [color.name, index] as const));
   const sortedVisibleColors = [...visibleColors].sort(
     (a, b) => (colorOrder.get(a.name) ?? Number.MAX_SAFE_INTEGER) - (colorOrder.get(b.name) ?? Number.MAX_SAFE_INTEGER),
   );
-  const sortedHiddenColors = [...product.colors.filter((color) => hiddenColors.includes(color.name))].sort(
+  const sortedHiddenColors = [...allColors.filter((color) => hiddenColors.includes(color.name))].sort(
     (a, b) => (colorOrder.get(a.name) ?? Number.MAX_SAFE_INTEGER) - (colorOrder.get(b.name) ?? Number.MAX_SAFE_INTEGER),
   );
+  const currentCustomSignature = colorListSignature(customColors);
+  const originalCustomSignature = colorListSignature(product.customColors ?? []);
+  const currentPricingSignature = pricingMatrixSignature(pricingMatrix);
+  const originalPricingSignature = pricingMatrixSignature(product.pricingMatrix ?? matchPricingPreset(product, catalog));
+  const matchedPricingPreset = catalog.pricingRows.find(
+    (row) => pricingMatrixSignature(normalizePricingMatrix(row)) === currentPricingSignature,
+  );
+  const pricingSelectValue = matchedPricingPreset
+    ? currentPricingSignature
+    : pricingMatrixSignature(emptyPricingMatrix());
   const hasChanges = title.trim() !== product.title
     || description.trim() !== (product.description ?? '').trim()
     || category.trim() !== (product.audience || '').trim()
@@ -552,10 +691,10 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
     || garmentType.trim() !== (product.garment || '').trim()
     || sizeGuideUrl.trim() !== (product.sizeGuideImage ?? '').trim()
     || isEnabled !== product.isEnabled
+    || currentCustomSignature !== originalCustomSignature
+    || currentPricingSignature !== originalPricingSignature
     || hiddenColors.length !== (product.hiddenColors ?? []).length
     || hiddenColors.some((color) => !(product.hiddenColors ?? []).includes(color));
-
-  const priceBand = formatPriceRange(product.minPrice, product.maxPrice);
 
   async function handleSaveRow(closeDetails = false) {
     if (title.trim().length === 0) {
@@ -573,6 +712,8 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
         audience: category.trim(),
         productType: productType.trim(),
         garment: garmentType.trim(),
+        customColors,
+        pricingMatrix: normalizePricingMatrix(pricingMatrix),
         sizeGuideImage: sizeGuideUrl.trim() || null,
         hiddenColors,
         isEnabled,
@@ -651,7 +792,14 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
 
         <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
           <div className="space-y-2">
-            <p className="font-medium text-gray-900 dark:text-gray-100">{priceBand}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-medium text-gray-900 dark:text-gray-100">
+                {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
+              </p>
+              <span className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-400">
+                Pricing
+              </span>
+            </div>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -689,6 +837,66 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
             >
               Edit description
             </button>
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/70">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Pricing matrix</p>
+                <select
+                  value={pricingSelectValue}
+                  onChange={(e) => {
+                    const preset = catalog.pricingRows.find((row) => pricingMatrixSignature(normalizePricingMatrix(row)) === e.target.value);
+                    setPricingMatrix(preset ? normalizePricingMatrix(preset) : emptyPricingMatrix());
+                  }}
+                  className="max-w-[150px] rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                >
+                  <option value={pricingMatrixSignature(emptyPricingMatrix())}>Custom</option>
+                  {catalog.pricingRows.map((row) => {
+                    const value = pricingMatrixSignature(normalizePricingMatrix(row));
+                    return (
+                      <option key={value} value={value}>
+                        {row.audience} / {row.product} / {row.garment}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <input
+                  value={pricingMatrix.printSurface}
+                  onChange={(e) => setPricingMatrix((current) => ({ ...current, printSurface: e.target.value }))}
+                  placeholder="Print surface"
+                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                />
+                <input
+                  value={pricingMatrix.manufacturingCost}
+                  onChange={(e) => setPricingMatrix((current) => ({ ...current, manufacturingCost: e.target.value }))}
+                  placeholder="Manufacturing"
+                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                />
+                <input
+                  value={pricingMatrix.saleCost}
+                  onChange={(e) => setPricingMatrix((current) => ({ ...current, saleCost: e.target.value }))}
+                  placeholder="Sale cost"
+                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                />
+                <input
+                  value={pricingMatrix.delivery}
+                  onChange={(e) => setPricingMatrix((current) => ({ ...current, delivery: e.target.value }))}
+                  placeholder="Delivery"
+                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                />
+                <input
+                  value={pricingMatrix.salePrice}
+                  onChange={(e) => setPricingMatrix((current) => ({ ...current, salePrice: e.target.value }))}
+                  placeholder="Sale price"
+                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 sm:col-span-2"
+                />
+              </div>
+              <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+                Margin {pricingMatrix.salePrice && pricingMatrix.manufacturingCost && pricingMatrix.delivery
+                  ? formatMoney(parseMoney(pricingMatrix.salePrice) - parseMoney(pricingMatrix.manufacturingCost) - parseMoney(pricingMatrix.delivery))
+                  : '—'}
+              </div>
+            </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
               {description ? 'Description set' : 'No description yet'}
             </div>
@@ -698,28 +906,28 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
         <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
           <div className="space-y-2">
             <div className="flex flex-wrap gap-1.5">
-            {sortedVisibleColors.map((color) => {
-              const isHidden = hiddenColors.includes(color.name);
-              return (
-                <button
-                  key={color.name}
-                  type="button"
-                  onClick={() => toggleColor(color.name)}
-                  aria-pressed={!isHidden}
-                  className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold ${
-                    isHidden
-                      ? 'border-dashed border-gray-300 bg-gray-50 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500'
-                      : 'border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200'
-                  }`}
-                  title={isHidden ? `${color.name} hidden` : color.name}
-                >
-                  <span
-                    className="inline-block h-3 w-3 rounded-full border border-black/10"
-                    style={{ backgroundColor: color.hex }}
-                  />
-                </button>
-              );
-            })}
+              {sortedVisibleColors.map((color) => {
+                const isHidden = hiddenColors.includes(color.name);
+                return (
+                  <button
+                    key={color.name}
+                    type="button"
+                    onClick={() => toggleColor(color.name)}
+                    aria-pressed={!isHidden}
+                    className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold ${
+                      isHidden
+                        ? 'border-dashed border-gray-300 bg-gray-50 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500'
+                        : 'border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200'
+                    }`}
+                    title={isHidden ? `${color.name} hidden` : color.name}
+                  >
+                    <span
+                      className="inline-block h-3 w-3 rounded-full border border-black/10"
+                      style={{ backgroundColor: color.hex }}
+                    />
+                  </button>
+                );
+              })}
             </div>
             {sortedHiddenColors.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
@@ -739,6 +947,53 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                 ))}
               </div>
             )}
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/70">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Add custom colour</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <input
+                  ref={newColorNameRef}
+                  placeholder="Colour name"
+                  className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addCustomColor();
+                    }
+                  }}
+                />
+                <input
+                  type="color"
+                  value={newColorHex}
+                  onChange={(e) => setNewColorHex(e.target.value)}
+                  className="h-9 w-12 rounded-lg border border-gray-200 bg-transparent p-1 dark:border-gray-700"
+                />
+                <button
+                  type="button"
+                  onClick={addCustomColor}
+                  className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700"
+                >
+                  Add
+                </button>
+              </div>
+              {customColors.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {customColors.map((color) => (
+                    <button
+                      key={color.name}
+                      type="button"
+                      onClick={() => removeCustomColor(color.name)}
+                      className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                      title={`Remove ${color.name}`}
+                    >
+                      <span
+                        className="inline-block h-3 w-3 rounded-full border border-black/10"
+                        style={{ backgroundColor: color.hex }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             {visibleColors.length} visible, {hiddenCount} hidden
@@ -868,11 +1123,11 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
         </tr>
       )}
 
-      {imageModalOpen && (
+        {imageModalOpen && (
         <tr>
           <td colSpan={6} className="p-0">
             <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
-              <div className="flex w-full max-w-3xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+              <div className="flex w-full max-w-6xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Manage images</h2>
@@ -887,8 +1142,8 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                   </button>
                 </div>
 
-                <div className="mt-5 flex-1 space-y-6 overflow-y-auto pr-1">
-                  <div className="space-y-3">
+                <div className="mt-5 grid flex-1 min-h-0 gap-6 overflow-hidden lg:grid-cols-[360px_minmax(0,1fr)]">
+                  <div className="space-y-3 overflow-y-auto pr-1">
                     <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">Upload image</label>
                     <input
                       type="file"
@@ -902,7 +1157,7 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                       className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                     >
                       <option value="">All colours</option>
-                      {catalog.colors.map((color) => (
+                      {allColors.map((color) => (
                         <option key={color.name} value={color.name}>{color.name}</option>
                       ))}
                     </select>
@@ -934,12 +1189,36 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                     {imageError && <div className="text-xs text-red-600 dark:text-red-400">{imageError}</div>}
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-3 overflow-y-auto pr-1">
                     <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Current images</div>
-                    <div className="grid max-h-[42vh] gap-3 overflow-auto pr-1 sm:grid-cols-2">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                       {images.map((image, index) => (
-                        <div key={`${image.src}-${index}`} className="rounded-xl border border-gray-100 p-2 dark:border-gray-800">
-                          <img src={image.src} alt={product.title} className="h-28 w-full rounded-lg object-cover" />
+                        <div key={`${image.src}-${index}`} className="relative rounded-xl border border-gray-100 p-2 dark:border-gray-800">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!image.storageKey) return;
+                              try {
+                                await adminDeleteProductImage(token, product.printifyId, image.storageKey);
+                                setImages((current) => {
+                                  const next = current.filter((entry) => entry.storageKey !== image.storageKey);
+                                  if (next.length > 0 && !next.some((entry) => entry.isDefault)) {
+                                    next[0].isDefault = true;
+                                  }
+                                  return next;
+                                });
+                              } catch (err) {
+                                setImageError(err instanceof Error ? err.message : 'Delete failed');
+                              }
+                            }}
+                            className="absolute right-3 top-3 z-10 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-black"
+                            aria-label="Delete image"
+                          >
+                            Delete
+                          </button>
+                          <div className="overflow-hidden rounded-lg border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950">
+                            <img src={image.src} alt={product.title} className="h-40 w-full object-contain" />
+                          </div>
                           <div className="mt-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                             <span>{image.color || 'All colours'}</span>
                             {image.isDefault && <span className="font-semibold text-emerald-600 dark:text-emerald-400">Default</span>}

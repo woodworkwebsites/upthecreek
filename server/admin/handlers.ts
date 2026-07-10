@@ -32,7 +32,7 @@ import { buildPrintifyPayload, fulfillOrder } from '../printify/orders.js';
 import { getEffectivePrintifyMode } from '../env.js';
 import { getAllSettings, setSetting, getSetting } from '../settings/repository.js';
 import { logger } from '../logging.js';
-import { storeAssetData } from '../assets/storage.js';
+import { deleteAsset, storeAssetData } from '../assets/storage.js';
 
 type SyncProductsRequest = {
   preview?: boolean;
@@ -343,9 +343,20 @@ export async function handleUpdateProduct(
     audience?: string;
     productType?: string;
     garment?: string;
+    pricingMatrix?: {
+      audience?: string;
+      product?: string;
+      garment?: string;
+      printSurface?: string;
+      manufacturingCost?: string;
+      saleCost?: string;
+      delivery?: string;
+      salePrice?: string;
+    } | null;
     isEnabled?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: unknown;
+    customColors?: Array<{ name?: string; hex?: string }>;
   };
   try {
     body = await request.json() as {
@@ -355,9 +366,20 @@ export async function handleUpdateProduct(
       audience?: string;
       productType?: string;
       garment?: string;
+      pricingMatrix?: {
+        audience?: string;
+        product?: string;
+        garment?: string;
+        printSurface?: string;
+        manufacturingCost?: string;
+        saleCost?: string;
+        delivery?: string;
+        salePrice?: string;
+      } | null;
       isEnabled?: boolean;
       sizeGuideImage?: string | null;
       hiddenColors?: unknown;
+      customColors?: Array<{ name?: string; hex?: string }>;
     };
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
@@ -370,9 +392,11 @@ export async function handleUpdateProduct(
     !('audience' in body) &&
     !('productType' in body) &&
     !('garment' in body) &&
+    !('pricingMatrix' in body) &&
     !('isEnabled' in body) &&
     !('sizeGuideImage' in body) &&
-    !('hiddenColors' in body)
+    !('hiddenColors' in body) &&
+    !('customColors' in body)
   ) {
     return json({ error: 'No recognised fields to update' }, 400);
   }
@@ -388,6 +412,29 @@ export async function handleUpdateProduct(
   const productType = body.productType !== undefined ? body.productType.trim() : undefined;
   const garment = body.garment !== undefined ? body.garment.trim() : undefined;
   const sizeGuideImage = body.sizeGuideImage !== undefined ? body.sizeGuideImage?.trim() || null : undefined;
+  const pricingMatrix = body.pricingMatrix === null
+    ? null
+    : body.pricingMatrix !== undefined
+      ? {
+          audience: body.pricingMatrix.audience?.trim() || '',
+          product: body.pricingMatrix.product?.trim() || '',
+          garment: body.pricingMatrix.garment?.trim() || '',
+          printSurface: body.pricingMatrix.printSurface?.trim() || '',
+          manufacturingCost: body.pricingMatrix.manufacturingCost?.trim() || '',
+          saleCost: body.pricingMatrix.saleCost?.trim() || '',
+          delivery: body.pricingMatrix.delivery?.trim() || '',
+          salePrice: body.pricingMatrix.salePrice?.trim() || '',
+        }
+      : undefined;
+  const customColors = body.customColors !== undefined
+    ? body.customColors
+        .filter((color): color is { name: string; hex: string } => typeof color?.name === 'string')
+        .map((color) => ({
+          name: color.name.trim(),
+          hex: typeof color.hex === 'string' && color.hex.trim().length > 0 ? color.hex.trim() : '#111827',
+        }))
+        .filter((color) => color.name.length > 0)
+    : undefined;
 
   let updated = await updateProductFields(env.DB, printifyId, {
     title,
@@ -396,6 +443,8 @@ export async function handleUpdateProduct(
     audience,
     productType,
     garment,
+    pricingMatrix,
+    customColors,
     isEnabled: body.isEnabled,
     sizeGuideImage,
     hiddenColors: body.hiddenColors !== undefined ? normalizeHiddenColors(body.hiddenColors) : undefined,
@@ -434,7 +483,8 @@ export async function handleUploadProductImage(
   const product = await getProductByPrintifyIdForAdmin(env.DB, printifyId);
   if (!product) return json({ error: 'Product not found' }, 404);
 
-  if (color && !product.colors.some((entry) => entry.name === color)) {
+  const knownColors = [...product.colors, ...(product.customColors ?? [])];
+  if (color && !knownColors.some((entry) => entry.name === color)) {
     return json({ error: `Unknown colour: ${color}` }, 400);
   }
 
@@ -477,6 +527,38 @@ export async function handleUploadProductImage(
   if (!updated) return json({ error: 'Product not found' }, 404);
 
   return json({ success: true, image });
+}
+
+export async function handleDeleteProductImage(
+  env: Env,
+  printifyId: string,
+  request: Request,
+): Promise<Response> {
+  const url = new URL(request.url);
+  const storageKey = url.searchParams.get('storageKey')?.trim() || '';
+  if (!storageKey) {
+    return json({ error: 'Missing storageKey' }, 400);
+  }
+
+  const product = await getProductByPrintifyIdForAdmin(env.DB, printifyId);
+  if (!product) return json({ error: 'Product not found' }, 404);
+
+  const image = product.images.find((entry) => entry.storageKey === storageKey);
+  if (!image) return json({ error: 'Image not found' }, 404);
+
+  if (image.storageKey) {
+    await deleteAsset(env.IMAGES, image.storageKey);
+  }
+
+  const remaining = product.images.filter((entry) => entry.storageKey !== storageKey);
+  if (remaining.length > 0 && !remaining.some((entry) => entry.isDefault)) {
+    remaining[0].isDefault = true;
+  }
+
+  const updated = await updateProductImages(env.DB, printifyId, remaining);
+  if (!updated) return json({ error: 'Product not found' }, 404);
+
+  return json({ success: true });
 }
 
 export async function handleListLogs(env: Env): Promise<Response> {
@@ -667,6 +749,7 @@ export async function handleUpdateSettings(env: Env, request: Request): Promise<
     'catalog_product_options',
     'catalog_garment_options',
     'catalog_color_options',
+    'catalog_pricing_rows',
   ];
   for (const [key, value] of Object.entries(body)) {
     if (!allowed.includes(key) && !allowedCatalogKeys.includes(key)) return json({ error: `Unknown setting: ${key}` }, 400);
