@@ -518,6 +518,32 @@ function matchPricingPreset(
   return normalizePricingMatrix(preset);
 }
 
+function matchPricingPresetBySelection(
+  audience: string,
+  productType: string,
+  garment: string,
+  catalog: CatalogOptions,
+): {
+  audience: string;
+  product: string;
+  garment: string;
+  printSurface: string;
+  manufacturingCost: string;
+  saleCost: string;
+  delivery: string;
+  salePrice: string;
+} | null {
+  const exact = catalog.pricingRows.find(
+    (row) =>
+      row.audience === audience &&
+      row.product === productType &&
+      row.garment === garment,
+  );
+  const byGarment = catalog.pricingRows.find((row) => row.garment === garment);
+  const preset = exact ?? byGarment;
+  return preset ? normalizePricingMatrix(preset) : null;
+}
+
 function ProductRow({ product, token, catalog }: { product: Product; token: string; catalog: CatalogOptions }) {
   const img = product.images.find((i) => i.isDefault) ?? product.images[0];
   const [images, setImages] = useState(product.images);
@@ -546,6 +572,9 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const pricingManifestKeyRef = useRef(
+    `${product.audience || ''}||${product.productType || ''}||${product.garment || ''}||${JSON.stringify(catalog.pricingRows)}`,
+  );
 
   useEffect(() => {
     setTitle(product.title);
@@ -575,6 +604,20 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
       previews.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
     };
   }, [imageUploadFiles]);
+
+  useEffect(() => {
+    const manifestKey = `${category}||${productType}||${garmentType}||${JSON.stringify(catalog.pricingRows)}`;
+    if (pricingManifestKeyRef.current === manifestKey) {
+      return;
+    }
+    pricingManifestKeyRef.current = manifestKey;
+    const preset = matchPricingPresetBySelection(category, productType, garmentType, catalog);
+    if (preset) {
+      setPricingMatrix((current) => (
+        pricingMatrixSignature(current) === pricingMatrixSignature(preset) ? current : preset
+      ));
+    }
+  }, [category, productType, garmentType, catalog]);
 
   function toggleColor(colorName: string) {
     setHiddenColors((current) =>
@@ -790,13 +833,22 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>
-            <button
-              type="button"
-              onClick={() => setDetailOpen(true)}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
-            >
-              Edit description
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setDetailOpen(true)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Edit description
+              </button>
+              <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${
+                description
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300'
+                  : 'border-gray-200 bg-white text-gray-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-400'
+              }`}>
+                {description ? 'Description set' : 'No description yet'}
+              </span>
+            </div>
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-950/70">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Pricing</p>
               <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
@@ -833,9 +885,6 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                   />
                 </label>
               </div>
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              {description ? 'Description set' : 'No description yet'}
             </div>
           </div>
         </td>
