@@ -1,6 +1,27 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type { DiscountCode, DiscountCodeKind, DiscountCodeRow, DiscountCodeInput } from '../../types/index.js';
 
+export async function ensureDiscountCodeSchema(db: D1Database): Promise<void> {
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS discount_codes (
+      id            TEXT PRIMARY KEY,
+      code          TEXT UNIQUE NOT NULL,
+      kind          TEXT NOT NULL,
+      value         INTEGER NOT NULL,
+      usage_limit   INTEGER,
+      usage_count   INTEGER NOT NULL DEFAULT 0,
+      active        INTEGER NOT NULL DEFAULT 1,
+      expires_at    TEXT,
+      notes         TEXT,
+      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_discount_codes_code   ON discount_codes(code);
+    CREATE INDEX IF NOT EXISTS idx_discount_codes_active ON discount_codes(active);
+  `);
+}
+
 function parseDiscountCode(row: DiscountCodeRow): DiscountCode {
   return {
     id:          row.id,
@@ -17,7 +38,23 @@ function parseDiscountCode(row: DiscountCodeRow): DiscountCode {
   };
 }
 
+function normalizeCode(code: string): string {
+  return code.trim().toUpperCase();
+}
+
+export async function getDiscountCodeByCode(db: D1Database, code: string): Promise<DiscountCode | null> {
+  await ensureDiscountCodeSchema(db);
+
+  const row = await db
+    .prepare('SELECT * FROM discount_codes WHERE code = ?')
+    .bind(normalizeCode(code))
+    .first<DiscountCodeRow>();
+  return row ? parseDiscountCode(row) : null;
+}
+
 export async function listDiscountCodes(db: D1Database): Promise<DiscountCode[]> {
+  await ensureDiscountCodeSchema(db);
+
   const result = await db
     .prepare('SELECT * FROM discount_codes ORDER BY created_at DESC')
     .all<DiscountCodeRow>();
@@ -25,6 +62,8 @@ export async function listDiscountCodes(db: D1Database): Promise<DiscountCode[]>
 }
 
 export async function getDiscountCodeById(db: D1Database, id: string): Promise<DiscountCode | null> {
+  await ensureDiscountCodeSchema(db);
+
   const row = await db
     .prepare('SELECT * FROM discount_codes WHERE id = ?')
     .bind(id)
@@ -32,14 +71,12 @@ export async function getDiscountCodeById(db: D1Database, id: string): Promise<D
   return row ? parseDiscountCode(row) : null;
 }
 
-function normalizeCode(code: string): string {
-  return code.trim().toUpperCase();
-}
-
 export async function createDiscountCode(
   db: D1Database,
   data: DiscountCodeInput,
 ): Promise<DiscountCode> {
+  await ensureDiscountCodeSchema(db);
+
   const id = crypto.randomUUID();
   const code = normalizeCode(data.code);
   const kind: DiscountCodeKind = data.kind;
@@ -71,6 +108,8 @@ export async function updateDiscountCode(
   id: string,
   data: DiscountCodeInput,
 ): Promise<DiscountCode | null> {
+  await ensureDiscountCodeSchema(db);
+
   const code = normalizeCode(data.code);
   const kind: DiscountCodeKind = data.kind;
   const value = Math.max(0, Math.round(data.value));
@@ -100,6 +139,8 @@ export async function updateDiscountCode(
 }
 
 export async function deleteDiscountCode(db: D1Database, id: string): Promise<boolean> {
+  await ensureDiscountCodeSchema(db);
+
   const result = await db
     .prepare('DELETE FROM discount_codes WHERE id = ?')
     .bind(id)
@@ -107,3 +148,16 @@ export async function deleteDiscountCode(db: D1Database, id: string): Promise<bo
   return result.success;
 }
 
+export async function incrementDiscountCodeUsage(db: D1Database, id: string): Promise<void> {
+  await ensureDiscountCodeSchema(db);
+
+  await db
+    .prepare(`
+      UPDATE discount_codes
+      SET usage_count = usage_count + 1,
+          updated_at = datetime('now')
+      WHERE id = ?
+    `)
+    .bind(id)
+    .run();
+}

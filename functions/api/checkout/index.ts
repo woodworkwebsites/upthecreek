@@ -33,7 +33,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const { secretKey } = getStripeKeys(context.request, context.env, stripeTestMode);
     const stripe = createStripeClient(secretKey);
     const resolved = await resolveLineItems(context.env.DB, items);
-    const session  = await createCheckoutSession(stripe, resolved, new URL(context.request.url).origin);
+    const session  = await createCheckoutSession(
+      stripe,
+      context.env.DB,
+      resolved,
+      new URL(context.request.url).origin,
+      body.discountCode,
+    );
 
     logger.info('Checkout session created', { sessionId: session.id });
 

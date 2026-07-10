@@ -109,11 +109,7 @@ export default function HomePage() {
               Premium padel apparel. <br />Designed for the court, worn everywhere.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 text-[11px] font-semibold uppercase tracking-widest text-white/25">
-              <span>Worldwide shipping</span>
-              <span className="text-white/15">·</span>
               <span>Secure checkout</span>
-              <span className="text-white/15">·</span>
-              <span>5–10 day delivery</span>
             </div>
             <a href="mailto:hello@upthecreekpadel.club" className="text-[11px] text-white/40 hover:text-white/70">
               hello@upthecreekpadel.club

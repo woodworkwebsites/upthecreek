@@ -26,13 +26,12 @@ export function validateEnv(env: Env): void {
   }
 }
 
-function isProductionHost(request: Request): boolean {
+function isLocalDevHost(request: Request): boolean {
   const host = new URL(request.url).host.toLowerCase();
-  return !(
+  return (
     host.includes('localhost') ||
     host.startsWith('127.0.0.1') ||
-    host.startsWith('[::1]') ||
-    host.endsWith('.pages.dev')
+    host.startsWith('[::1]')
   );
 }
 
@@ -40,10 +39,10 @@ export function getStripeKeys(request: Request, env: Env, forceTestMode = false)
   secretKey: string;
   webhookSecret: string;
 } {
-  const isProduction = !forceTestMode && isProductionHost(request);
+  const useTestMode = forceTestMode || isLocalDevHost(request);
   return {
-    secretKey:     isProduction ? env.STRIPE_SECRET_KEY_LIVE     : env.STRIPE_SECRET_KEY_TEST,
-    webhookSecret: isProduction ? env.STRIPE_WEBHOOK_SECRET_LIVE : env.STRIPE_WEBHOOK_SECRET_TEST,
+    secretKey:     useTestMode ? env.STRIPE_SECRET_KEY_TEST     : env.STRIPE_SECRET_KEY_LIVE,
+    webhookSecret: useTestMode ? env.STRIPE_WEBHOOK_SECRET_TEST : env.STRIPE_WEBHOOK_SECRET_LIVE,
   };
 }
 
@@ -51,7 +50,7 @@ export function getEffectivePrintifyMode(
   request: Request,
   liveEnabled: boolean,
 ): PrintifyMode {
-  if (!isProductionHost(request)) return 'dry_run';
+  if (isLocalDevHost(request)) return 'dry_run';
 
   if (liveEnabled) {
     return 'live';

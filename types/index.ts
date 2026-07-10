@@ -263,6 +263,7 @@ export interface BasketItem extends CheckoutItem {
 
 export interface CheckoutRequest {
   items: CheckoutItem[];
+  discountCode?: string | null;
 }
 
 export interface CheckoutResponse {

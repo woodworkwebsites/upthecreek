@@ -55,10 +55,16 @@ export async function fetchProduct(id: string): Promise<Product> {
   return data.product;
 }
 
-export async function createCheckout(items: CheckoutItem[]): Promise<CheckoutResponse> {
+export async function createCheckout(
+  items: CheckoutItem[],
+  discountCode?: string | null,
+): Promise<CheckoutResponse> {
   return apiFetch<CheckoutResponse>('/api/checkout', {
     method: 'POST',
-    body: JSON.stringify({ items }),
+    body: JSON.stringify({
+      items,
+      discountCode: discountCode?.trim() || null,
+    }),
   });
 }
 

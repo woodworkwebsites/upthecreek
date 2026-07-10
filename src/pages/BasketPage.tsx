@@ -8,6 +8,7 @@ export default function BasketPage() {
   const { items, updateQuantity, removeFromBasket, toCheckoutItems, itemCount } = useBasket();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [discountCode, setDiscountCode] = useState('');
 
   const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
 
@@ -16,7 +17,7 @@ export default function BasketPage() {
     setError(null);
     setLoading(true);
     try {
-      const { url } = await createCheckout(toCheckoutItems());
+      const { url } = await createCheckout(toCheckoutItems(), discountCode);
       window.location.href = url;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Checkout failed. Please try again.');
@@ -151,12 +152,25 @@ export default function BasketPage() {
 
               <div className="my-4 h-px bg-gray-100" />
 
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Discount code</span>
+                <input
+                  type="text"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value)}
+                  placeholder="Enter code"
+                  className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-navy-800 outline-none transition-colors placeholder:text-gray-300 focus:border-navy-800"
+                />
+              </label>
+
+              <p className="mt-2 text-[11px] text-gray-400">
+                Apply this at checkout. If the code is invalid, checkout will fail before payment.
+              </p>
+
               <div className="flex justify-between text-base font-black text-navy-800">
                 <span>Total</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
-
-              <p className="mt-2 text-[11px] text-gray-400">Shipping calculated at checkout.</p>
 
               {error && (
                 <p className="mt-4 text-sm font-semibold text-red-600">{error}</p>
