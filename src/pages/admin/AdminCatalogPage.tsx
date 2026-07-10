@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { adminGetSettings, adminUpdateSettings } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -9,17 +9,6 @@ import {
   type CatalogColorOption,
   type PricingRowOption,
 } from '../../lib/catalog.js';
-
-function linesToList(value: string): string[] {
-  return value
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function listToLines(values: string[]): string {
-  return values.join('\n');
-}
 
 export default function AdminCatalogPage() {
   const { token } = useAdminToken();
@@ -53,6 +42,22 @@ export default function AdminCatalogPage() {
   }, [token]);
 
   useEffect(() => { void load(); }, [load]);
+
+  function updateListItem(
+    setter: Dispatch<SetStateAction<string[]>>,
+    index: number,
+    value: string,
+  ) {
+    setter((current) => current.map((item, i) => (i === index ? value : item)));
+  }
+
+  function addListItem(setter: Dispatch<SetStateAction<string[]>>) {
+    setter((current) => [...current, '']);
+  }
+
+  function removeListItem(setter: Dispatch<SetStateAction<string[]>>, index: number) {
+    setter((current) => current.filter((_, i) => i !== index));
+  }
 
   function updateColor(index: number, patch: Partial<CatalogColorOption>) {
     setColors((current) => current.map((color, i) => (i === index ? { ...color, ...patch } : color)));
@@ -94,9 +99,9 @@ export default function AdminCatalogPage() {
     setError(null);
     try {
       await adminUpdateSettings(token, serializeCatalogSettings({
-        audiences: linesToList(listToLines(audiences)),
-        products: linesToList(listToLines(products)),
-        garments: linesToList(listToLines(garments)),
+        audiences: audiences.map((v) => v.trim()).filter(Boolean),
+        products: products.map((v) => v.trim()).filter(Boolean),
+        garments: garments.map((v) => v.trim()).filter(Boolean),
         colors: colors
           .map((color) => ({ name: color.name.trim(), hex: color.hex.trim() || '#111827' }))
           .filter((color) => color.name.length > 0),
@@ -151,38 +156,32 @@ export default function AdminCatalogPage() {
       {error && <p className="text-sm font-semibold text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Audience</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Men / Womens / Kids</p>
-          <textarea
-            value={listToLines(audiences)}
-            onChange={(e) => setAudiences(linesToList(e.target.value))}
-            rows={8}
-            className="mt-3 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-          />
-        </div>
+        <EditableListBox
+          label="Audience"
+          hint="Men / Womens / Kids"
+          items={audiences}
+          onUpdate={(index, value) => updateListItem(setAudiences, index, value)}
+          onAdd={() => addListItem(setAudiences)}
+          onRemove={(index) => removeListItem(setAudiences, index)}
+        />
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Product</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Tshirt / Hoody / Sweatshirt</p>
-          <textarea
-            value={listToLines(products)}
-            onChange={(e) => setProducts(linesToList(e.target.value))}
-            rows={8}
-            className="mt-3 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-          />
-        </div>
+        <EditableListBox
+          label="Product"
+          hint="Tshirt / Hoody / Sweatshirt"
+          items={products}
+          onUpdate={(index, value) => updateListItem(setProducts, index, value)}
+          onAdd={() => addListItem(setProducts)}
+          onRemove={(index) => removeListItem(setProducts, index)}
+        />
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Garment</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Mens Heavyweight and related fits</p>
-          <textarea
-            value={listToLines(garments)}
-            onChange={(e) => setGarments(linesToList(e.target.value))}
-            rows={8}
-            className="mt-3 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-          />
-        </div>
+        <EditableListBox
+          label="Garment"
+          hint="Mens Heavyweight and related fits"
+          items={garments}
+          onUpdate={(index, value) => updateListItem(setGarments, index, value)}
+          onAdd={() => addListItem(setGarments)}
+          onRemove={(index) => removeListItem(setGarments, index)}
+        />
       </div>
 
       <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
@@ -314,6 +313,59 @@ export default function AdminCatalogPage() {
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function EditableListBox({
+  label,
+  hint,
+  items,
+  onUpdate,
+  onAdd,
+  onRemove,
+}: {
+  label: string;
+  hint: string;
+  items: string[];
+  onUpdate: (index: number, value: string) => void;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{label}</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{hint}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white"
+        >
+          Add
+        </button>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {items.map((item, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <input
+              value={item}
+              onChange={(e) => onUpdate(index, e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            />
+            <button
+              type="button"
+              onClick={() => onRemove(index)}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-red-400"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

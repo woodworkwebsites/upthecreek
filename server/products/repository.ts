@@ -349,6 +349,7 @@ export interface UpdateProductFields {
   audience?: string;
   productType?: string;
   garment?: string;
+  pricingMatrix?: PricingMatrixRow | null;
   customColors?: PrintifyColor[];
   isEnabled?: boolean;
   sizeGuideImage?: string | null;
@@ -361,9 +362,9 @@ export async function updateProductFields(
   fields: UpdateProductFields,
 ): Promise<boolean> {
   const current = await db
-    .prepare('SELECT category FROM products WHERE printify_id = ?')
+    .prepare('SELECT category, variants FROM products WHERE printify_id = ?')
     .bind(printifyId)
-    .first<{ category: string }>();
+    .first<{ category: string; variants: string }>();
 
   if (!current) return false;
 
@@ -418,6 +419,22 @@ export async function updateProductFields(
   if (fields.hiddenColors !== undefined) {
     sets.push('hidden_colors = ?');
     values.push(JSON.stringify(normalizeHiddenColors(fields.hiddenColors)));
+  }
+
+  const nextSalePrice = fields.pricingMatrix?.salePrice?.trim();
+  if (nextSalePrice) {
+    const parsed = parseFloat(nextSalePrice);
+    if (Number.isFinite(parsed)) {
+      const unitPrice = Math.round(parsed * 100);
+      const variants = parseJsonArray<PrintifyVariant>(current.variants).map((variant) => ({
+        ...variant,
+        price: unitPrice,
+      }));
+      const { minPrice, maxPrice } = deriveProductAggregates(variants);
+
+      sets.push('variants = ?', 'min_price = ?', 'max_price = ?');
+      values.push(JSON.stringify(variants), minPrice, maxPrice);
+    }
   }
 
   if (sets.length === 0) return false;
