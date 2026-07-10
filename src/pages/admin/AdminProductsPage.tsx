@@ -1037,8 +1037,8 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                       onChange={(e) => setImageUploadColor(e.target.value)}
                       className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                     >
-                      <option value="">All colours</option>
-                      {catalog.colors.map((color) => (
+                      <option value="">Row colours</option>
+                      {visibleColors.map((color) => (
                         <option key={color.name} value={color.name}>{color.name}</option>
                       ))}
                     </select>
@@ -1101,22 +1101,51 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                             <img src={image.src} alt={product.title} className="h-40 w-full object-contain" />
                           </div>
                           <div className="mt-2 space-y-2 text-xs text-gray-500 dark:text-gray-400">
-                            <select
-                              value={image.color || ''}
-                              onChange={(e) => {
-                                if (!image.storageKey) return;
-                                void handleUpdateImage(image.storageKey, { color: e.target.value || null });
-                              }}
-                              disabled={imageSaving}
-                              className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                            >
-                              <option value="">All colours</option>
-                              {catalog.colors.map((color) => (
-                                <option key={color.name} value={color.name}>
-                                  {color.name}
-                                </option>
-                              ))}
-                            </select>
+                            <div className="space-y-1.5">
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Row colours</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={imageSaving}
+                                  onClick={() => {
+                                    if (!image.storageKey) return;
+                                    void handleUpdateImage(image.storageKey, { color: null });
+                                  }}
+                                  className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold transition-colors ${
+                                    !image.color
+                                      ? 'border-navy-800 bg-navy-800 text-white'
+                                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800'
+                                  }`}
+                                >
+                                  All colours
+                                </button>
+                                {visibleColors.map((color) => {
+                                  const selected = image.color === color.name;
+                                  return (
+                                    <button
+                                      key={color.name}
+                                      type="button"
+                                      disabled={imageSaving}
+                                      onClick={() => {
+                                        if (!image.storageKey) return;
+                                        void handleUpdateImage(image.storageKey, { color: color.name });
+                                      }}
+                                      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold transition-colors ${
+                                        selected
+                                          ? 'border-navy-800 bg-navy-800 text-white'
+                                          : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800'
+                                      }`}
+                                    >
+                                      <span
+                                        className="inline-block h-3 w-3 rounded-full border border-black/10"
+                                        style={{ backgroundColor: color.hex }}
+                                      />
+                                      {color.name}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
                             <div className="flex items-center justify-between gap-2">
                               {image.isDefault ? (
                                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">Default image</span>
