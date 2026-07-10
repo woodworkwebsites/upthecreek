@@ -115,6 +115,9 @@ export default function HomePage() {
               <span className="text-white/15">·</span>
               <span>5–10 day delivery</span>
             </div>
+            <a href="mailto:hello@upthecreekpadel.club" className="text-[11px] text-white/40 hover:text-white/70">
+              hello@upthecreekpadel.club
+            </a>
             <p className="text-[11px] text-white/15 mt-2">
               © {new Date().getFullYear()} Up the Creek Padel &amp; Social Club. All rights reserved.
             </p>

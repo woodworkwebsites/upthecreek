@@ -91,7 +91,10 @@ export default function SuccessPage() {
       </div>
 
       {/* footer */}
-      <footer className="bg-navy-800 py-6">
+      <footer className="bg-navy-800 py-6 flex flex-col items-center gap-1">
+        <a href="mailto:hello@upthecreekpadel.club" className="text-[11px] text-white/30 hover:text-white/60">
+          hello@upthecreekpadel.club
+        </a>
         <p className="text-center text-[11px] text-white/20">
           © {new Date().getFullYear()} Up the Creek Padel &amp; Social Club
         </p>

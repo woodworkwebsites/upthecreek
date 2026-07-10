@@ -402,9 +402,14 @@ export default function ProductPage() {
               alt="Up the Creek Padel"
               className="h-8 w-auto opacity-60"
             />
-            <p className="text-[11px] text-white/20">
-              © {new Date().getFullYear()} Up the Creek Padel &amp; Social Club
-            </p>
+            <div className="flex flex-col items-center sm:items-end gap-1">
+              <a href="mailto:hello@upthecreekpadel.club" className="text-[11px] text-white/30 hover:text-white/60">
+                hello@upthecreekpadel.club
+              </a>
+              <p className="text-[11px] text-white/20">
+                © {new Date().getFullYear()} Up the Creek Padel &amp; Social Club
+              </p>
+            </div>
           </div>
         </div>
       </footer>
