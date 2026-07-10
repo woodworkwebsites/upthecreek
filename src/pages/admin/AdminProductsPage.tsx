@@ -672,7 +672,16 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
     }
   }
 
-  const allColors = catalog.colors;
+  const allColors = (() => {
+    const combined = [...catalog.colors, ...product.colors, ...(product.customColors ?? [])];
+    const seen = new Set<string>();
+    return combined.filter((color) => {
+      const key = color.name.trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  })();
   const visibleColors = allColors.filter((color) => !hiddenColors.includes(color.name));
   const hiddenCount = hiddenColors.length;
   const colorOrder = new Map(allColors.map((color, index) => [color.name, index] as const));
