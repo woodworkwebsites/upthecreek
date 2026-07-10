@@ -224,6 +224,9 @@ export default function ProductPage() {
                 )}
                 {displayPrice}
               </p>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+                Free Delivery
+              </p>
             </div>
 
             {/* divider — desktop only; on mobile the tighter space-y is enough */}
