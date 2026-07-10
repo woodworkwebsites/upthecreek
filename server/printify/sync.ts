@@ -136,6 +136,9 @@ async function transformProduct(raw: PrintifyApiProduct, env: Env): Promise<{
   title: string;
   description: string;
   category: string;
+  audience: string;
+  productType: string;
+  garment: string;
   images: PrintifyProductImage[];
   variants: PrintifyVariant[];
   colors: PrintifyColor[];
@@ -179,6 +182,9 @@ async function transformProduct(raw: PrintifyApiProduct, env: Env): Promise<{
     title:       core.title,
     description: core.description,
     category:    core.category,
+    audience:    '',
+    productType: '',
+    garment:     '',
     images:      publishedImages,
     variants:    core.variants,
     colors:      core.colors,

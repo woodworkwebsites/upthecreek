@@ -106,6 +106,9 @@ export async function adminUpdateProduct(
     title?: string;
     description?: string;
     category?: string;
+    audience?: string;
+    productType?: string;
+    garment?: string;
     isEnabled?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: string[];

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminCreateProduct } from '../../lib/api.js';
+import { adminCreateProduct, adminGetSettings } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
+import { DEFAULT_CATALOG_OPTIONS, parseCatalogSettings, type PricingRowOption } from '../../lib/catalog.js';
 
 interface VariantRow {
   color: string;
@@ -50,13 +51,16 @@ export default function AdminProductCreatePage() {
   const [productName, setProductName] = useState('');
   const [garment, setGarment] = useState('');
   const [gender, setGender] = useState('');
-  const [type, setType] = useState('');
   const [printSurface, setPrintSurface] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('apparel');
+  const [category, setCategory] = useState(DEFAULT_CATALOG_OPTIONS.audiences[0] ?? '');
+  const [productType, setProductType] = useState(DEFAULT_CATALOG_OPTIONS.products[0] ?? '');
+  const [garmentType, setGarmentType] = useState(DEFAULT_CATALOG_OPTIONS.garments[0] ?? '');
+  const [catalog, setCatalog] = useState(DEFAULT_CATALOG_OPTIONS);
   const [variants, setVariants] = useState<VariantRow[]>([emptyVariant()]);
   const [images, setImages] = useState<ImageRow[]>([]);
+  const [pricingTemplate, setPricingTemplate] = useState<VariantRow>(() => emptyVariant());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,6 +70,29 @@ export default function AdminProductCreatePage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadCatalog() {
+      if (!token) return;
+      try {
+        const settings = await adminGetSettings(token);
+        if (!mounted) return;
+        const nextCatalog = parseCatalogSettings(settings);
+        setCatalog(nextCatalog);
+        setCategory((current) => current || nextCatalog.audiences[0] || '');
+        setProductType((current) => current || nextCatalog.products[0] || '');
+        setGarmentType((current) => current || nextCatalog.garments[0] || '');
+      } catch {
+        // Leave defaults in place.
+      }
+    }
+
+    void loadCatalog();
+    return () => {
+      mounted = false;
+    };
+  }, [token]);
 
   const colorOptions = Array.from(new Set(variants.map((v) => v.color.trim()).filter(Boolean)));
 
@@ -81,7 +108,7 @@ export default function AdminProductCreatePage() {
   }
 
   function addVariant(template: Partial<VariantRow> = {}) {
-    setVariants((prev) => [...prev, { ...emptyVariant(), ...template }]);
+    setVariants((prev) => [...prev, { ...emptyVariant(), ...pricingTemplate, ...template }]);
   }
 
   function removeVariant(index: number) {
@@ -120,6 +147,27 @@ export default function AdminProductCreatePage() {
     setImages((prev) => prev.map((row, i) => ({ ...row, isDefault: i === index })));
   }
 
+  function applyPreset(preset: PricingRowOption) {
+    setCategory(preset.audience);
+    setProductType(preset.product);
+    setGarmentType(preset.garment);
+    setPrintSurface(preset.printSurface);
+    setPricingTemplate({
+      ...emptyVariant(),
+      manufacturingCost: preset.manufacturingCost,
+      delivery: preset.delivery,
+      salePrice: preset.salePrice,
+    });
+    setVariants((prev) =>
+      prev.map((row) => ({
+        ...row,
+        manufacturingCost: preset.manufacturingCost,
+        delivery: preset.delivery,
+        salePrice: preset.salePrice,
+      })),
+    );
+  }
+
   async function handleSubmit() {
     if (!token) return;
     setError(null);
@@ -142,14 +190,18 @@ export default function AdminProductCreatePage() {
         productName.trim() && `Product: ${productName.trim()}`,
         garment.trim() && `Garment: ${garment.trim()}`,
         gender.trim() && `Gender: ${gender.trim()}`,
-        type.trim() && `Type: ${type.trim()}`,
+        productType.trim() && `Product type: ${productType.trim()}`,
+        garmentType.trim() && `Garment fit: ${garmentType.trim()}`,
         printSurface.trim() && `Print surface: ${printSurface.trim()}`,
       ].filter(Boolean).join('\n');
 
       const form = new FormData();
       form.append('title', resolvedTitle);
       form.append('description', description.trim() || metadataDescription);
-      form.append('category', category.trim() || 'apparel');
+      form.append('category', category.trim() || catalog.audiences[0] || '');
+      form.append('audience', category.trim() || catalog.audiences[0] || '');
+      form.append('productType', productType.trim() || catalog.products[0] || '');
+      form.append('garment', garmentType.trim() || catalog.garments[0] || '');
       form.append('variants', JSON.stringify(validVariants.map((v) => ({
         color: v.color.trim(),
         hex: v.hex,
@@ -219,33 +271,51 @@ export default function AdminProductCreatePage() {
               placeholder="Gender"
               className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-navy-400 focus:outline-none"
             />
-            <input
-              type="text"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              placeholder="Type"
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-navy-400 focus:outline-none"
-            />
-            <input
-              type="text"
-              value={printSurface}
-              onChange={(e) => setPrintSurface(e.target.value)}
-              placeholder="Print surface"
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-navy-400 focus:outline-none sm:col-span-2"
-            />
           </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-navy-400 focus:outline-none"
+            >
+              <option value="">Audience</option>
+              {catalog.audiences.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            <select
+              value={productType}
+              onChange={(e) => setProductType(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-navy-400 focus:outline-none"
+            >
+              <option value="">Product</option>
+              {catalog.products.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            <select
+              value={garmentType}
+              onChange={(e) => setGarmentType(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-navy-400 focus:outline-none"
+            >
+              <option value="">Garment</option>
+              {catalog.garments.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+          <input
+            type="text"
+            value={printSurface}
+            onChange={(e) => setPrintSurface(e.target.value)}
+            placeholder="Print surface"
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-navy-400 focus:outline-none"
+          />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Description"
             rows={3}
-            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-navy-400 focus:outline-none"
-          />
-          <input
-            type="text"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            placeholder="Category (e.g. apparel)"
             className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-navy-400 focus:outline-none"
           />
           <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
@@ -266,6 +336,51 @@ export default function AdminProductCreatePage() {
           >
             + Add row
           </button>
+        </div>
+
+        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/50">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Preset rows</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Load a standard row into the classification fields and pricing defaults.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPricingTemplate(emptyVariant())}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+            >
+              Clear preset
+            </button>
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {catalog.pricingRows.map((preset) => {
+              const margin = parseMoney(preset.salePrice) - parseMoney(preset.manufacturingCost) - parseMoney(preset.delivery);
+              return (
+                <button
+                  key={`${preset.audience}-${preset.product}-${preset.garment}`}
+                  type="button"
+                  onClick={() => applyPreset(preset)}
+                  className="rounded-xl border border-gray-200 bg-white p-3 text-left transition-colors hover:border-navy-300 hover:bg-navy-50 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-navy-700 dark:hover:bg-gray-800"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{preset.audience}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{preset.product} · {preset.garment}</div>
+                    </div>
+                    <div className="text-right text-xs font-semibold text-gray-500 dark:text-gray-400">
+                      <div>{preset.printSurface}</div>
+                      <div className={margin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
+                        £{margin.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+                    MC £{preset.manufacturingCost} · Sell £{preset.salePrice} · Delivery £{preset.delivery}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800">

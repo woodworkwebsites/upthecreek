@@ -189,6 +189,9 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
   const title = (form.get('title') as string | null)?.trim() ?? '';
   const description = (form.get('description') as string | null)?.trim() ?? '';
   const category = (form.get('category') as string | null)?.trim() || 'apparel';
+  const audience = (form.get('audience') as string | null)?.trim() || '';
+  const productType = (form.get('productType') as string | null)?.trim() || '';
+  const garment = (form.get('garment') as string | null)?.trim() || '';
 
   if (!title) return json({ error: 'Title is required' }, 400);
 
@@ -272,6 +275,9 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
     title,
     description,
     category,
+    audience,
+    productType,
+    garment,
     images,
     variants,
     colors,
@@ -334,6 +340,9 @@ export async function handleUpdateProduct(
     title?: string;
     description?: string;
     category?: string;
+    audience?: string;
+    productType?: string;
+    garment?: string;
     isEnabled?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: unknown;
@@ -343,6 +352,9 @@ export async function handleUpdateProduct(
       title?: string;
       description?: string;
       category?: string;
+      audience?: string;
+      productType?: string;
+      garment?: string;
       isEnabled?: boolean;
       sizeGuideImage?: string | null;
       hiddenColors?: unknown;
@@ -351,7 +363,17 @@ export async function handleUpdateProduct(
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  if (!('title' in body) && !('description' in body) && !('category' in body) && !('isEnabled' in body) && !('sizeGuideImage' in body) && !('hiddenColors' in body)) {
+  if (
+    !('title' in body) &&
+    !('description' in body) &&
+    !('category' in body) &&
+    !('audience' in body) &&
+    !('productType' in body) &&
+    !('garment' in body) &&
+    !('isEnabled' in body) &&
+    !('sizeGuideImage' in body) &&
+    !('hiddenColors' in body)
+  ) {
     return json({ error: 'No recognised fields to update' }, 400);
   }
 
@@ -362,12 +384,18 @@ export async function handleUpdateProduct(
 
   const description = body.description !== undefined ? body.description.trim() : undefined;
   const category = body.category !== undefined ? body.category.trim() : undefined;
+  const audience = body.audience !== undefined ? body.audience.trim() : undefined;
+  const productType = body.productType !== undefined ? body.productType.trim() : undefined;
+  const garment = body.garment !== undefined ? body.garment.trim() : undefined;
   const sizeGuideImage = body.sizeGuideImage !== undefined ? body.sizeGuideImage?.trim() || null : undefined;
 
   let updated = await updateProductFields(env.DB, printifyId, {
     title,
     description,
     category,
+    audience,
+    productType,
+    garment,
     isEnabled: body.isEnabled,
     sizeGuideImage,
     hiddenColors: body.hiddenColors !== undefined ? normalizeHiddenColors(body.hiddenColors) : undefined,
@@ -634,8 +662,14 @@ export async function handleUpdateSettings(env: Env, request: Request): Promise<
   }
 
   const allowed = ['live_orders_enabled', 'stripe_test_mode', 'fulfillment_provider'];
+  const allowedCatalogKeys = [
+    'catalog_audience_options',
+    'catalog_product_options',
+    'catalog_garment_options',
+    'catalog_color_options',
+  ];
   for (const [key, value] of Object.entries(body)) {
-    if (!allowed.includes(key)) return json({ error: `Unknown setting: ${key}` }, 400);
+    if (!allowed.includes(key) && !allowedCatalogKeys.includes(key)) return json({ error: `Unknown setting: ${key}` }, 400);
     await setSetting(env.DB, key, value);
   }
 

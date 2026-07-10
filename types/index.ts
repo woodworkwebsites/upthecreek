@@ -35,6 +35,9 @@ export interface ProductRow {
   title: string;
   description: string;
   category: string;
+  audience: string;
+  product_type: string;
+  garment: string;
   images: string;     // JSON
   variants: string;   // JSON
   colors: string;     // JSON
@@ -136,6 +139,9 @@ export interface Product {
   title: string;
   description: string;
   category: string;
+  audience: string;
+  productType: string;
+  garment: string;
   images: PrintifyProductImage[];
   variants: PrintifyVariant[];
   colors: PrintifyColor[];

@@ -67,6 +67,9 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     title:          row.title,
     description:    row.description,
     category:       row.category,
+    audience:       row.audience,
+    productType:    row.product_type,
+    garment:        row.garment,
     images,
     variants,
     colors,
@@ -183,6 +186,9 @@ export interface UpsertProductData {
   title: string;
   description: string;
   category: string;
+  audience: string;
+  productType: string;
+  garment: string;
   images: PrintifyProductImage[];
   variants: PrintifyVariant[];
   colors: PrintifyColor[];
@@ -243,6 +249,9 @@ export interface UpdateProductFields {
   title?: string;
   description?: string;
   category?: string;
+  audience?: string;
+  productType?: string;
+  garment?: string;
   isEnabled?: boolean;
   sizeGuideImage?: string | null;
   hiddenColors?: string[];
@@ -269,6 +278,21 @@ export async function updateProductFields(
   if (fields.category !== undefined) {
     sets.push('category = ?');
     values.push(fields.category);
+  }
+
+  if (fields.audience !== undefined) {
+    sets.push('audience = ?');
+    values.push(fields.audience);
+  }
+
+  if (fields.productType !== undefined) {
+    sets.push('product_type = ?');
+    values.push(fields.productType);
+  }
+
+  if (fields.garment !== undefined) {
+    sets.push('garment = ?');
+    values.push(fields.garment);
   }
 
   if (fields.isEnabled !== undefined) {
@@ -303,9 +327,9 @@ export async function upsertProduct(
   await db
     .prepare(`
       INSERT INTO products
-        (id, printify_id, title, description, category, images, variants, colors, hidden_colors, sizes,
+        (id, printify_id, title, description, category, audience, product_type, garment, images, variants, colors, hidden_colors, sizes,
          min_price, max_price, is_enabled, synced_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'), datetime('now'))
       ON CONFLICT(printify_id) DO UPDATE SET
         is_enabled  = 1,
         title       = excluded.title,
@@ -326,6 +350,9 @@ export async function upsertProduct(
       data.title,
       data.description,
       data.category,
+      data.audience,
+      data.productType,
+      data.garment,
       JSON.stringify(data.images),
       JSON.stringify(data.variants),
       JSON.stringify(data.colors),

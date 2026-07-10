@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Product } from '../../../types/index.js';
-import { adminCreateProduct, adminFetchProducts, adminSyncProducts, adminUpdateProduct, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
+import { adminCreateProduct, adminFetchProducts, adminGetSettings, adminSyncProducts, adminUpdateProduct, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatPriceRange, formatDate } from '../../lib/utils.js';
+import { DEFAULT_CATALOG_OPTIONS, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
 
 interface DraftVariantRow {
   color: string;
@@ -47,23 +48,25 @@ function formatMoney(value: number): string {
 
 function InlineDraftProductRow({
   token,
+  catalog,
   onCreated,
   onCancel,
 }: {
   token: string;
+  catalog: CatalogOptions;
   onCreated: () => Promise<void> | void;
   onCancel: () => void;
 }) {
-  const [stage, setStage] = useState<1 | 2 | 3>(1);
   const [design, setDesign] = useState('');
   const [productName, setProductName] = useState('');
   const [garment, setGarment] = useState('');
   const [gender, setGender] = useState('');
-  const [type, setType] = useState('');
   const [printSurface, setPrintSurface] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('apparel');
+  const [category, setCategory] = useState(catalog.audiences[0] ?? '');
+  const [productType, setProductType] = useState(catalog.products[0] ?? '');
+  const [garmentType, setGarmentType] = useState(catalog.garments[0] ?? '');
   const [isEnabled, setIsEnabled] = useState(true);
   const [colorName, setColorName] = useState('');
   const [colorHex, setColorHex] = useState('#333333');
@@ -198,14 +201,18 @@ function InlineDraftProductRow({
         productName.trim() && `Product: ${productName.trim()}`,
         garment.trim() && `Garment: ${garment.trim()}`,
         gender.trim() && `Gender: ${gender.trim()}`,
-        type.trim() && `Type: ${type.trim()}`,
+        productType.trim() && `Product type: ${productType.trim()}`,
+        garmentType.trim() && `Garment fit: ${garmentType.trim()}`,
         printSurface.trim() && `Print surface: ${printSurface.trim()}`,
       ].filter(Boolean).join('\n');
 
       const form = new FormData();
       form.append('title', resolvedTitle);
       form.append('description', description.trim() || metadataDescription);
-      form.append('category', category.trim() || 'apparel');
+      form.append('category', category.trim() || catalog.audiences[0] || '');
+      form.append('audience', category.trim() || catalog.audiences[0] || '');
+      form.append('productType', productType.trim() || catalog.products[0] || '');
+      form.append('garment', garmentType.trim() || catalog.garments[0] || '');
       form.append('variants', JSON.stringify(validVariants.map((v) => ({
         color: v.color.trim(),
         hex: v.hex,
@@ -234,226 +241,203 @@ function InlineDraftProductRow({
   return (
     <tr className="border-t border-dashed border-gray-200 bg-cream/20 dark:border-gray-700 dark:bg-gray-950/40">
       <td colSpan={6} className="p-0">
-        <div className="space-y-5 p-4 sm:p-6">
+        <div className="space-y-6 p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">New product</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Fill each stage, then save the row into the table.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Fill the fields below and create the row directly in the table.</p>
             </div>
-            <div className="flex items-center gap-2">
-              {[1, 2, 3].map((value) => (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
+            >
+              Cancel
+            </button>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Identity</p>
+              <div className="mt-3 space-y-3">
+                <input type="text" value={design} onChange={(e) => setDesign(e.target.value)} placeholder="Design" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input type="text" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Product" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                  <input type="text" value={garment} onChange={(e) => setGarment(e.target.value)} placeholder="Garment" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                  <input type="text" value={gender} onChange={(e) => setGender(e.target.value)} placeholder="Gender" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                </div>
+                <input type="text" value={printSurface} onChange={(e) => setPrintSurface(e.target.value)} placeholder="Print surface" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" rows={4} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Publication</p>
+              <div className="mt-3 space-y-3">
+                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                  <option value="">Audience</option>
+                  {catalog.audiences.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                <select value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                  <option value="">Product</option>
+                  {catalog.products.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                <select value={garmentType} onChange={(e) => setGarmentType(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                  <option value="">Garment</option>
+                  {catalog.garments.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
                 <button
-                  key={value}
                   type="button"
-                  onClick={() => setStage(value as 1 | 2 | 3)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    stage === value
-                      ? 'bg-navy-800 text-white'
-                      : 'border border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200'
+                  onClick={() => setIsEnabled((current) => !current)}
+                  className={`inline-flex items-center gap-3 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    isEnabled
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-200'
+                      : 'border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200'
                   }`}
                 >
-                  Stage {value}
+                  <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                    <span className={`h-4 w-4 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </span>
+                  Enabled
                 </button>
-              ))}
-              <button
-                type="button"
-                onClick={onCancel}
-                className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
-              >
-                Cancel
-              </button>
+              </div>
             </div>
           </div>
 
-          {stage === 1 && (
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Identity</p>
-                <div className="mt-3 space-y-3">
-                  <input type="text" value={design} onChange={(e) => setDesign(e.target.value)} placeholder="Design" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <input type="text" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Product" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    <input type="text" value={garment} onChange={(e) => setGarment(e.target.value)} placeholder="Garment" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    <input type="text" value={gender} onChange={(e) => setGender(e.target.value)} placeholder="Gender" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    <input type="text" value={type} onChange={(e) => setType(e.target.value)} placeholder="Type" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                  </div>
-                  <input type="text" value={printSurface} onChange={(e) => setPrintSurface(e.target.value)} placeholder="Print surface" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" rows={4} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Publication</p>
-                <div className="mt-3 space-y-3">
-                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                    <option value="apparel">Apparel</option>
-                    <option value="accessories">Accessories</option>
-                    <option value="other">Other</option>
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setIsEnabled((current) => !current)}
-                    className={`inline-flex items-center gap-3 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                      isEnabled
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-200'
-                        : 'border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200'
-                    }`}
-                  >
-                    <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                      <span className={`h-4 w-4 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                    </span>
-                    Enabled
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {stage === 2 && (
-            <div className="space-y-4">
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Colours</p>
-                  <div className="mt-3 flex gap-2">
-                    <input value={colorName} onChange={(e) => setColorName(e.target.value)} placeholder="Add colour" className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    <input type="color" value={colorHex} onChange={(e) => setColorHex(e.target.value)} className="h-10 w-14 rounded-lg border border-gray-200 bg-transparent p-1 dark:border-gray-700" />
-                    <button type="button" onClick={addColor} className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white">Add</button>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {colors.map((color) => (
-                      <button key={color.name} type="button" onClick={() => removeColor(color.name)} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                        <span className="mr-1 inline-block h-3 w-3 rounded-full border border-black/10" style={{ backgroundColor: color.hex }} />
-                        {color.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Sizes</p>
-                  <div className="mt-3 flex gap-2">
-                    <input value={sizeValue} onChange={(e) => setSizeValue(e.target.value)} placeholder="Add size" className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    <button type="button" onClick={addSize} className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white">Add</button>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {sizes.map((size) => (
-                      <button key={size} type="button" onClick={() => removeSize(size)} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                        {size}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800">
-                <table className="min-w-[960px] w-full border-separate border-spacing-0 text-left">
-                  <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
-                    <tr className="text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
-                      <th className="px-3 py-3">Colour</th>
-                      <th className="px-3 py-3">Size</th>
-                      <th className="px-3 py-3">Manufacturing</th>
-                      <th className="px-3 py-3">Delivery</th>
-                      <th className="px-3 py-3">Sale price</th>
-                      <th className="px-3 py-3">Margin</th>
-                      <th className="px-3 py-3">Available</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(variantRows).map(([key, row]) => {
-                      const margin = parseMoney(row.salePrice) - parseMoney(row.manufacturingCost) - parseMoney(row.delivery);
-                      return (
-                        <tr key={key} className="border-t border-gray-100 dark:border-gray-800">
-                          <td className="px-3 py-2">
-                            <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                              {row.color}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2">
-                            <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                              {row.size}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2">
-                            <input value={row.manufacturingCost} onChange={(e) => updateVariant(key, { manufacturingCost: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                          </td>
-                          <td className="px-3 py-2">
-                            <input value={row.delivery} onChange={(e) => updateVariant(key, { delivery: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                          </td>
-                          <td className="px-3 py-2">
-                            <input value={row.salePrice} onChange={(e) => updateVariant(key, { salePrice: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className={`rounded-lg px-2 py-2 text-xs font-semibold ${margin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
-                              {formatMoney(margin)}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2">
-                            <label className="inline-flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-200">
-                              <input type="checkbox" checked={row.available} onChange={(e) => updateVariant(key, { available: e.target.checked })} />
-                              In stock
-                            </label>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {stage === 3 && (
+          <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Images</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Upload product imagery and choose the default.</p>
-                </div>
-                <input type="file" accept="image/*" multiple onChange={(e) => handleFilesSelected(e.target.files)} className="w-full max-w-md rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 file:mr-3 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700" />
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Colours</p>
+              <div className="mt-3 flex gap-2">
+                <input value={colorName} onChange={(e) => setColorName(e.target.value)} placeholder="Add colour" className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                <input type="color" value={colorHex} onChange={(e) => setColorHex(e.target.value)} className="h-10 w-14 rounded-lg border border-gray-200 bg-transparent p-1 dark:border-gray-700" />
+                <button type="button" onClick={addColor} className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white">Add</button>
               </div>
-              {images.length > 0 && (
-                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {images.map((img, index) => (
-                    <div key={index} className="rounded-xl border border-gray-100 p-2 space-y-2 dark:border-gray-800">
-                      <img src={img.previewUrl} alt="" className="h-32 w-full rounded-lg object-cover" />
-                      <div className="flex items-center gap-2">
-                        <select value={img.color} onChange={(e) => updateImage(index, { color: e.target.value })} className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                          <option value="">All colours</option>
-                          {colors.map((color) => (
-                            <option key={color.name} value={color.name}>{color.name}</option>
-                          ))}
-                        </select>
-                        <button type="button" onClick={() => removeImage(index)} className="text-xs font-semibold text-red-600 hover:underline dark:text-red-400">Remove</button>
-                      </div>
-                      <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-                        <input type="radio" name="default-image" checked={img.isDefault} onChange={() => setDefaultImage(index)} />
-                        Default image
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {colors.map((color) => (
+                  <button key={color.name} type="button" onClick={() => removeColor(color.name)} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                    <span className="mr-1 inline-block h-3 w-3 rounded-full border border-black/10" style={{ backgroundColor: color.hex }} />
+                    {color.name}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
+
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Sizes</p>
+              <div className="mt-3 flex gap-2">
+                <input value={sizeValue} onChange={(e) => setSizeValue(e.target.value)} placeholder="Add size" className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                <button type="button" onClick={addSize} className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white">Add</button>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {sizes.map((size) => (
+                  <button key={size} type="button" onClick={() => removeSize(size)} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800">
+            <table className="min-w-[960px] w-full border-separate border-spacing-0 text-left">
+              <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
+                <tr className="text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+                  <th className="px-3 py-3">Colour</th>
+                  <th className="px-3 py-3">Size</th>
+                  <th className="px-3 py-3">Manufacturing</th>
+                  <th className="px-3 py-3">Delivery</th>
+                  <th className="px-3 py-3">Sale price</th>
+                  <th className="px-3 py-3">Margin</th>
+                  <th className="px-3 py-3">Available</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(variantRows).map(([key, row]) => {
+                  const margin = parseMoney(row.salePrice) - parseMoney(row.manufacturingCost) - parseMoney(row.delivery);
+                  return (
+                    <tr key={key} className="border-t border-gray-100 dark:border-gray-800">
+                      <td className="px-3 py-2">
+                        <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                          {row.color}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                          {row.size}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <input value={row.manufacturingCost} onChange={(e) => updateVariant(key, { manufacturingCost: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input value={row.delivery} onChange={(e) => updateVariant(key, { delivery: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input value={row.salePrice} onChange={(e) => updateVariant(key, { salePrice: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className={`rounded-lg px-2 py-2 text-xs font-semibold ${margin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                          {formatMoney(margin)}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <label className="inline-flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-200">
+                          <input type="checkbox" checked={row.available} onChange={(e) => updateVariant(key, { available: e.target.checked })} />
+                          In stock
+                        </label>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Images</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Upload product imagery and choose the default.</p>
+              </div>
+              <input type="file" accept="image/*" multiple onChange={(e) => handleFilesSelected(e.target.files)} className="w-full max-w-md rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 file:mr-3 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700" />
+            </div>
+            {images.length > 0 && (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {images.map((img, index) => (
+                  <div key={index} className="rounded-xl border border-gray-100 p-2 space-y-2 dark:border-gray-800">
+                    <img src={img.previewUrl} alt="" className="h-32 w-full rounded-lg object-cover" />
+                    <div className="flex items-center gap-2">
+                      <select value={img.color} onChange={(e) => updateImage(index, { color: e.target.value })} className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                        <option value="">All colours</option>
+                        {colors.map((color) => (
+                          <option key={color.name} value={color.name}>{color.name}</option>
+                        ))}
+                      </select>
+                      <button type="button" onClick={() => removeImage(index)} className="text-xs font-semibold text-red-600 hover:underline dark:text-red-400">Remove</button>
+                    </div>
+                    <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                      <input type="radio" name="default-image" checked={img.isDefault} onChange={() => setDefaultImage(index)} />
+                      Default image
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {error && <p className="text-sm font-semibold text-red-600 dark:text-red-400">{error}</p>}
 
           <div className="flex justify-end gap-3">
-            {stage > 1 && (
-              <button type="button" onClick={() => setStage((current) => Math.max(1, current - 1) as 1 | 2 | 3)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">
-                Back
-              </button>
-            )}
-            {stage < 3 ? (
-              <button type="button" onClick={() => setStage((current) => (current + 1) as 1 | 2 | 3)} className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white">
-                Next
-              </button>
-            ) : (
-              <button type="button" onClick={() => { void handleSubmit(); }} disabled={submitting} className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
-                {submitting ? 'Creating…' : 'Create product'}
-              </button>
-            )}
+            <button type="button" onClick={() => { void handleSubmit(); }} disabled={submitting} className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+              {submitting ? 'Creating…' : 'Create product'}
+            </button>
           </div>
         </div>
       </td>
@@ -461,17 +445,18 @@ function InlineDraftProductRow({
   );
 }
 
-function ProductRow({ product, token }: { product: Product; token: string }) {
+function ProductRow({ product, token, catalog }: { product: Product; token: string; catalog: CatalogOptions }) {
   const img = product.images.find((i) => i.isDefault) ?? product.images[0];
   const [images, setImages] = useState(product.images);
   const [title, setTitle] = useState(product.title);
   const [description, setDescription] = useState(product.description ?? '');
-  const [category, setCategory] = useState(product.category ?? 'apparel');
+  const [category, setCategory] = useState(product.audience || '');
+  const [productType, setProductType] = useState(product.productType || '');
+  const [garmentType, setGarmentType] = useState(product.garment || '');
   const [sizeGuideUrl, setSizeGuideUrl] = useState(product.sizeGuideImage ?? '');
   const [hiddenColors, setHiddenColors] = useState<string[]>(product.hiddenColors ?? []);
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [imageUploadFile, setImageUploadFile] = useState<File | null>(null);
   const [imageUploadPreview, setImageUploadPreview] = useState<string | null>(null);
@@ -489,23 +474,14 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
   useEffect(() => {
     setTitle(product.title);
     setDescription(product.description ?? '');
-    setCategory(product.category ?? 'apparel');
+    setCategory(product.audience || '');
+    setProductType(product.productType || '');
+    setGarmentType(product.garment || '');
     setSizeGuideUrl(product.sizeGuideImage ?? '');
     setHiddenColors(product.hiddenColors ?? []);
     setIsEnabled(product.isEnabled);
     setImages(product.images);
   }, [product]);
-
-  useEffect(() => {
-    if (!selectedFile) {
-      setFilePreview(null);
-      return;
-    }
-
-    const previewUrl = URL.createObjectURL(selectedFile);
-    setFilePreview(previewUrl);
-    return () => URL.revokeObjectURL(previewUrl);
-  }, [selectedFile]);
 
   useEffect(() => {
     if (!imageUploadFile) {
@@ -562,9 +538,18 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
 
   const visibleColors = product.colors.filter((color) => !hiddenColors.includes(color.name));
   const hiddenCount = hiddenColors.length;
+  const colorOrder = new Map(catalog.colors.map((color, index) => [color.name, index] as const));
+  const sortedVisibleColors = [...visibleColors].sort(
+    (a, b) => (colorOrder.get(a.name) ?? Number.MAX_SAFE_INTEGER) - (colorOrder.get(b.name) ?? Number.MAX_SAFE_INTEGER),
+  );
+  const sortedHiddenColors = [...product.colors.filter((color) => hiddenColors.includes(color.name))].sort(
+    (a, b) => (colorOrder.get(a.name) ?? Number.MAX_SAFE_INTEGER) - (colorOrder.get(b.name) ?? Number.MAX_SAFE_INTEGER),
+  );
   const hasChanges = title.trim() !== product.title
     || description.trim() !== (product.description ?? '').trim()
-    || category.trim() !== (product.category ?? 'apparel').trim()
+    || category.trim() !== (product.audience || '').trim()
+    || productType.trim() !== (product.productType || '').trim()
+    || garmentType.trim() !== (product.garment || '').trim()
     || sizeGuideUrl.trim() !== (product.sizeGuideImage ?? '').trim()
     || isEnabled !== product.isEnabled
     || hiddenColors.length !== (product.hiddenColors ?? []).length
@@ -585,7 +570,9 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
       await adminUpdateProduct(token, product.printifyId, {
         title: title.trim(),
         description: description.trim(),
-        category: category.trim() || 'apparel',
+        audience: category.trim(),
+        productType: productType.trim(),
+        garment: garmentType.trim(),
         sizeGuideImage: sizeGuideUrl.trim() || null,
         hiddenColors,
         isEnabled,
@@ -670,9 +657,30 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
               onChange={(e) => setCategory(e.target.value)}
               className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
             >
-              <option value="apparel">Apparel</option>
-              <option value="accessories">Accessories</option>
-              <option value="other">Other</option>
+              <option value="">Audience</option>
+              {catalog.audiences.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            <select
+              value={productType}
+              onChange={(e) => setProductType(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            >
+              <option value="">Product</option>
+              {catalog.products.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            <select
+              value={garmentType}
+              onChange={(e) => setGarmentType(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            >
+              <option value="">Garment</option>
+              {catalog.garments.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
             </select>
             <button
               type="button"
@@ -688,8 +696,9 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
         </td>
 
         <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
-          <div className="flex flex-wrap gap-1.5">
-            {product.colors.map((color) => {
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+            {sortedVisibleColors.map((color) => {
               const isHidden = hiddenColors.includes(color.name);
               return (
                 <button
@@ -711,6 +720,25 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
                 </button>
               );
             })}
+            </div>
+            {sortedHiddenColors.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {sortedHiddenColors.map((color) => (
+                  <button
+                    key={`hidden-${color.name}`}
+                    type="button"
+                    onClick={() => toggleColor(color.name)}
+                    className="inline-flex items-center rounded-full border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500"
+                    title={`${color.name} hidden`}
+                  >
+                    <span
+                      className="inline-block h-3 w-3 rounded-full border border-black/10 opacity-60"
+                      style={{ backgroundColor: color.hex }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             {visibleColors.length} visible, {hiddenCount} hidden
@@ -764,11 +792,6 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
               </button>
             </div>
             {selectedFile && <div className="text-[11px] text-gray-500 dark:text-gray-400">Selected: {selectedFile.name}</div>}
-            {(filePreview || sizeGuideUrl) && (
-              <div className="overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
-                <img src={filePreview ?? sizeGuideUrl} alt="Size guide preview" className="max-h-20 w-full object-contain" />
-              </div>
-            )}
             {uploadError && <div className="text-xs text-red-600 dark:text-red-400">{uploadError}</div>}
           </div>
         </td>
@@ -796,8 +819,8 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
       {detailOpen && (
         <tr>
           <td colSpan={6} className="p-0">
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-              <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
+              <div className="flex w-full max-w-3xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit description</h2>
@@ -812,7 +835,7 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
                   </button>
                 </div>
 
-                <div className="mt-5">
+                <div className="mt-5 flex-1 overflow-y-auto pr-1">
                   <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">Description</label>
                   <textarea
                     value={description}
@@ -848,8 +871,8 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
       {imageModalOpen && (
         <tr>
           <td colSpan={6} className="p-0">
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-              <div className="w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
+              <div className="flex w-full max-w-3xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Manage images</h2>
@@ -864,7 +887,7 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
                   </button>
                 </div>
 
-                <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                <div className="mt-5 flex-1 space-y-6 overflow-y-auto pr-1">
                   <div className="space-y-3">
                     <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">Upload image</label>
                     <input
@@ -879,7 +902,7 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
                       className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                     >
                       <option value="">All colours</option>
-                      {product.colors.map((color) => (
+                      {catalog.colors.map((color) => (
                         <option key={color.name} value={color.name}>{color.name}</option>
                       ))}
                     </select>
@@ -913,7 +936,7 @@ function ProductRow({ product, token }: { product: Product; token: string }) {
 
                   <div className="space-y-3">
                     <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Current images</div>
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid max-h-[42vh] gap-3 overflow-auto pr-1 sm:grid-cols-2">
                       {images.map((image, index) => (
                         <div key={`${image.src}-${index}`} className="rounded-xl border border-gray-100 p-2 dark:border-gray-800">
                           <img src={image.src} alt={product.title} className="h-28 w-full rounded-lg object-cover" />
@@ -943,6 +966,7 @@ export default function AdminProductsPage() {
   const [syncMsg,  setSyncMsg]  = useState<string | null>(null);
   const [error,    setError]    = useState<string | null>(null);
   const [draftOpen, setDraftOpen] = useState(false);
+  const [catalog, setCatalog] = useState<CatalogOptions>(DEFAULT_CATALOG_OPTIONS);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<{
     productsFound: number;
@@ -956,8 +980,12 @@ export default function AdminProductsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminFetchProducts(token);
+      const [data, settings] = await Promise.all([
+        adminFetchProducts(token),
+        adminGetSettings(token),
+      ]);
       setProducts(data);
+      setCatalog(parseCatalogSettings(settings));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load products');
     } finally {
@@ -1087,7 +1115,7 @@ export default function AdminProductsPage() {
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
                 <tr className="text-left text-[11px] uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
                   <th className="px-4 py-3 sm:px-6">Product</th>
-                  <th className="px-4 py-3">Design</th>
+                  <th className="px-4 py-3">Classification</th>
                   <th className="px-4 py-3">Colours</th>
                   <th className="px-4 py-3">Size guide</th>
                   <th className="px-4 py-3">Visibility</th>
@@ -1096,11 +1124,12 @@ export default function AdminProductsPage() {
               </thead>
               <tbody>
                 {products.map((product) => (
-                  <ProductRow key={product.id} product={product} token={token!} />
+                  <ProductRow key={product.id} product={product} token={token!} catalog={catalog} />
                 ))}
                 {draftOpen && (
                   <InlineDraftProductRow
                     token={token!}
+                    catalog={catalog}
                     onCancel={() => setDraftOpen(false)}
                     onCreated={async () => {
                       setDraftOpen(false);
@@ -1115,8 +1144,8 @@ export default function AdminProductsPage() {
       )}
 
       {previewOpen && previewData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
+          <div className="flex w-full max-w-2xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Approve sync changes</h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -1139,7 +1168,7 @@ export default function AdminProductsPage() {
               </div>
             </div>
 
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="mt-5 grid flex-1 gap-4 overflow-y-auto pr-1 sm:grid-cols-2">
               <div>
                 <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">New products</h3>
                 <div className="max-h-56 space-y-2 overflow-auto rounded-xl border border-gray-200 p-3 dark:border-gray-800">
