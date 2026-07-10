@@ -561,6 +561,58 @@ export async function handleDeleteProductImage(
   return json({ success: true });
 }
 
+export async function handleUpdateProductImage(
+  env: Env,
+  printifyId: string,
+  request: Request,
+): Promise<Response> {
+  let body: { storageKey?: string; color?: string | null; isDefault?: boolean };
+  try {
+    body = await request.json() as { storageKey?: string; color?: string | null; isDefault?: boolean };
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const storageKey = body.storageKey?.trim() || '';
+  if (!storageKey) {
+    return json({ error: 'Missing storageKey' }, 400);
+  }
+
+  const product = await getProductByPrintifyIdForAdmin(env.DB, printifyId);
+  if (!product) return json({ error: 'Product not found' }, 404);
+
+  const index = product.images.findIndex((entry) => entry.storageKey === storageKey);
+  if (index < 0) return json({ error: 'Image not found' }, 404);
+
+  const knownColors = [...product.colors, ...(product.customColors ?? [])];
+  const nextColor = body.color === null ? '' : body.color?.trim() ?? '';
+  if (nextColor && !knownColors.some((entry) => entry.name === nextColor)) {
+    return json({ error: `Unknown colour: ${nextColor}` }, 400);
+  }
+
+  const images = product.images.map((entry) => ({ ...entry }));
+  const image = images[index];
+  image.color = nextColor || undefined;
+  image.variantIds = nextColor
+    ? product.variants.filter((variant) => variant.color === nextColor).map((variant) => variant.id)
+    : product.variants.map((variant) => variant.id);
+
+  if (body.isDefault === true) {
+    images.forEach((entry) => {
+      entry.isDefault = entry.storageKey === storageKey;
+    });
+  }
+
+  if (!images.some((entry) => entry.isDefault) && images.length > 0) {
+    images[0].isDefault = true;
+  }
+
+  const updated = await updateProductImages(env.DB, printifyId, images);
+  if (!updated) return json({ error: 'Product not found' }, 404);
+
+  return json({ success: true, image, images });
+}
+
 export async function handleListLogs(env: Env): Promise<Response> {
   const [syncLogs, webhookLogs, printifyLogs] = await Promise.all([
     listSyncLogs(env.DB),

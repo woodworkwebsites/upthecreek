@@ -114,7 +114,7 @@ export default function AdminCatalogPage() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-7xl">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Catalog options</h1>
@@ -150,7 +150,7 @@ export default function AdminCatalogPage() {
       {saved && <p className="text-sm font-semibold text-green-600 dark:text-green-400">Saved</p>}
       {error && <p className="text-sm font-semibold text-red-600 dark:text-red-400">{error}</p>}
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-3">
         <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Audience</p>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Men / Womens / Kids</p>
@@ -250,7 +250,7 @@ export default function AdminCatalogPage() {
         </div>
 
         <div className="mt-4 overflow-x-auto">
-          <table className="min-w-[1200px] w-full border-separate border-spacing-0 text-left">
+          <table className="min-w-[1320px] w-full border-separate border-spacing-0 text-left">
             <thead className="bg-gray-50 dark:bg-gray-900">
               <tr className="text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
                 <th className="px-3 py-3">Audience</th>

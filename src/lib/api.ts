@@ -175,6 +175,18 @@ export async function adminUploadProductImage(
   return res.json() as Promise<{ image: { src: string; isDefault: boolean; variantIds: number[]; color?: string } }>;
 }
 
+export async function adminUpdateProductImage(
+  token: string,
+  printifyId: string,
+  storageKey: string,
+  patch: { color?: string | null; isDefault?: boolean },
+): Promise<{ images: Array<{ src: string; isDefault: boolean; variantIds: number[]; color?: string; storageKey?: string }> }> {
+  return adminFetch(`/api/admin/products/${printifyId}/images`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ storageKey, ...patch }),
+  });
+}
+
 export async function adminDeleteProductImage(
   token: string,
   printifyId: string,

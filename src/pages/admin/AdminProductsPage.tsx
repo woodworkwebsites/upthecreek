@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Product } from '../../../types/index.js';
-import { adminCreateProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminSyncProducts, adminUpdateProduct, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
+import { adminCreateProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminSyncProducts, adminUpdateProduct, adminUpdateProductImage, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -445,30 +445,6 @@ function InlineDraftProductRow({
   );
 }
 
-function mergeColors(
-  primary: Array<{ name: string; hex: string }>,
-  secondary: Array<{ name: string; hex: string }>,
-): Array<{ name: string; hex: string }> {
-  const seen = new Set<string>();
-  const merged: Array<{ name: string; hex: string }> = [];
-  for (const color of [...primary, ...secondary]) {
-    const name = color.name.trim();
-    if (!name || seen.has(name.toLowerCase())) continue;
-    seen.add(name.toLowerCase());
-    merged.push({ name, hex: color.hex || '#111827' });
-  }
-  return merged;
-}
-
-function colorListSignature(colors: Array<{ name: string; hex: string }>): string {
-  return JSON.stringify(
-    colors
-      .map((color) => ({ name: color.name.trim(), hex: color.hex.trim() || '#111827' }))
-      .filter((color) => color.name.length > 0)
-      .sort((a, b) => a.name.localeCompare(b.name)),
-  );
-}
-
 function pricingMatrixSignature(matrix: {
   audience: string;
   product: string;
@@ -551,7 +527,6 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   const [productType, setProductType] = useState(product.productType || '');
   const [garmentType, setGarmentType] = useState(product.garment || '');
   const [sizeGuideUrl, setSizeGuideUrl] = useState(product.sizeGuideImage ?? '');
-  const [customColors, setCustomColors] = useState(product.customColors ?? []);
   const [pricingMatrix, setPricingMatrix] = useState(
     product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? emptyPricingMatrix(),
   );
@@ -565,8 +540,6 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   const [imageUploadDefault, setImageUploadDefault] = useState(false);
   const [imageSaving, setImageSaving] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
-  const [newColorHex, setNewColorHex] = useState('#111827');
-  const newColorNameRef = useRef<HTMLInputElement | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -581,7 +554,6 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
     setProductType(product.productType || '');
     setGarmentType(product.garment || '');
     setSizeGuideUrl(product.sizeGuideImage ?? '');
-    setCustomColors(product.customColors ?? []);
     setPricingMatrix(product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? emptyPricingMatrix());
     setHiddenColors(product.hiddenColors ?? []);
     setIsEnabled(product.isEnabled);
@@ -605,30 +577,6 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
         ? current.filter((value) => value !== colorName)
         : [...current, colorName],
     );
-  }
-
-  function addCustomColor() {
-    const name = newColorNameRef.current?.value.trim() ?? '';
-    if (!name) return;
-
-    setCustomColors((current) => {
-      const existsAlready = [...product.colors, ...current].some(
-        (color) => color.name.toLowerCase() === name.toLowerCase(),
-      );
-      if (existsAlready) {
-        return current;
-      }
-      return [...current, { name, hex: newColorHex }];
-    });
-    setNewColorHex('#111827');
-    if (newColorNameRef.current) {
-      newColorNameRef.current.value = '';
-    }
-  }
-
-  function removeCustomColor(colorName: string) {
-    setCustomColors((current) => current.filter((color) => color.name !== colorName));
-    setHiddenColors((current) => current.filter((name) => name !== colorName));
   }
 
   async function handleUploadProductImage() {
@@ -664,7 +612,20 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
     }
   }
 
-  const allColors = mergeColors(product.colors, customColors);
+  async function handleUpdateImage(storageKey: string, patch: { color?: string | null; isDefault?: boolean }) {
+    setImageSaving(true);
+    setImageError(null);
+    try {
+      const result = await adminUpdateProductImage(token, product.printifyId, storageKey, patch);
+      setImages(result.images);
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : 'Update failed');
+    } finally {
+      setImageSaving(false);
+    }
+  }
+
+  const allColors = catalog.colors;
   const visibleColors = allColors.filter((color) => !hiddenColors.includes(color.name));
   const hiddenCount = hiddenColors.length;
   const colorOrder = new Map(allColors.map((color, index) => [color.name, index] as const));
@@ -674,16 +635,8 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   const sortedHiddenColors = [...allColors.filter((color) => hiddenColors.includes(color.name))].sort(
     (a, b) => (colorOrder.get(a.name) ?? Number.MAX_SAFE_INTEGER) - (colorOrder.get(b.name) ?? Number.MAX_SAFE_INTEGER),
   );
-  const currentCustomSignature = colorListSignature(customColors);
-  const originalCustomSignature = colorListSignature(product.customColors ?? []);
   const currentPricingSignature = pricingMatrixSignature(pricingMatrix);
   const originalPricingSignature = pricingMatrixSignature(product.pricingMatrix ?? matchPricingPreset(product, catalog));
-  const matchedPricingPreset = catalog.pricingRows.find(
-    (row) => pricingMatrixSignature(normalizePricingMatrix(row)) === currentPricingSignature,
-  );
-  const pricingSelectValue = matchedPricingPreset
-    ? currentPricingSignature
-    : pricingMatrixSignature(emptyPricingMatrix());
   const hasChanges = title.trim() !== product.title
     || description.trim() !== (product.description ?? '').trim()
     || category.trim() !== (product.audience || '').trim()
@@ -691,7 +644,6 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
     || garmentType.trim() !== (product.garment || '').trim()
     || sizeGuideUrl.trim() !== (product.sizeGuideImage ?? '').trim()
     || isEnabled !== product.isEnabled
-    || currentCustomSignature !== originalCustomSignature
     || currentPricingSignature !== originalPricingSignature
     || hiddenColors.length !== (product.hiddenColors ?? []).length
     || hiddenColors.some((color) => !(product.hiddenColors ?? []).includes(color));
@@ -712,7 +664,6 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
         audience: category.trim(),
         productType: productType.trim(),
         garment: garmentType.trim(),
-        customColors,
         pricingMatrix: normalizePricingMatrix(pricingMatrix),
         sizeGuideImage: sizeGuideUrl.trim() || null,
         hiddenColors,
@@ -837,64 +788,35 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
             >
               Edit description
             </button>
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/70">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Pricing matrix</p>
-                <select
-                  value={pricingSelectValue}
-                  onChange={(e) => {
-                    const preset = catalog.pricingRows.find((row) => pricingMatrixSignature(normalizePricingMatrix(row)) === e.target.value);
-                    setPricingMatrix(preset ? normalizePricingMatrix(preset) : emptyPricingMatrix());
-                  }}
-                  className="max-w-[150px] rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                >
-                  <option value={pricingMatrixSignature(emptyPricingMatrix())}>Custom</option>
-                  {catalog.pricingRows.map((row) => {
-                    const value = pricingMatrixSignature(normalizePricingMatrix(row));
-                    return (
-                      <option key={value} value={value}>
-                        {row.audience} / {row.product} / {row.garment}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-950/70">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Pricing</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-3">
                 <input
                   value={pricingMatrix.printSurface}
                   onChange={(e) => setPricingMatrix((current) => ({ ...current, printSurface: e.target.value }))}
-                  placeholder="Print surface"
-                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                  placeholder="Surface"
+                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 />
                 <input
                   value={pricingMatrix.manufacturingCost}
                   onChange={(e) => setPricingMatrix((current) => ({ ...current, manufacturingCost: e.target.value }))}
-                  placeholder="Manufacturing"
-                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                  placeholder="Cost"
+                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 />
                 <input
                   value={pricingMatrix.saleCost}
                   onChange={(e) => setPricingMatrix((current) => ({ ...current, saleCost: e.target.value }))}
-                  placeholder="Sale cost"
-                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                  placeholder="Pricing"
+                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 />
-                <input
-                  value={pricingMatrix.delivery}
-                  onChange={(e) => setPricingMatrix((current) => ({ ...current, delivery: e.target.value }))}
-                  placeholder="Delivery"
-                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
+              </div>
+              <div className="mt-2 grid gap-2 sm:grid-cols-3">
                 <input
                   value={pricingMatrix.salePrice}
                   onChange={(e) => setPricingMatrix((current) => ({ ...current, salePrice: e.target.value }))}
-                  placeholder="Sale price"
-                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 sm:col-span-2"
+                  placeholder="Retail"
+                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 sm:col-span-3"
                 />
-              </div>
-              <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-                Margin {pricingMatrix.salePrice && pricingMatrix.manufacturingCost && pricingMatrix.delivery
-                  ? formatMoney(parseMoney(pricingMatrix.salePrice) - parseMoney(pricingMatrix.manufacturingCost) - parseMoney(pricingMatrix.delivery))
-                  : '—'}
               </div>
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -947,53 +869,6 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                 ))}
               </div>
             )}
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/70">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Add custom colour</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <input
-                  ref={newColorNameRef}
-                  placeholder="Colour name"
-                  className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addCustomColor();
-                    }
-                  }}
-                />
-                <input
-                  type="color"
-                  value={newColorHex}
-                  onChange={(e) => setNewColorHex(e.target.value)}
-                  className="h-9 w-12 rounded-lg border border-gray-200 bg-transparent p-1 dark:border-gray-700"
-                />
-                <button
-                  type="button"
-                  onClick={addCustomColor}
-                  className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700"
-                >
-                  Add
-                </button>
-              </div>
-              {customColors.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {customColors.map((color) => (
-                    <button
-                      key={color.name}
-                      type="button"
-                      onClick={() => removeCustomColor(color.name)}
-                      className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-                      title={`Remove ${color.name}`}
-                    >
-                      <span
-                        className="inline-block h-3 w-3 rounded-full border border-black/10"
-                        style={{ backgroundColor: color.hex }}
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
           <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             {visibleColors.length} visible, {hiddenCount} hidden
@@ -1014,7 +889,7 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{product.variants.length} variants</p>
         </td>
 
-        <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
+                      <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
           <div className="space-y-2">
             <button
               type="button"
@@ -1157,7 +1032,7 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                       className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                     >
                       <option value="">All colours</option>
-                      {allColors.map((color) => (
+                      {catalog.colors.map((color) => (
                         <option key={color.name} value={color.name}>{color.name}</option>
                       ))}
                     </select>
@@ -1213,15 +1088,47 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                             }}
                             className="absolute right-3 top-3 z-10 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-black"
                             aria-label="Delete image"
-                          >
+                            >
                             Delete
                           </button>
                           <div className="overflow-hidden rounded-lg border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950">
                             <img src={image.src} alt={product.title} className="h-40 w-full object-contain" />
                           </div>
-                          <div className="mt-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                            <span>{image.color || 'All colours'}</span>
-                            {image.isDefault && <span className="font-semibold text-emerald-600 dark:text-emerald-400">Default</span>}
+                          <div className="mt-2 space-y-2 text-xs text-gray-500 dark:text-gray-400">
+                            <select
+                              value={image.color || ''}
+                              onChange={(e) => {
+                                if (!image.storageKey) return;
+                                void handleUpdateImage(image.storageKey, { color: e.target.value || null });
+                              }}
+                              disabled={imageSaving}
+                              className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                            >
+                              <option value="">All colours</option>
+                              {catalog.colors.map((color) => (
+                                <option key={color.name} value={color.name}>
+                                  {color.name}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="flex items-center justify-between gap-2">
+                              {image.isDefault ? (
+                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Default image</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!image.storageKey) return;
+                                    void handleUpdateImage(image.storageKey, { isDefault: true });
+                                  }}
+                                  disabled={imageSaving}
+                                  className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
+                                >
+                                  Set default
+                                </button>
+                              )}
+                              <span>{image.color || 'All colours'}</span>
+                            </div>
                           </div>
                         </div>
                       ))}
