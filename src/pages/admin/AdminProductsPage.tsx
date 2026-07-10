@@ -587,7 +587,7 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
     setHiddenColors(product.hiddenColors ?? []);
     setIsEnabled(product.isEnabled);
     setImages(product.images);
-  }, [product, catalog]);
+  }, [product]);
 
   useEffect(() => {
     if (imageUploadFiles.length === 0) {
@@ -795,14 +795,9 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
 
         <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-medium text-gray-900 dark:text-gray-100">
-                {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
-              </p>
-              <span className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-400">
-                Pricing
-              </span>
-            </div>
+            <p className="font-medium text-gray-900 dark:text-gray-100">
+              {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
+            </p>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -900,7 +895,7 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                     type="button"
                     onClick={() => toggleColor(color.name)}
                     aria-pressed={!isHidden}
-                    className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold ${
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
                       isHidden
                         ? 'border-dashed border-gray-300 bg-gray-50 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500'
                         : 'border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200'
@@ -911,6 +906,7 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                       className="inline-block h-3 w-3 rounded-full border border-black/10"
                       style={{ backgroundColor: color.hex }}
                     />
+                    <span>{color.name}</span>
                   </button>
                 );
               })}
@@ -922,13 +918,14 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                     key={`hidden-${color.name}`}
                     type="button"
                     onClick={() => toggleColor(color.name)}
-                    className="inline-flex items-center rounded-full border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500"
                     title={`${color.name} hidden`}
                   >
                     <span
                       className="inline-block h-3 w-3 rounded-full border border-black/10 opacity-60"
                       style={{ backgroundColor: color.hex }}
                     />
+                    <span>{color.name}</span>
                   </button>
                 ))}
               </div>

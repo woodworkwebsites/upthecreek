@@ -202,7 +202,7 @@ export default function AdminCatalogPage() {
 
         <div className="mt-4 space-y-3">
           {colors.map((color, index) => (
-            <div key={`${color.name}-${index}`} className="grid gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 sm:grid-cols-[1fr_160px_auto] sm:items-center">
+            <div key={index} className="grid gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 sm:grid-cols-[1fr_160px_auto] sm:items-center">
               <input
                 value={color.name}
                 onChange={(e) => updateColor(index, { name: e.target.value })}
@@ -266,10 +266,10 @@ export default function AdminCatalogPage() {
               </tr>
             </thead>
             <tbody>
-              {pricingRows.map((row, index) => {
-                const margin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
-                return (
-                  <tr key={`${row.audience}-${row.product}-${row.garment}-${index}`} className="border-t border-gray-100 dark:border-gray-800">
+                {pricingRows.map((row, index) => {
+                  const margin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
+                  return (
+                  <tr key={index} className="border-t border-gray-100 dark:border-gray-800">
                     <td className="px-3 py-2">
                       <input value={row.audience} onChange={(e) => updatePricingRow(index, { audience: e.target.value })} className="w-32 rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                     </td>

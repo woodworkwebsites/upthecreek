@@ -39,6 +39,83 @@ function normalizeHiddenColors(hiddenColors: string[]): string[] {
   );
 }
 
+interface ProductMetadata {
+  baseCategory?: string;
+  audience?: string;
+  productType?: string;
+  garment?: string;
+  pricingMatrix?: PricingMatrixRow | null;
+  customColors?: PrintifyColor[];
+}
+
+function parseProductMetadata(rawCategory: string | null | undefined): ProductMetadata {
+  if (!rawCategory) return {};
+  try {
+    const parsed = JSON.parse(rawCategory);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+
+    const metadata = parsed as Record<string, unknown>;
+    return {
+      baseCategory: typeof metadata.baseCategory === 'string' ? metadata.baseCategory : undefined,
+      audience: typeof metadata.audience === 'string' ? metadata.audience : undefined,
+      productType: typeof metadata.productType === 'string' ? metadata.productType : undefined,
+      garment: typeof metadata.garment === 'string' ? metadata.garment : undefined,
+      pricingMatrix: parseJsonObject<PricingMatrixRow>(
+        typeof metadata.pricingMatrix === 'string'
+          ? metadata.pricingMatrix
+          : metadata.pricingMatrix && typeof metadata.pricingMatrix === 'object'
+            ? JSON.stringify(metadata.pricingMatrix)
+            : null,
+      ),
+      customColors: Array.isArray(metadata.customColors)
+        ? metadata.customColors
+            .filter((value): value is PrintifyColor => (
+              Boolean(
+                value &&
+                typeof value === 'object' &&
+                typeof value.name === 'string' &&
+                typeof value.hex === 'string',
+              )
+            ))
+            .map((value) => ({
+              name: value.name.trim(),
+              hex: value.hex.trim() || '#111827',
+            }))
+            .filter((value) => value.name.length > 0)
+        : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function serializeProductMetadata(metadata: ProductMetadata): string {
+  const payload: Record<string, unknown> = {};
+
+  if (metadata.baseCategory !== undefined) payload.baseCategory = metadata.baseCategory;
+  if (metadata.audience !== undefined) payload.audience = metadata.audience;
+  if (metadata.productType !== undefined) payload.productType = metadata.productType;
+  if (metadata.garment !== undefined) payload.garment = metadata.garment;
+  if (metadata.pricingMatrix !== undefined) payload.pricingMatrix = metadata.pricingMatrix;
+  if (metadata.customColors !== undefined) payload.customColors = metadata.customColors;
+
+  return JSON.stringify(payload);
+}
+
+function mergeProductMetadata(existingCategory: string | null | undefined, fields: ProductMetadata): string {
+  const current = parseProductMetadata(existingCategory);
+  return serializeProductMetadata({
+    baseCategory: fields.baseCategory ?? current.baseCategory,
+    audience: fields.audience ?? current.audience,
+    productType: fields.productType ?? current.productType,
+    garment: fields.garment ?? current.garment,
+    pricingMatrix: fields.pricingMatrix !== undefined ? fields.pricingMatrix : current.pricingMatrix,
+    customColors: fields.customColors !== undefined ? fields.customColors : current.customColors,
+  });
+}
+
 function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Product {
   const hiddenColors = normalizeHiddenColors(parseJsonArray<string>(row.hidden_colors));
   const hiddenColorSet = new Set(hiddenColors);
@@ -47,11 +124,12 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const rawColors = parseJsonArray<PrintifyColor>(row.colors);
   const rawCustomColors = parseJsonArray<PrintifyColor>(row.custom_colors);
   const pricingMatrix = parseJsonObject<PricingMatrixRow>(row.pricing_matrix);
+  const categoryMetadata = parseProductMetadata(row.category);
 
   const colors = view === 'admin'
     ? rawColors
     : rawColors.filter((color) => !hiddenColorSet.has(color.name));
-  const customColors = rawCustomColors;
+  const customColors = rawCustomColors.length > 0 ? rawCustomColors : (categoryMetadata.customColors ?? []);
 
   const variants = view === 'admin'
     ? rawVariants
@@ -81,10 +159,10 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     title:          row.title,
     description:    row.description,
     category:       row.category,
-    audience:       row.audience,
-    productType:    row.product_type,
-    garment:        row.garment,
-    pricingMatrix,
+    audience:       row.audience || categoryMetadata.audience || '',
+    productType:    row.product_type || categoryMetadata.productType || '',
+    garment:        row.garment || categoryMetadata.garment || '',
+    pricingMatrix:  pricingMatrix ?? categoryMetadata.pricingMatrix ?? null,
     images,
     variants,
     colors,
@@ -281,6 +359,33 @@ export async function updateProductFields(
   printifyId: string,
   fields: UpdateProductFields,
 ): Promise<boolean> {
+  const current = await db
+    .prepare('SELECT category FROM products WHERE printify_id = ?')
+    .bind(printifyId)
+    .first<{ category: string }>();
+
+  if (!current) return false;
+
+  const setCategoryMetadata = (
+    fields.category !== undefined ||
+    fields.audience !== undefined ||
+    fields.productType !== undefined ||
+    fields.garment !== undefined ||
+    fields.pricingMatrix !== undefined ||
+    fields.customColors !== undefined
+  );
+
+  const nextCategory = setCategoryMetadata
+    ? mergeProductMetadata(current.category, {
+        baseCategory: fields.category !== undefined ? fields.category : parseProductMetadata(current.category).baseCategory,
+        audience: fields.audience,
+        productType: fields.productType,
+        garment: fields.garment,
+        pricingMatrix: fields.pricingMatrix,
+        customColors: fields.customColors,
+      })
+    : undefined;
+
   const sets: string[] = [];
   const values: Array<string | number | null> = [];
 
@@ -294,34 +399,9 @@ export async function updateProductFields(
     values.push(fields.description);
   }
 
-  if (fields.category !== undefined) {
+  if (nextCategory !== undefined) {
     sets.push('category = ?');
-    values.push(fields.category);
-  }
-
-  if (fields.audience !== undefined) {
-    sets.push('audience = ?');
-    values.push(fields.audience);
-  }
-
-  if (fields.productType !== undefined) {
-    sets.push('product_type = ?');
-    values.push(fields.productType);
-  }
-
-  if (fields.garment !== undefined) {
-    sets.push('garment = ?');
-    values.push(fields.garment);
-  }
-
-  if (fields.pricingMatrix !== undefined) {
-    sets.push('pricing_matrix = ?');
-    values.push(JSON.stringify(fields.pricingMatrix));
-  }
-
-  if (fields.customColors !== undefined) {
-    sets.push('custom_colors = ?');
-    values.push(JSON.stringify(fields.customColors));
+    values.push(nextCategory);
   }
 
   if (fields.isEnabled !== undefined) {
@@ -353,41 +433,45 @@ export async function upsertProduct(
   db: D1Database,
   data: UpsertProductData,
 ): Promise<void> {
+  const category = serializeProductMetadata({
+    baseCategory: data.category,
+    audience: data.audience,
+    productType: data.productType,
+    garment: data.garment,
+    pricingMatrix: data.pricingMatrix ?? undefined,
+    customColors: data.customColors ?? [],
+  });
+
   await db
     .prepare(`
       INSERT INTO products
-        (id, printify_id, title, description, category, audience, product_type, garment, pricing_matrix, images, variants, colors, custom_colors, hidden_colors, sizes,
-         min_price, max_price, is_enabled, synced_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'), datetime('now'))
+        (id, printify_id, title, description, category, images, variants, colors, hidden_colors, sizes,
+         min_price, max_price, is_enabled, size_guide_image, synced_at, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL, datetime('now'), datetime('now'), datetime('now'))
       ON CONFLICT(printify_id) DO UPDATE SET
-        is_enabled  = 1,
-        title       = excluded.title,
-        description = excluded.description,
-        category    = excluded.category,
-        pricing_matrix = excluded.pricing_matrix,
-        images      = excluded.images,
-        variants    = excluded.variants,
-        colors      = excluded.colors,
-        sizes       = excluded.sizes,
-        min_price   = excluded.min_price,
-        max_price   = excluded.max_price,
-        synced_at   = datetime('now'),
-        updated_at  = datetime('now')
+        is_enabled     = 1,
+        title          = excluded.title,
+        description    = excluded.description,
+        category       = excluded.category,
+        images         = excluded.images,
+        variants       = excluded.variants,
+        colors         = excluded.colors,
+        hidden_colors  = excluded.hidden_colors,
+        sizes          = excluded.sizes,
+        min_price      = excluded.min_price,
+        max_price      = excluded.max_price,
+        synced_at      = datetime('now'),
+        updated_at     = datetime('now')
     `)
     .bind(
       data.id,
       data.printifyId,
       data.title,
       data.description,
-      data.category,
-      data.audience,
-      data.productType,
-      data.garment,
-      JSON.stringify(data.pricingMatrix ?? null),
+      category,
       JSON.stringify(data.images),
       JSON.stringify(data.variants),
       JSON.stringify(data.colors),
-      JSON.stringify(data.customColors ?? []),
       JSON.stringify(normalizeHiddenColors(data.hiddenColors ?? [])),
       JSON.stringify(data.sizes),
       data.minPrice,
