@@ -790,33 +790,39 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
             </button>
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-950/70">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Pricing</p>
-              <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                <input
-                  value={pricingMatrix.printSurface}
-                  onChange={(e) => setPricingMatrix((current) => ({ ...current, printSurface: e.target.value }))}
-                  placeholder="Surface"
-                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-                <input
-                  value={pricingMatrix.manufacturingCost}
-                  onChange={(e) => setPricingMatrix((current) => ({ ...current, manufacturingCost: e.target.value }))}
-                  placeholder="Cost"
-                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-                <input
-                  value={pricingMatrix.saleCost}
-                  onChange={(e) => setPricingMatrix((current) => ({ ...current, saleCost: e.target.value }))}
-                  placeholder="Pricing"
-                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-              </div>
-              <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                <input
-                  value={pricingMatrix.salePrice}
-                  onChange={(e) => setPricingMatrix((current) => ({ ...current, salePrice: e.target.value }))}
-                  placeholder="Retail"
-                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 sm:col-span-3"
-                />
+              <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                <label className="space-y-1">
+                  <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Surface</span>
+                  <input
+                    value={pricingMatrix.printSurface}
+                    onChange={(e) => setPricingMatrix((current) => ({ ...current, printSurface: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Cost</span>
+                  <input
+                    value={pricingMatrix.manufacturingCost}
+                    onChange={(e) => setPricingMatrix((current) => ({ ...current, manufacturingCost: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Pricing</span>
+                  <input
+                    value={pricingMatrix.saleCost}
+                    onChange={(e) => setPricingMatrix((current) => ({ ...current, saleCost: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Retail</span>
+                  <input
+                    value={pricingMatrix.salePrice}
+                    onChange={(e) => setPricingMatrix((current) => ({ ...current, salePrice: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                  />
+                </label>
               </div>
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
