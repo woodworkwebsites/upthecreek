@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatPriceRange, formatDate } from '../../lib/utils.js';
-import { DEFAULT_CATALOG_OPTIONS, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
+import { DEFAULT_CATALOG_OPTIONS, findPricingPresetRow, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
 
 interface DraftVariantRow {
   color: string;
@@ -506,14 +506,8 @@ function matchPricingPreset(
   delivery: string;
   salePrice: string;
 } | null {
-  const bySelection = catalog.pricingRows.find(
-    (row) =>
-      row.audience === product.audience &&
-      row.product === product.productType &&
-      row.garment === product.garment,
-  );
-  const byGarment = catalog.pricingRows.find((row) => row.garment === product.garment);
-  const preset = bySelection ?? byGarment ?? catalog.pricingRows[0];
+  const preset = findPricingPresetRow(catalog.pricingRows, product.audience, product.productType, product.garment)
+    ?? catalog.pricingRows[0];
   if (!preset) return null;
   return normalizePricingMatrix(preset);
 }
@@ -533,14 +527,7 @@ function matchPricingPresetBySelection(
   delivery: string;
   salePrice: string;
 } | null {
-  const exact = catalog.pricingRows.find(
-    (row) =>
-      row.audience === audience &&
-      row.product === productType &&
-      row.garment === garment,
-  );
-  const byGarment = catalog.pricingRows.find((row) => row.garment === garment);
-  const preset = exact ?? byGarment;
+  const preset = findPricingPresetRow(catalog.pricingRows, audience, productType, garment);
   return preset ? normalizePricingMatrix(preset) : null;
 }
 
@@ -553,9 +540,8 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   const [productType, setProductType] = useState(product.productType || '');
   const [garmentType, setGarmentType] = useState(product.garment || '');
   const [sizeGuideUrl, setSizeGuideUrl] = useState(product.sizeGuideImage ?? '');
-  const [pricingMatrix, setPricingMatrix] = useState(
-    product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? emptyPricingMatrix(),
-  );
+  const initialPricingMatrix = product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? emptyPricingMatrix();
+  const [pricingMatrix, setPricingMatrix] = useState(initialPricingMatrix);
   const [hiddenColors, setHiddenColors] = useState<string[]>(product.hiddenColors ?? []);
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -572,18 +558,18 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const pricingManifestKeyRef = useRef(
-    `${product.audience || ''}||${product.productType || ''}||${product.garment || ''}||${JSON.stringify(catalog.pricingRows)}`,
-  );
+  const pricingCustomRef = useRef(Boolean(product.pricingMatrix));
 
   useEffect(() => {
+    const nextPreset = matchPricingPreset(product, catalog) ?? emptyPricingMatrix();
     setTitle(product.title);
     setDescription(product.description ?? '');
     setCategory(product.audience || '');
     setProductType(product.productType || '');
     setGarmentType(product.garment || '');
     setSizeGuideUrl(product.sizeGuideImage ?? '');
-    setPricingMatrix(product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? emptyPricingMatrix());
+    setPricingMatrix(product.pricingMatrix ?? nextPreset);
+    pricingCustomRef.current = Boolean(product.pricingMatrix);
     setHiddenColors(product.hiddenColors ?? []);
     setIsEnabled(product.isEnabled);
     setImages(product.images);
@@ -606,18 +592,27 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   }, [imageUploadFiles]);
 
   useEffect(() => {
-    const manifestKey = `${category}||${productType}||${garmentType}||${JSON.stringify(catalog.pricingRows)}`;
-    if (pricingManifestKeyRef.current === manifestKey) {
+    const preset = matchPricingPresetBySelection(category, productType, garmentType, catalog);
+    if (!preset) {
       return;
     }
-    pricingManifestKeyRef.current = manifestKey;
-    const preset = matchPricingPresetBySelection(category, productType, garmentType, catalog);
-    if (preset) {
-      setPricingMatrix((current) => (
-        pricingMatrixSignature(current) === pricingMatrixSignature(preset) ? current : preset
-      ));
-    }
+
+    setPricingMatrix((current) => (
+      pricingMatrixSignature(current) === pricingMatrixSignature(preset) ? current : preset
+    ));
+    pricingCustomRef.current = false;
   }, [category, productType, garmentType, catalog]);
+
+  function updatePricingMatrix(patch: Partial<typeof pricingMatrix>) {
+    pricingCustomRef.current = true;
+    setPricingMatrix((current) => ({ ...current, ...patch }));
+  }
+
+  function resetPricingToCatalog() {
+    const preset = matchPricingPresetBySelection(category, productType, garmentType, catalog) ?? emptyPricingMatrix();
+    pricingCustomRef.current = false;
+    setPricingMatrix(preset);
+  }
 
   function toggleColor(colorName: string) {
     setHiddenColors((current) =>
@@ -851,7 +846,7 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                   <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Surface</span>
                   <input
                     value={pricingMatrix.printSurface}
-                    onChange={(e) => setPricingMatrix((current) => ({ ...current, printSurface: e.target.value }))}
+                    onChange={(e) => updatePricingMatrix({ printSurface: e.target.value })}
                     className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </label>
@@ -859,7 +854,7 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                   <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Cost</span>
                   <input
                     value={pricingMatrix.manufacturingCost}
-                    onChange={(e) => setPricingMatrix((current) => ({ ...current, manufacturingCost: e.target.value }))}
+                    onChange={(e) => updatePricingMatrix({ manufacturingCost: e.target.value })}
                     className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </label>
@@ -867,7 +862,7 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                   <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Pricing</span>
                   <input
                     value={pricingMatrix.saleCost}
-                    onChange={(e) => setPricingMatrix((current) => ({ ...current, saleCost: e.target.value }))}
+                    onChange={(e) => updatePricingMatrix({ saleCost: e.target.value })}
                     className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </label>
@@ -875,10 +870,22 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                   <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Retail</span>
                   <input
                     value={pricingMatrix.salePrice}
-                    onChange={(e) => setPricingMatrix((current) => ({ ...current, salePrice: e.target.value }))}
+                    onChange={(e) => updatePricingMatrix({ salePrice: e.target.value })}
                     className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </label>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+                  {pricingCustomRef.current ? 'Custom pricing' : 'Catalog pricing'}
+                </p>
+                <button
+                  type="button"
+                  onClick={resetPricingToCatalog}
+                  className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[10px] font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  Use catalog
+                </button>
               </div>
             </div>
           </div>

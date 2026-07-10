@@ -29,10 +29,11 @@ function parseJsonObject<T>(value: string | null | undefined): T | null {
   }
 }
 
-function normalizeHiddenColors(hiddenColors: string[]): string[] {
+function normalizeHiddenColors(hiddenColors: unknown[]): string[] {
   return Array.from(
     new Set(
       hiddenColors
+        .filter((color): color is string => typeof color === 'string')
         .map((color) => color.trim())
         .filter((color) => color.length > 0),
     ),

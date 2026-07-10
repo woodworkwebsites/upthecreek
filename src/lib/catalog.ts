@@ -117,6 +117,73 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
   ],
 };
 
+function normalizeLookupValue(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeAudienceForPricing(value: string): string {
+  const key = normalizeLookupValue(value);
+  if (['men', 'mens', 'men unisex', 'mens unisex', 'mens/unisex'].includes(key)) {
+    return 'mens/unisex';
+  }
+  if (['women', 'womens', 'woman', 'womans', 'ladies', 'lady'].includes(key)) {
+    return 'ladies';
+  }
+  return key;
+}
+
+function normalizeProductForPricing(value: string): string {
+  const key = normalizeLookupValue(value);
+  if (key === 'hoodie') return 'hoody';
+  return key;
+}
+
+function normalizeGarmentForPricing(value: string): string {
+  const key = normalizeLookupValue(value);
+  if (['womens relaxed', 'womens relaxed fit', 'women relaxed', 'women relaxed fit'].includes(key)) {
+    return 'womens relaxed fit';
+  }
+  if (['kids soft', 'kids supersoft'].includes(key)) {
+    return 'kids soft';
+  }
+  return key.replace(/\bfit\b/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function matchesPricingText(left: string, right: string, normalizer: (value: string) => string): boolean {
+  return normalizer(left) === normalizer(right);
+}
+
+export function findPricingPresetRow(
+  rows: PricingRowOption[],
+  audience: string,
+  product: string,
+  garment: string,
+): PricingRowOption | null {
+  const exact = rows.find(
+    (row) =>
+      matchesPricingText(row.audience, audience, normalizeAudienceForPricing) &&
+      matchesPricingText(row.product, product, normalizeProductForPricing) &&
+      matchesPricingText(row.garment, garment, normalizeGarmentForPricing),
+  );
+  if (exact) return exact;
+
+  const byGarment = rows.find((row) => matchesPricingText(row.garment, garment, normalizeGarmentForPricing));
+  if (byGarment) return byGarment;
+
+  const byProduct = rows.find(
+    (row) =>
+      matchesPricingText(row.audience, audience, normalizeAudienceForPricing) &&
+      matchesPricingText(row.product, product, normalizeProductForPricing),
+  );
+  return byProduct ?? null;
+}
+
 function dedupeStrings(values: string[]): string[] {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 }

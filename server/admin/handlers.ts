@@ -179,6 +179,62 @@ function normalizeHiddenColors(hiddenColors: unknown): string[] {
   );
 }
 
+function normalizeColorName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function isKnownColor(color: string, knownColors: Array<{ name: string }>): boolean {
+  const target = normalizeColorName(color);
+  return knownColors.some((entry) => normalizeColorName(entry.name) === target);
+}
+
+function getVariantIdsForColor(product: { variants: PrintifyVariant[] }, color: string): number[] {
+  const target = normalizeColorName(color);
+  return product.variants
+    .filter((variant) => normalizeColorName(variant.color) === target)
+    .map((variant) => variant.id);
+}
+
+function parseCatalogColors(settings: Record<string, string>): Array<{ name: string; hex: string }> {
+  const raw = settings.catalog_color_options;
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .filter((value): value is { name: string; hex: string } => (
+        Boolean(
+          value &&
+          typeof value === 'object' &&
+          typeof value.name === 'string' &&
+          typeof value.hex === 'string',
+        )
+      ))
+      .map((value) => ({
+        name: value.name.trim(),
+        hex: value.hex.trim() || '#111827',
+      }))
+      .filter((value) => value.name.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+async function getAllowedImageColors(env: Env, product: { colors: Array<{ name: string; hex: string }>; customColors?: Array<{ name: string; hex: string }> }) {
+  const settings = await getAllSettings(env.DB);
+  const catalogColors = parseCatalogColors(settings);
+  const combined = [...catalogColors, ...product.colors, ...(product.customColors ?? [])];
+  const seen = new Set<string>();
+  return combined.filter((color) => {
+    const key = normalizeColorName(color.name);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export async function handleCreateProduct(env: Env, request: Request): Promise<Response> {
   const contentType = request.headers.get('content-type') ?? '';
   if (!contentType.includes('multipart/form-data')) {
@@ -483,8 +539,8 @@ export async function handleUploadProductImage(
   const product = await getProductByPrintifyIdForAdmin(env.DB, printifyId);
   if (!product) return json({ error: 'Product not found' }, 404);
 
-  const knownColors = [...product.colors, ...(product.customColors ?? [])];
-  if (color && !knownColors.some((entry) => entry.name === color)) {
+  const knownColors = await getAllowedImageColors(env, product);
+  if (color && !isKnownColor(color, knownColors)) {
     return json({ error: `Unknown colour: ${color}` }, 400);
   }
 
@@ -508,7 +564,7 @@ export async function handleUploadProductImage(
     src: uploaded.url,
     isDefault,
     variantIds: color
-      ? product.variants.filter((variant) => variant.color === color).map((variant) => variant.id)
+      ? getVariantIdsForColor(product, color)
       : product.variants.map((variant) => variant.id),
     color: color || undefined,
     assetKind: 'product-image' as const,
@@ -584,9 +640,9 @@ export async function handleUpdateProductImage(
   const index = product.images.findIndex((entry) => entry.storageKey === storageKey);
   if (index < 0) return json({ error: 'Image not found' }, 404);
 
-  const knownColors = [...product.colors, ...(product.customColors ?? [])];
+  const knownColors = await getAllowedImageColors(env, product);
   const nextColor = body.color === null ? '' : body.color?.trim() ?? '';
-  if (nextColor && !knownColors.some((entry) => entry.name === nextColor)) {
+  if (nextColor && !isKnownColor(nextColor, knownColors)) {
     return json({ error: `Unknown colour: ${nextColor}` }, 400);
   }
 
@@ -594,7 +650,7 @@ export async function handleUpdateProductImage(
   const image = images[index];
   image.color = nextColor || undefined;
   image.variantIds = nextColor
-    ? product.variants.filter((variant) => variant.color === nextColor).map((variant) => variant.id)
+    ? getVariantIdsForColor(product, nextColor)
     : product.variants.map((variant) => variant.id);
 
   if (body.isDefault === true) {
