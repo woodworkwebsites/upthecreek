@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Order } from '../../../types/index.js';
-import { adminFetchOrders, adminFetchOrder, adminFulfillOrder } from '../../lib/api.js';
+import { adminFetchOrders, adminFetchOrder, adminFulfillOrder, adminUpdateOrderStatus } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Badge } from '../../components/ui/Badge.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -27,13 +27,30 @@ const providerVariant: Record<string, 'default' | 'info'> = {
   manual:   'info',
 };
 
+const orderStatuses: Order['status'][] = [
+  'pending',
+  'paid',
+  'fulfillment_started',
+  'awaiting_fulfillment',
+  'fulfilled',
+  'failed',
+];
+
 function OrderRow({ order, token, onFulfilled }: { order: Order; token: string; onFulfilled: (order: Order) => void }) {
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState<Order | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [status, setStatus] = useState<Order['status']>(order.status);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [externalOrderRef, setExternalOrderRef] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const shown = detail ?? order;
+    setStatus(shown.status);
+  }, [detail, order.status]);
 
   async function toggleExpanded() {
     const next = !expanded;
@@ -67,6 +84,25 @@ function OrderRow({ order, token, onFulfilled }: { order: Order; token: string; 
     }
   }
 
+  async function handleUpdateStatus() {
+    setStatusSaving(true);
+    setStatusError(null);
+    try {
+      await adminUpdateOrderStatus(token, order.id, status, externalOrderRef.trim() || undefined);
+      const updated: Order = {
+        ...(detail ?? order),
+        status,
+        externalOrderRef: externalOrderRef.trim() || (detail ?? order).externalOrderRef,
+      };
+      setDetail(updated);
+      onFulfilled(updated);
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : 'Failed to update status');
+    } finally {
+      setStatusSaving(false);
+    }
+  }
+
   const shown = detail ?? order;
 
   return (
@@ -89,9 +125,29 @@ function OrderRow({ order, token, onFulfilled }: { order: Order; token: string; 
           {formatPrice(order.amountTotal)}
         </td>
         <td className="px-3 py-3">
-          <Badge variant={statusVariant[shown.status] ?? 'default'}>
-            {shown.status.replace(/_/g, ' ')}
-          </Badge>
+          <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+            <Badge variant={statusVariant[shown.status] ?? 'default'}>
+              {shown.status.replace(/_/g, ' ')}
+            </Badge>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as Order['status'])}
+              className="block w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            >
+              {orderStatuses.map((value) => (
+                <option key={value} value={value}>{value.replace(/_/g, ' ')}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleUpdateStatus}
+              disabled={statusSaving || status === shown.status}
+              className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
+            >
+              {statusSaving ? 'Saving…' : 'Move status'}
+            </button>
+            {statusError && <div className="text-xs text-red-600 dark:text-red-400">{statusError}</div>}
+          </div>
         </td>
         <td className="px-3 py-3">
           <Badge variant={providerVariant[order.fulfillmentProvider] ?? 'default'}>

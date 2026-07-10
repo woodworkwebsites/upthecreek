@@ -204,6 +204,29 @@ export async function updateSizeGuideImage(
   return (result.meta?.changes ?? 0) > 0;
 }
 
+export async function updateProductImages(
+  db: D1Database,
+  printifyId: string,
+  images: PrintifyProductImage[],
+): Promise<boolean> {
+  const result = await db
+    .prepare(`UPDATE products SET images = ?, updated_at = datetime('now') WHERE printify_id = ?`)
+    .bind(JSON.stringify(images), printifyId)
+    .run();
+  return (result.meta?.changes ?? 0) > 0;
+}
+
+export async function getProductByPrintifyIdForAdmin(
+  db: D1Database,
+  printifyId: string,
+): Promise<Product | null> {
+  const row = await db
+    .prepare('SELECT * FROM products WHERE printify_id = ?')
+    .bind(printifyId)
+    .first<ProductRow>();
+  return row ? parseProduct(row, 'admin') : null;
+}
+
 export async function updateHiddenColors(
   db: D1Database,
   printifyId: string,
@@ -213,6 +236,63 @@ export async function updateHiddenColors(
     .prepare(`UPDATE products SET hidden_colors = ?, updated_at = datetime('now') WHERE printify_id = ?`)
     .bind(JSON.stringify(normalizeHiddenColors(hiddenColors)), printifyId)
     .run();
+  return (result.meta?.changes ?? 0) > 0;
+}
+
+export interface UpdateProductFields {
+  title?: string;
+  description?: string;
+  category?: string;
+  isEnabled?: boolean;
+  sizeGuideImage?: string | null;
+  hiddenColors?: string[];
+}
+
+export async function updateProductFields(
+  db: D1Database,
+  printifyId: string,
+  fields: UpdateProductFields,
+): Promise<boolean> {
+  const sets: string[] = [];
+  const values: Array<string | number | null> = [];
+
+  if (fields.title !== undefined) {
+    sets.push('title = ?');
+    values.push(fields.title);
+  }
+
+  if (fields.description !== undefined) {
+    sets.push('description = ?');
+    values.push(fields.description);
+  }
+
+  if (fields.category !== undefined) {
+    sets.push('category = ?');
+    values.push(fields.category);
+  }
+
+  if (fields.isEnabled !== undefined) {
+    sets.push('is_enabled = ?');
+    values.push(fields.isEnabled ? 1 : 0);
+  }
+
+  if (fields.sizeGuideImage !== undefined) {
+    sets.push('size_guide_image = ?');
+    values.push(fields.sizeGuideImage);
+  }
+
+  if (fields.hiddenColors !== undefined) {
+    sets.push('hidden_colors = ?');
+    values.push(JSON.stringify(normalizeHiddenColors(fields.hiddenColors)));
+  }
+
+  if (sets.length === 0) return false;
+
+  const result = await db
+    .prepare(`UPDATE products SET ${sets.join(', ')}, updated_at = datetime('now') WHERE printify_id = ?`)
+    .bind(...values, printifyId)
+    .run();
+
   return (result.meta?.changes ?? 0) > 0;
 }
 

@@ -4,6 +4,7 @@ import type {
   TestOrderHandoffRequest,
   PrintifyVariant,
   PrintifyProductImage,
+  OrderStatus,
 } from '../../types/index.js';
 import {
   listOrders,
@@ -17,8 +18,11 @@ import {
 } from '../orders/repository.js';
 import {
   getAllProductsForAdmin,
+  updateProductFields,
   updateHiddenColors,
   updateSizeGuideImage,
+  updateProductImages,
+  getProductByPrintifyIdForAdmin,
   upsertProduct,
 } from '../products/repository.js';
 import { getProductByPrintifyId } from '../products/repository.js';
@@ -107,6 +111,42 @@ export async function handleFulfillOrder(
   });
 
   return json({ success: true });
+}
+
+const validOrderStatuses: OrderStatus[] = [
+  'pending',
+  'paid',
+  'fulfillment_started',
+  'awaiting_fulfillment',
+  'fulfilled',
+  'failed',
+] as const;
+
+export async function handleUpdateOrderStatus(
+  env: Env,
+  id: string,
+  request: Request,
+): Promise<Response> {
+  let body: { status?: string; externalOrderRef?: string };
+  try {
+    body = await request.json().catch(() => ({})) as { status?: string; externalOrderRef?: string };
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const status = body.status?.trim();
+  if (!status || !validOrderStatuses.includes(status as OrderStatus)) {
+    return json({ error: 'Invalid status' }, 400);
+  }
+
+  const order = await getOrderWithItems(env.DB, id);
+  if (!order) return json({ error: 'Order not found' }, 404);
+
+  await updateOrderStatus(env.DB, id, status as OrderStatus, {
+    externalOrderRef: body.externalOrderRef?.trim() || undefined,
+  });
+
+  return json({ success: true, status });
 }
 
 export async function handleListProducts(env: Env): Promise<Response> {
@@ -290,30 +330,125 @@ export async function handleUpdateProduct(
     return json({ success: true, sizeGuideImage });
   }
 
-  let body: { sizeGuideImage?: string | null; hiddenColors?: unknown };
+  let body: {
+    title?: string;
+    description?: string;
+    category?: string;
+    isEnabled?: boolean;
+    sizeGuideImage?: string | null;
+    hiddenColors?: unknown;
+  };
   try {
-    body = await request.json() as { sizeGuideImage?: string | null; hiddenColors?: unknown };
+    body = await request.json() as {
+      title?: string;
+      description?: string;
+      category?: string;
+      isEnabled?: boolean;
+      sizeGuideImage?: string | null;
+      hiddenColors?: unknown;
+    };
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  if (!('sizeGuideImage' in body) && !('hiddenColors' in body)) {
+  if (!('title' in body) && !('description' in body) && !('category' in body) && !('isEnabled' in body) && !('sizeGuideImage' in body) && !('hiddenColors' in body)) {
     return json({ error: 'No recognised fields to update' }, 400);
   }
 
-  let updated = false;
-
-  if ('sizeGuideImage' in body) {
-    updated = (await updateSizeGuideImage(env.DB, printifyId, body.sizeGuideImage ?? null)) || updated;
+  const title = body.title !== undefined ? body.title.trim() : undefined;
+  if (title !== undefined && title.length === 0) {
+    return json({ error: 'Title cannot be empty' }, 400);
   }
 
-  if ('hiddenColors' in body) {
-    updated = (await updateHiddenColors(env.DB, printifyId, normalizeHiddenColors(body.hiddenColors))) || updated;
-  }
+  const description = body.description !== undefined ? body.description.trim() : undefined;
+  const category = body.category !== undefined ? body.category.trim() : undefined;
+  const sizeGuideImage = body.sizeGuideImage !== undefined ? body.sizeGuideImage?.trim() || null : undefined;
+
+  let updated = await updateProductFields(env.DB, printifyId, {
+    title,
+    description,
+    category,
+    isEnabled: body.isEnabled,
+    sizeGuideImage,
+    hiddenColors: body.hiddenColors !== undefined ? normalizeHiddenColors(body.hiddenColors) : undefined,
+  });
 
   if (!updated) return json({ error: 'Product not found' }, 404);
 
   return json({ success: true });
+}
+
+export async function handleUploadProductImage(
+  env: Env,
+  printifyId: string,
+  request: Request,
+): Promise<Response> {
+  const contentType = request.headers.get('content-type') ?? '';
+  if (!contentType.includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+
+  const form = await request.formData();
+  const file = form.get('file');
+  const color = (form.get('color') as string | null)?.trim() || '';
+  const isDefault = (form.get('isDefault') as string | null) === 'true';
+
+  if (!(file instanceof File)) {
+    return json({ error: 'Missing file upload' }, 400);
+  }
+  if (file.size === 0) {
+    return json({ error: 'Uploaded file is empty' }, 400);
+  }
+  if (!file.type.startsWith('image/')) {
+    return json({ error: 'Product image upload must be an image' }, 400);
+  }
+
+  const product = await getProductByPrintifyIdForAdmin(env.DB, printifyId);
+  if (!product) return json({ error: 'Product not found' }, 404);
+
+  if (color && !product.colors.some((entry) => entry.name === color)) {
+    return json({ error: `Unknown colour: ${color}` }, 400);
+  }
+
+  const uploaded = await storeAssetData(
+    env.IMAGES,
+    await file.arrayBuffer(),
+    file.type,
+    {
+      kind: 'product-image',
+      keyPrefix: `product-images/${printifyId}`,
+      keySeed: `${printifyId}:${file.name}:${file.size}:${file.type}:${color}:${isDefault}`,
+      sourceHint: file.name,
+      metadata: {
+        printifyId,
+        color,
+      },
+    },
+  );
+
+  const image = {
+    src: uploaded.url,
+    isDefault,
+    variantIds: color
+      ? product.variants.filter((variant) => variant.color === color).map((variant) => variant.id)
+      : product.variants.map((variant) => variant.id),
+    color: color || undefined,
+    assetKind: 'product-image' as const,
+    storageKey: uploaded.key,
+  };
+
+  const images = isDefault
+    ? [image, ...product.images.map((entry) => ({ ...entry, isDefault: false }))]
+    : [...product.images, image];
+
+  if (!images.some((entry) => entry.isDefault) && images.length > 0) {
+    images[0].isDefault = true;
+  }
+
+  const updated = await updateProductImages(env.DB, printifyId, images);
+  if (!updated) return json({ error: 'Product not found' }, 404);
+
+  return json({ success: true, image });
 }
 
 export async function handleListLogs(env: Env): Promise<Response> {

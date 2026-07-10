@@ -14,6 +14,7 @@ export interface ResolvedLineItem {
   printifyId: string;
   variantId: number;
   quantity: number;
+  selectedColor: string;
   title: string;
   color: string;
   size: string;
@@ -50,11 +51,18 @@ export async function resolveLineItems(
         { status: 409 },
       );
     }
+    if (item.color && item.color !== variant.color) {
+      throw Object.assign(
+        new Error(`Selected colour ${item.color} does not match variant ${variant.color}`),
+        { status: 409 },
+      );
+    }
 
     resolved.push({
       printifyId: item.printifyId,
       variantId:  item.variantId,
       quantity:   item.quantity,
+      selectedColor: item.color ?? variant.color,
       title:      product.title,
       color:      variant.color,
       size:       variant.size,
@@ -78,6 +86,7 @@ export async function createCheckoutSession(
     pid: i.printifyId,
     vid: i.variantId,
     qty: i.quantity,
+    color: i.selectedColor,
   }));
 
   logger.info('Creating Stripe checkout session', {
@@ -94,7 +103,7 @@ export async function createCheckoutSession(
       price_data: {
         currency: 'gbp',
         product_data: {
-          name: `${item.title} — ${item.color} / ${item.size}`,
+          name: `${item.title} — ${item.selectedColor} / ${item.size}`,
           images: item.images,
         },
         unit_amount: item.unitPrice,

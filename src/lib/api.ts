@@ -82,6 +82,18 @@ export async function adminFulfillOrder(
   });
 }
 
+export async function adminUpdateOrderStatus(
+  token: string,
+  id: string,
+  status: Order['status'],
+  externalOrderRef?: string,
+): Promise<void> {
+  await adminFetch(`/api/admin/orders/${id}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, externalOrderRef }),
+  });
+}
+
 export async function adminFetchProducts(token: string): Promise<Product[]> {
   const data = await adminFetch<{ products: Product[] }>('/api/admin/products', token);
   return data.products;
@@ -90,7 +102,14 @@ export async function adminFetchProducts(token: string): Promise<Product[]> {
 export async function adminUpdateProduct(
   token: string,
   printifyId: string,
-  data: { sizeGuideImage?: string | null; hiddenColors?: string[] },
+  data: {
+    title?: string;
+    description?: string;
+    category?: string;
+    isEnabled?: boolean;
+    sizeGuideImage?: string | null;
+    hiddenColors?: string[];
+  },
 ): Promise<void> {
   await adminFetch(`/api/admin/products/${printifyId}`, token, {
     method: 'PATCH',
@@ -120,6 +139,34 @@ export async function adminUploadSizeGuideImage(
   }
 
   return res.json() as Promise<{ sizeGuideImage: string }>;
+}
+
+export async function adminUploadProductImage(
+  token: string,
+  printifyId: string,
+  file: File,
+  color?: string,
+  isDefault?: boolean,
+): Promise<{ image: { src: string; isDefault: boolean; variantIds: number[]; color?: string } }> {
+  const form = new FormData();
+  form.append('file', file);
+  if (color) form.append('color', color);
+  if (isDefault) form.append('isDefault', 'true');
+
+  const res = await fetch(`/api/admin/products/${printifyId}/images`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: form,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
+
+  return res.json() as Promise<{ image: { src: string; isDefault: boolean; variantIds: number[]; color?: string } }>;
 }
 
 export async function adminCreateProduct(

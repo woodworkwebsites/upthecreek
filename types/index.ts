@@ -198,6 +198,7 @@ export interface CheckoutItem {
   printifyId: string;
   variantId: number;
   quantity: number;
+  color?: string;
 }
 
 export interface BasketItem extends CheckoutItem {

@@ -104,10 +104,11 @@ export function BasketProvider({ children }: { children: ReactNode }) {
 
     const clearBasket = () => setItems([]);
 
-    const toCheckoutItems = () => items.map(({ printifyId, variantId, quantity }) => ({
+    const toCheckoutItems = () => items.map(({ printifyId, variantId, quantity, color }) => ({
       printifyId,
       variantId,
       quantity,
+      color,
     }));
 
     return {
