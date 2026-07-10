@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 
 const navItems = [
   { path: '/admin/orders',   label: 'Orders'   },
+  { path: '/admin/discount-codes', label: 'Discount Codes' },
   { path: '/admin/products', label: 'Products' },
   { path: '/admin/catalog',  label: 'Catalog'  },
   { path: '/admin/logs',     label: 'Logs'     },

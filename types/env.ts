@@ -13,4 +13,12 @@ export interface Env {
   ADMIN_TOKEN: string;
   PUSHOVER_APP_TOKEN?: string;
   PUSHOVER_USER_KEY?: string;
+  SMTP_HOST?: string;
+  SMTP_PORT?: string;
+  SMTP_USER?: string;
+  SMTP_PASSWORD?: string;
+  SMTP_FROM?: string;
+  SMTP_SECURE?: string;
+  ORDER_NOTIFICATION_EMAIL_TO?: string;
+  ORDER_NOTIFICATION_EMAIL_CC?: string;
 }

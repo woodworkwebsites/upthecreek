@@ -31,6 +31,13 @@ import { previewPrintifySync, reconcileSyncedProducts, syncProductsPageByPage } 
 import { buildPrintifyPayload, fulfillOrder } from '../printify/orders.js';
 import { getEffectivePrintifyMode } from '../env.js';
 import { getAllSettings, setSetting, getSetting } from '../settings/repository.js';
+import {
+  listDiscountCodes,
+  createDiscountCode,
+  updateDiscountCode,
+  deleteDiscountCode,
+  getDiscountCodeById,
+} from '../discount-codes/repository.js';
 import { logger } from '../logging.js';
 import { deleteAsset, storeAssetData } from '../assets/storage.js';
 
@@ -867,9 +874,120 @@ export async function handleUpdateSettings(env: Env, request: Request): Promise<
   return json({ success: true });
 }
 
+export async function handleListDiscountCodes(env: Env): Promise<Response> {
+  const discountCodes = await listDiscountCodes(env.DB);
+  return json({ discountCodes });
+}
+
+export async function handleCreateDiscountCode(env: Env, request: Request): Promise<Response> {
+  let body: {
+    code?: string;
+    kind?: string;
+    value?: number | string;
+    usageLimit?: number | string | null;
+    active?: boolean;
+    expiresAt?: string | null;
+    notes?: string | null;
+  };
+
+  try {
+    body = await request.json() as typeof body;
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const code = body.code?.trim();
+  const kind = body.kind === 'fixed' || body.kind === 'percent' ? body.kind : null;
+  const value = typeof body.value === 'string' ? Number(body.value) : body.value;
+
+  if (!code) return json({ error: 'Code is required' }, 400);
+  if (!kind) return json({ error: 'Kind must be percent or fixed' }, 400);
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return json({ error: 'Value must be greater than zero' }, 400);
+  }
+
+  try {
+    const discountCode = await createDiscountCode(env.DB, {
+      code,
+      kind,
+      value,
+      usageLimit: parseOptionalInt(body.usageLimit),
+      active: body.active ?? true,
+      expiresAt: body.expiresAt ?? null,
+      notes: body.notes ?? null,
+    });
+    return json({ discountCode }, 201);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ error: message }, 400);
+  }
+}
+
+export async function handleUpdateDiscountCode(env: Env, id: string, request: Request): Promise<Response> {
+  let body: {
+    code?: string;
+    kind?: string;
+    value?: number | string;
+    usageLimit?: number | string | null;
+    active?: boolean;
+    expiresAt?: string | null;
+    notes?: string | null;
+  };
+
+  try {
+    body = await request.json() as typeof body;
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const existing = await getDiscountCodeById(env.DB, id);
+  if (!existing) return json({ error: 'Discount code not found' }, 404);
+
+  const code = body.code?.trim() ?? existing.code;
+  const kind = body.kind === 'fixed' || body.kind === 'percent' ? body.kind : existing.kind;
+  const valueRaw = typeof body.value === 'string' ? Number(body.value) : body.value;
+  const value = valueRaw ?? existing.value;
+  if (!code) return json({ error: 'Code is required' }, 400);
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return json({ error: 'Value must be greater than zero' }, 400);
+  }
+
+  try {
+    const discountCode = await updateDiscountCode(env.DB, id, {
+      code,
+      kind,
+      value,
+      usageLimit: parseOptionalInt(body.usageLimit) ?? existing.usageLimit,
+      active: body.active ?? existing.active,
+      expiresAt: body.expiresAt ?? existing.expiresAt,
+      notes: body.notes ?? existing.notes,
+    });
+
+    if (!discountCode) return json({ error: 'Discount code not found' }, 404);
+    return json({ discountCode });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ error: message }, 400);
+  }
+}
+
+export async function handleDeleteDiscountCode(env: Env, id: string): Promise<Response> {
+  const existing = await getDiscountCodeById(env.DB, id);
+  if (!existing) return json({ error: 'Discount code not found' }, 404);
+
+  await deleteDiscountCode(env.DB, id);
+  return json({ success: true });
+}
+
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+function parseOptionalInt(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? Math.round(parsed) : null;
 }

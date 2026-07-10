@@ -82,6 +82,14 @@ All variables live in `.dev.vars` locally and in Cloudflare Pages â†’ Settings â
 | `ADMIN_TOKEN`          | Secret token for the admin panel                    | `dev-token`          |
 | `SITE_URL`             | Canonical URL of the site                           | `http://localhost:8788` |
 | `ENVIRONMENT`          | `local` \| `preview` \| `production`               | `local`              |
+| `SMTP_HOST`            | SMTP server host for order notification emails      | `smtp.gmail.com`     |
+| `SMTP_PORT`            | SMTP server port                                    | `465`                |
+| `SMTP_USER`            | SMTP username                                       | `you@gmail.com`      |
+| `SMTP_PASSWORD`        | SMTP password or app password                       | `app-password`       |
+| `SMTP_FROM`            | Email address shown as sender                       | `orders@yourdomain.com` |
+| `SMTP_SECURE`          | Set to `true` for TLS SMTP connections              | `true`               |
+| `ORDER_NOTIFICATION_EMAIL_TO` | Primary order notification recipient         | `ops@yourdomain.com` |
+| `ORDER_NOTIFICATION_EMAIL_CC` | CC recipient for order notification emails    | `woodworkwebsites+UTC@gmail.com` |
 
 ---
 

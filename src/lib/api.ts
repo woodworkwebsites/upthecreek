@@ -9,6 +9,8 @@ import type {
   PrintifyLogRow,
   TestPayloadRequest,
   TestOrderHandoffRequest,
+  DiscountCode,
+  DiscountCodeInput,
 } from '../../types/index.js';
 
 async function apiFetch<T>(
@@ -277,6 +279,40 @@ export async function adminFetchLogs(token: string): Promise<{
   printifyLogs: PrintifyLogRow[];
 }> {
   return adminFetch('/api/admin/logs', token);
+}
+
+export async function adminFetchDiscountCodes(token: string): Promise<DiscountCode[]> {
+  const data = await adminFetch<{ discountCodes: DiscountCode[] }>('/api/admin/discount-codes', token);
+  return data.discountCodes;
+}
+
+export async function adminCreateDiscountCode(
+  token: string,
+  data: DiscountCodeInput,
+): Promise<DiscountCode> {
+  const response = await adminFetch<{ discountCode: DiscountCode }>('/api/admin/discount-codes', token, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return response.discountCode;
+}
+
+export async function adminUpdateDiscountCode(
+  token: string,
+  id: string,
+  data: DiscountCodeInput,
+): Promise<DiscountCode> {
+  const response = await adminFetch<{ discountCode: DiscountCode }>(`/api/admin/discount-codes/${id}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  return response.discountCode;
+}
+
+export async function adminDeleteDiscountCode(token: string, id: string): Promise<void> {
+  await adminFetch(`/api/admin/discount-codes/${id}`, token, {
+    method: 'DELETE',
+  });
 }
 
 export async function adminTestPayload(

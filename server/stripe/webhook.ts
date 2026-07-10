@@ -12,6 +12,7 @@ import { getProductByPrintifyId } from '../products/repository.js';
 import { buildPrintifyPayload, fulfillOrder } from '../printify/orders.js';
 import { getEffectivePrintifyMode, getStripeKeys } from '../env.js';
 import { getSetting } from '../settings/repository.js';
+import { sendOrderNotificationEmail } from '../notifications/email.js';
 import { sendPushoverNotification } from '../notifications/pushover.js';
 import { logger } from '../logging.js';
 
@@ -194,20 +195,25 @@ async function processCompletedSession(
     });
   }
 
+  const itemSummary = lineItems.length > 0
+    ? lineItems.map((item) => `${item.quantity}x ${item.printifyId} (variant ${item.variantId})`).join(', ')
+    : 'No items';
+
+  await sendPushoverNotification(env, {
+    title:   fulfillmentProvider === 'manual' ? 'New order — action needed' : 'New paid order',
+    message: `${customerEmail} · ${((session.amount_total ?? 0) / 100).toFixed(2)} ${(session.currency ?? 'gbp').toUpperCase()}\n${itemSummary}\nShip to: ${fullName}, ${address.address1}, ${address.city}, ${address.zip}, ${address.country}`,
+    url:     new URL('/admin/orders', new URL(request.url).origin).toString(),
+    urlTitle: 'Open Admin Orders',
+  });
+
+  await sendOrderNotificationEmail(env, {
+    subject: fulfillmentProvider === 'manual' ? `New order awaiting action: ${customerEmail}` : `New paid order: ${customerEmail}`,
+    text: `${customerEmail} · ${((session.amount_total ?? 0) / 100).toFixed(2)} ${(session.currency ?? 'gbp').toUpperCase()}\n${itemSummary}\nShip to: ${fullName}, ${address.address1}, ${address.city}, ${address.zip}, ${address.country}`,
+  });
+
   if (fulfillmentProvider === 'manual') {
     await updateOrderStatus(env.DB, orderId, 'awaiting_fulfillment');
     logger.info('Order awaiting manual fulfillment', { orderId });
-
-    const itemSummary = lineItems.length > 0
-      ? lineItems.map((item) => `${item.quantity}x ${item.printifyId} (variant ${item.variantId})`).join(', ')
-      : 'No items';
-
-    await sendPushoverNotification(env, {
-      title:   'New order — awaiting fulfillment',
-      message: `${customerEmail} · ${((session.amount_total ?? 0) / 100).toFixed(2)} ${(session.currency ?? 'gbp').toUpperCase()}\n${itemSummary}\nShip to: ${fullName}, ${address.address1}, ${address.city}, ${address.zip}, ${address.country}`,
-      url:     new URL('/admin/orders', new URL(request.url).origin).toString(),
-      urlTitle: 'Open Admin Orders',
-    });
 
     return;
   }

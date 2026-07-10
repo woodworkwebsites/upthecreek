@@ -136,6 +136,22 @@ export interface PrintifyLogRow {
   created_at: string;
 }
 
+export type DiscountCodeKind = 'percent' | 'fixed';
+
+export interface DiscountCodeRow {
+  id: string;
+  code: string;
+  kind: DiscountCodeKind;
+  value: number;
+  usage_limit: number | null;
+  usage_count: number;
+  active: number;
+  expires_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Domain types (parsed) ───────────────────────────────────────────────────
 
 export type OrderStatus =
@@ -213,6 +229,20 @@ export interface OrderItem {
   createdAt: string;
 }
 
+export interface DiscountCode {
+  id: string;
+  code: string;
+  kind: DiscountCodeKind;
+  value: number;
+  usageLimit: number | null;
+  usageCount: number;
+  active: boolean;
+  expiresAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── API request/response shapes ─────────────────────────────────────────────
 
 export interface CheckoutItem {
@@ -283,6 +313,16 @@ export interface TestOrderHandoffRequest {
   printifyId: string;
   variantId: number;
   quantity: number;
+}
+
+export interface DiscountCodeInput {
+  code: string;
+  kind: DiscountCodeKind;
+  value: number;
+  usageLimit?: number | null;
+  active?: boolean;
+  expiresAt?: string | null;
+  notes?: string | null;
 }
 
 // ─── Raw Printify API types ───────────────────────────────────────────────────

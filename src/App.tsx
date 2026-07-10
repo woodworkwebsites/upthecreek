@@ -7,6 +7,7 @@ import NotFoundPage   from './pages/NotFoundPage.js';
 import AdminLoginPage from './pages/admin/AdminLoginPage.js';
 import AdminLayout    from './components/admin/AdminLayout.js';
 import AdminOrdersPage   from './pages/admin/AdminOrdersPage.js';
+import AdminDiscountCodesPage from './pages/admin/AdminDiscountCodesPage.js';
 import AdminProductsPage from './pages/admin/AdminProductsPage.js';
 import AdminProductCreatePage from './pages/admin/AdminProductCreatePage.js';
 import AdminCatalogPage  from './pages/admin/AdminCatalogPage.js';
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/admin"        element={<AdminLayout />}>
               <Route index              element={<AdminOrdersPage />} />
               <Route path="orders"      element={<AdminOrdersPage />} />
+              <Route path="discount-codes" element={<AdminDiscountCodesPage />} />
               <Route path="products"    element={<AdminProductsPage />} />
               <Route path="products/new" element={<AdminProductCreatePage />} />
               <Route path="catalog"     element={<AdminCatalogPage />} />

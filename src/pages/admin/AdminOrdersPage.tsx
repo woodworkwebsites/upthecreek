@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Order } from '../../../types/index.js';
 import { adminFetchOrders, adminFetchOrder, adminFulfillOrder, adminUpdateOrderStatus } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
@@ -279,22 +279,65 @@ export default function AdminOrdersPage() {
   const [orders,  setOrders]  = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
+  const [toasts, setToasts] = useState<Array<{ id: string; title: string; message: string }>>([]);
+  const seenOrderIdsRef = useRef<Set<string>>(new Set());
+  const initialLoadDoneRef = useRef(false);
+  const toastTimersRef = useRef<Record<string, number>>({});
 
-  const load = useCallback(async () => {
+  const pushToast = useCallback((title: string, message: string) => {
+    const id = crypto.randomUUID();
+    setToasts((prev) => [...prev, { id, title, message }]);
+
+    window.clearTimeout(toastTimersRef.current[id]);
+    toastTimersRef.current[id] = window.setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+      delete toastTimersRef.current[id];
+    }, 6000);
+  }, []);
+
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!token) return;
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     setError(null);
     try {
       const data = await adminFetchOrders(token);
+      data.forEach((order) => {
+        const seen = seenOrderIdsRef.current.has(order.id);
+        if (!seen && initialLoadDoneRef.current) {
+          pushToast(
+            'New order received',
+            `${order.customerEmail} · ${order.stripeSessionId.slice(0, 12)}… · ${formatPrice(order.amountTotal)}`,
+          );
+        }
+      });
+      seenOrderIdsRef.current = new Set(data.map((order) => order.id));
+      initialLoadDoneRef.current = true;
       setOrders(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load orders');
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
-  }, [token]);
+  }, [token, pushToast]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const interval = window.setInterval(() => {
+      void load({ silent: true });
+    }, 15000);
+
+    return () => window.clearInterval(interval);
+  }, [token, load]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(toastTimersRef.current).forEach((timer) => window.clearTimeout(timer));
+      toastTimersRef.current = {};
+    };
+  }, []);
 
   function handleFulfilled(updated: Order) {
     setOrders((prev) => prev.map((o) => (o.id === updated.id ? { ...o, status: updated.status, externalOrderRef: updated.externalOrderRef } : o)));
@@ -302,6 +345,30 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="space-y-6">
+      <div className="fixed right-4 top-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3 pointer-events-none">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className="pointer-events-auto rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-2xl shadow-gray-900/10 ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{toast.title}</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{toast.message}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setToasts((prev) => prev.filter((item) => item.id !== toast.id))}
+                className="text-xs font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                aria-label="Dismiss notification"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Orders</h1>
         <button
