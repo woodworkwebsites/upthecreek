@@ -534,8 +534,8 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
-  const [imageUploadFile, setImageUploadFile] = useState<File | null>(null);
-  const [imageUploadPreview, setImageUploadPreview] = useState<string | null>(null);
+  const [imageUploadFiles, setImageUploadFiles] = useState<File[]>([]);
+  const [imageUploadPreviews, setImageUploadPreviews] = useState<Array<{ file: File; previewUrl: string }>>([]);
   const [imageUploadColor, setImageUploadColor] = useState('');
   const [imageUploadDefault, setImageUploadDefault] = useState(false);
   const [imageSaving, setImageSaving] = useState(false);
@@ -561,15 +561,20 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   }, [product, catalog]);
 
   useEffect(() => {
-    if (!imageUploadFile) {
-      setImageUploadPreview(null);
+    if (imageUploadFiles.length === 0) {
+      setImageUploadPreviews([]);
       return;
     }
 
-    const previewUrl = URL.createObjectURL(imageUploadFile);
-    setImageUploadPreview(previewUrl);
-    return () => URL.revokeObjectURL(previewUrl);
-  }, [imageUploadFile]);
+    const previews = imageUploadFiles.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    setImageUploadPreviews(previews);
+    return () => {
+      previews.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    };
+  }, [imageUploadFiles]);
 
   function toggleColor(colorName: string) {
     setHiddenColors((current) =>
@@ -580,29 +585,33 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   }
 
   async function handleUploadProductImage() {
-    if (!imageUploadFile) {
-      setImageError('Choose an image first');
+    if (imageUploadFiles.length === 0) {
+      setImageError('Choose at least one image first');
       return;
     }
 
     setImageSaving(true);
     setImageError(null);
     try {
-      const result = await adminUploadProductImage(
-        token,
-        product.printifyId,
-        imageUploadFile,
-        imageUploadColor.trim() || undefined,
-        imageUploadDefault,
+      const uploads = await Promise.all(
+        imageUploadFiles.map((file, index) => adminUploadProductImage(
+          token,
+          product.printifyId,
+          file,
+          imageUploadColor.trim() || undefined,
+          imageUploadDefault && index === 0,
+        )),
       );
       setImages((current) => {
-        const next = imageUploadDefault
+        let next = imageUploadDefault
           ? current.map((entry) => ({ ...entry, isDefault: false }))
           : [...current];
-        next.push(result.image);
+        for (const result of uploads) {
+          next.push(result.image);
+        }
         return next;
       });
-      setImageUploadFile(null);
+      setImageUploadFiles([]);
       setImageUploadColor('');
       setImageUploadDefault(false);
     } catch (err) {
@@ -1029,7 +1038,8 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setImageUploadFile(e.target.files?.[0] ?? null)}
+                      multiple
+                      onChange={(e) => setImageUploadFiles(Array.from(e.target.files ?? []))}
                       className="block w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 file:mr-3 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700"
                     />
                     <select
@@ -1054,9 +1064,19 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                       />
                       Default image
                     </label>
-                    {imageUploadPreview && (
-                      <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
-                        <img src={imageUploadPreview} alt="Upload preview" className="max-h-56 w-full object-contain" />
+                    {imageUploadPreviews.length > 0 && (
+                      <div className="space-y-2 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">
+                          {imageUploadPreviews.length} selected
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {imageUploadPreviews.map(({ file, previewUrl }) => (
+                            <div key={`${file.name}-${file.size}`} className="overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800">
+                              <img src={previewUrl} alt={file.name} className="h-32 w-full object-contain bg-white dark:bg-gray-950" />
+                              <div className="px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400 truncate">{file.name}</div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                     <button

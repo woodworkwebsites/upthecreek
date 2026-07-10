@@ -22,17 +22,10 @@ export function ImageGallery({
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
-  const selectedColorImages = selectedColor
+  // Colour tags are the source of truth when a colour is selected.
+  // Variant matching is only used when no specific colour is active.
+  const colorImages = selectedColor
     ? images.filter((img) => img.color === selectedColor)
-    : [];
-
-  // When a colour is selected, only show images that are colour-specific.
-  // After sync, Printify mockup images have exactly 1 variantId (extracted from
-  // the URL). Lifestyle/studio shots that couldn't be mapped keep all ~55 variantIds.
-  // Anything with more than 10 variantIds is treated as a "global" image and excluded
-  // when a specific colour is active, so they don't swamp the colour-matched results.
-  const colorImages = selectedColorImages.length > 0
-    ? selectedColorImages
     : activeVariantIds && activeVariantIds.length > 0
     ? images.filter((img) =>
         img.variantIds.length <= 10 &&
