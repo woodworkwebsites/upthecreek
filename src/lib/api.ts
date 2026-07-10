@@ -90,7 +90,7 @@ export async function adminFetchProducts(token: string): Promise<Product[]> {
 export async function adminUpdateProduct(
   token: string,
   printifyId: string,
-  data: { sizeGuideImage: string | null },
+  data: { sizeGuideImage?: string | null; hiddenColors?: string[] },
 ): Promise<void> {
   await adminFetch(`/api/admin/products/${printifyId}`, token, {
     method: 'PATCH',

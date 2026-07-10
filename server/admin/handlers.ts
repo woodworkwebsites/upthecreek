@@ -15,7 +15,12 @@ import {
   listWebhookLogs,
   listPrintifyLogs,
 } from '../orders/repository.js';
-import { getAllProductsForAdmin, updateSizeGuideImage, upsertProduct } from '../products/repository.js';
+import {
+  getAllProductsForAdmin,
+  updateHiddenColors,
+  updateSizeGuideImage,
+  upsertProduct,
+} from '../products/repository.js';
 import { getProductByPrintifyId } from '../products/repository.js';
 import { deriveProductAggregates } from '../products/aggregates.js';
 import { previewPrintifySync, reconcileSyncedProducts, syncProductsPageByPage } from '../printify/sync.js';
@@ -122,6 +127,18 @@ interface ManualImageMeta {
   isDefault?: boolean;
 }
 
+function normalizeHiddenColors(hiddenColors: unknown): string[] {
+  if (!Array.isArray(hiddenColors)) return [];
+  return Array.from(
+    new Set(
+      hiddenColors
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0),
+    ),
+  );
+}
+
 export async function handleCreateProduct(env: Env, request: Request): Promise<Response> {
   const contentType = request.headers.get('content-type') ?? '';
   if (!contentType.includes('multipart/form-data')) {
@@ -218,6 +235,7 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
     images,
     variants,
     colors,
+    hiddenColors: [],
     sizes,
     minPrice,
     maxPrice,
@@ -272,18 +290,27 @@ export async function handleUpdateProduct(
     return json({ success: true, sizeGuideImage });
   }
 
-  let body: { sizeGuideImage?: string | null };
+  let body: { sizeGuideImage?: string | null; hiddenColors?: unknown };
   try {
-    body = await request.json() as { sizeGuideImage?: string | null };
+    body = await request.json() as { sizeGuideImage?: string | null; hiddenColors?: unknown };
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  if (!('sizeGuideImage' in body)) {
+  if (!('sizeGuideImage' in body) && !('hiddenColors' in body)) {
     return json({ error: 'No recognised fields to update' }, 400);
   }
 
-  const updated = await updateSizeGuideImage(env.DB, printifyId, body.sizeGuideImage ?? null);
+  let updated = false;
+
+  if ('sizeGuideImage' in body) {
+    updated = (await updateSizeGuideImage(env.DB, printifyId, body.sizeGuideImage ?? null)) || updated;
+  }
+
+  if ('hiddenColors' in body) {
+    updated = (await updateHiddenColors(env.DB, printifyId, normalizeHiddenColors(body.hiddenColors))) || updated;
+  }
+
   if (!updated) return json({ error: 'Product not found' }, 404);
 
   return json({ success: true });

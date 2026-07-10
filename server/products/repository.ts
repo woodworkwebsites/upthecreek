@@ -6,20 +6,74 @@ import type {
   PrintifyVariant,
   PrintifyColor,
 } from '../../types/index.js';
+import { deriveProductAggregates } from './aggregates.js';
 
-function parseProduct(row: ProductRow): Product {
+function parseJsonArray<T>(value: string | null | undefined): T[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed as T[] : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeHiddenColors(hiddenColors: string[]): string[] {
+  return Array.from(
+    new Set(
+      hiddenColors
+        .map((color) => color.trim())
+        .filter((color) => color.length > 0),
+    ),
+  );
+}
+
+function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Product {
+  const hiddenColors = normalizeHiddenColors(parseJsonArray<string>(row.hidden_colors));
+  const hiddenColorSet = new Set(hiddenColors);
+  const rawImages = parseJsonArray<PrintifyProductImage>(row.images);
+  const rawVariants = parseJsonArray<PrintifyVariant>(row.variants);
+  const rawColors = parseJsonArray<PrintifyColor>(row.colors);
+
+  const colors = view === 'admin'
+    ? rawColors
+    : rawColors.filter((color) => !hiddenColorSet.has(color.name));
+
+  const variants = view === 'admin'
+    ? rawVariants
+    : rawVariants.filter((variant) => !hiddenColorSet.has(variant.color));
+
+  const variantIds = new Set(variants.map((variant) => variant.id));
+  const images = view === 'admin'
+    ? rawImages
+    : rawImages.filter((image) => {
+        if (image.color && hiddenColorSet.has(image.color)) {
+          return false;
+        }
+        if (image.variantIds.length === 0) {
+          return true;
+        }
+        return image.variantIds.some((variantId) => variantIds.has(variantId));
+      });
+
+  const colorHexByName = new Map(colors.map((color) => [color.name, color.hex] as const));
+  const aggregates = view === 'admin'
+    ? deriveProductAggregates(rawVariants, new Map(rawColors.map((color) => [color.name, color.hex] as const)))
+    : deriveProductAggregates(variants, colorHexByName);
+
   return {
     id:             row.id,
     printifyId:     row.printify_id,
     title:          row.title,
     description:    row.description,
     category:       row.category,
-    images:         JSON.parse(row.images)   as PrintifyProductImage[],
-    variants:       JSON.parse(row.variants) as PrintifyVariant[],
-    colors:         JSON.parse(row.colors)   as PrintifyColor[],
-    sizes:          JSON.parse(row.sizes)    as string[],
-    minPrice:       row.min_price,
-    maxPrice:       row.max_price,
+    images,
+    variants,
+    colors,
+    hiddenColors,
+    sizes:          aggregates.sizes,
+    minPrice:       aggregates.minPrice,
+    maxPrice:       aggregates.maxPrice,
     isEnabled:      row.is_enabled === 1,
     sizeGuideImage: row.size_guide_image ?? null,
     syncedAt:       row.synced_at,
@@ -32,7 +86,7 @@ export async function getAllProducts(db: D1Database): Promise<Product[]> {
   const result = await db
     .prepare('SELECT * FROM products WHERE is_enabled = 1 ORDER BY title')
     .all<ProductRow>();
-  return (result.results ?? []).map(parseProduct);
+  return (result.results ?? []).map((row) => parseProduct(row, 'public'));
 }
 
 export async function getProductById(db: D1Database, id: string): Promise<Product | null> {
@@ -40,7 +94,7 @@ export async function getProductById(db: D1Database, id: string): Promise<Produc
     .prepare('SELECT * FROM products WHERE id = ? AND is_enabled = 1')
     .bind(id)
     .first<ProductRow>();
-  return row ? parseProduct(row) : null;
+  return row ? parseProduct(row, 'public') : null;
 }
 
 export async function getProductByPrintifyId(
@@ -51,14 +105,14 @@ export async function getProductByPrintifyId(
     .prepare('SELECT * FROM products WHERE printify_id = ?')
     .bind(printifyId)
     .first<ProductRow>();
-  return row ? parseProduct(row) : null;
+  return row ? parseProduct(row, 'public') : null;
 }
 
 export async function getAllProductsForAdmin(db: D1Database): Promise<Product[]> {
   const result = await db
     .prepare('SELECT * FROM products ORDER BY title')
     .all<ProductRow>();
-  return (result.results ?? []).map(parseProduct);
+  return (result.results ?? []).map((row) => parseProduct(row, 'admin'));
 }
 
 export async function listProductPrintifyIds(db: D1Database): Promise<string[]> {
@@ -132,6 +186,7 @@ export interface UpsertProductData {
   images: PrintifyProductImage[];
   variants: PrintifyVariant[];
   colors: PrintifyColor[];
+  hiddenColors?: string[];
   sizes: string[];
   minPrice: number;
   maxPrice: number;
@@ -149,6 +204,18 @@ export async function updateSizeGuideImage(
   return (result.meta?.changes ?? 0) > 0;
 }
 
+export async function updateHiddenColors(
+  db: D1Database,
+  printifyId: string,
+  hiddenColors: string[],
+): Promise<boolean> {
+  const result = await db
+    .prepare(`UPDATE products SET hidden_colors = ?, updated_at = datetime('now') WHERE printify_id = ?`)
+    .bind(JSON.stringify(normalizeHiddenColors(hiddenColors)), printifyId)
+    .run();
+  return (result.meta?.changes ?? 0) > 0;
+}
+
 export async function upsertProduct(
   db: D1Database,
   data: UpsertProductData,
@@ -156,9 +223,9 @@ export async function upsertProduct(
   await db
     .prepare(`
       INSERT INTO products
-        (id, printify_id, title, description, category, images, variants, colors, sizes,
+        (id, printify_id, title, description, category, images, variants, colors, hidden_colors, sizes,
          min_price, max_price, is_enabled, synced_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'), datetime('now'))
       ON CONFLICT(printify_id) DO UPDATE SET
         is_enabled  = 1,
         title       = excluded.title,
@@ -182,6 +249,7 @@ export async function upsertProduct(
       JSON.stringify(data.images),
       JSON.stringify(data.variants),
       JSON.stringify(data.colors),
+      JSON.stringify(normalizeHiddenColors(data.hiddenColors ?? [])),
       JSON.stringify(data.sizes),
       data.minPrice,
       data.maxPrice,

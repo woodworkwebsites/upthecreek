@@ -38,6 +38,7 @@ export interface ProductRow {
   images: string;     // JSON
   variants: string;   // JSON
   colors: string;     // JSON
+  hidden_colors: string; // JSON
   sizes: string;      // JSON
   min_price: number;
   max_price: number;
@@ -138,6 +139,7 @@ export interface Product {
   images: PrintifyProductImage[];
   variants: PrintifyVariant[];
   colors: PrintifyColor[];
+  hiddenColors: string[];
   sizes: string[];
   minPrice: number;
   maxPrice: number;

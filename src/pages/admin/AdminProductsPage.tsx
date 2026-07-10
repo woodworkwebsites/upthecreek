@@ -11,11 +11,19 @@ import { formatPriceRange, formatDate } from '../../lib/utils.js';
 function ProductCard({ product, token }: { product: Product; token: string }) {
   const img = product.images.find((i) => i.isDefault) ?? product.images[0];
   const [sizeGuideUrl, setSizeGuideUrl] = useState(product.sizeGuideImage ?? '');
+  const [hiddenColors, setHiddenColors] = useState<string[]>(product.hiddenColors ?? []);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [visibilitySaving, setVisibilitySaving] = useState(false);
+  const [visibilitySaved, setVisibilitySaved] = useState(false);
+  const [visibilityError, setVisibilityError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setHiddenColors(product.hiddenColors ?? []);
+  }, [product.hiddenColors]);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -44,6 +52,34 @@ function ProductCard({ product, token }: { product: Product; token: string }) {
       setSaving(false);
     }
   }
+
+  async function handleSaveHiddenColors() {
+    setVisibilitySaving(true);
+    setVisibilitySaved(false);
+    setVisibilityError(null);
+    try {
+      await adminUpdateProduct(token, product.printifyId, { hiddenColors });
+      setVisibilitySaved(true);
+      setTimeout(() => setVisibilitySaved(false), 2000);
+    } catch (err) {
+      setVisibilityError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setVisibilitySaving(false);
+    }
+  }
+
+  function toggleColor(colorName: string) {
+    setHiddenColors((current) =>
+      current.includes(colorName)
+        ? current.filter((value) => value !== colorName)
+        : [...current, colorName],
+    );
+  }
+
+  const visibleColors = product.colors.filter((color) => !hiddenColors.includes(color.name));
+  const hiddenCount = hiddenColors.length;
+  const hasVisibilityChanges = hiddenCount !== (product.hiddenColors ?? []).length
+    || hiddenColors.some((color) => !(product.hiddenColors ?? []).includes(color));
 
   async function handleUploadSizeGuide() {
     if (!selectedFile) {
@@ -86,17 +122,51 @@ function ProductCard({ product, token }: { product: Product; token: string }) {
         <div className="flex gap-2 text-xs text-gray-400 dark:text-gray-500">
           <span>{product.variants.length} variants</span>
           <span>·</span>
-          <span>{product.colors.length} colours</span>
+          <span>{visibleColors.length} visible colours</span>
+          {hiddenCount > 0 && (
+            <>
+              <span>·</span>
+              <span>{hiddenCount} hidden</span>
+            </>
+          )}
         </div>
-        <div className="flex flex-wrap gap-1 pt-1">
-          {product.colors.slice(0, 8).map((c) => (
-            <span
-              key={c.name}
-              title={c.name}
-              className="h-3 w-3 rounded-full border border-gray-200 dark:border-gray-700"
-              style={{ backgroundColor: c.hex }}
-            />
-          ))}
+        <div className="pt-1 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {product.colors.map((color) => {
+              const isHidden = hiddenColors.includes(color.name);
+              return (
+                <button
+                  key={color.name}
+                  type="button"
+                  onClick={() => toggleColor(color.name)}
+                  title={`${color.name}${isHidden ? ' (hidden)' : ''}`}
+                  aria-pressed={!isHidden}
+                  className={`h-7 rounded-full border px-2 text-[11px] font-semibold transition-all ${
+                    isHidden
+                      ? 'border-dashed border-gray-300 bg-gray-50 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500'
+                      : 'border-gray-200 text-gray-700 dark:border-gray-700 dark:text-gray-200'
+                  }`}
+                >
+                  <span
+                    className="mr-1 inline-block h-3 w-3 rounded-full align-middle border border-black/10"
+                    style={{ backgroundColor: color.hex }}
+                  />
+                  {color.name}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSaveHiddenColors}
+              disabled={visibilitySaving || !hasVisibilityChanges}
+              className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
+            >
+              {visibilitySaving ? 'Saving…' : 'Save colours'}
+            </button>
+            {visibilitySaved && <span className="text-xs text-green-600 dark:text-green-400">Saved</span>}
+            {visibilityError && <span className="text-xs text-red-600 dark:text-red-400">{visibilityError}</span>}
+          </div>
         </div>
 
         {/* Size guide image */}
