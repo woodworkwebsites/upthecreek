@@ -71,6 +71,17 @@ export async function adminFetchOrder(token: string, id: string): Promise<Order>
   return data.order;
 }
 
+export async function adminFulfillOrder(
+  token: string,
+  id: string,
+  externalOrderRef?: string,
+): Promise<void> {
+  await adminFetch(`/api/admin/orders/${id}/fulfill`, token, {
+    method: 'POST',
+    body: JSON.stringify({ externalOrderRef }),
+  });
+}
+
 export async function adminFetchProducts(token: string): Promise<Product[]> {
   const data = await adminFetch<{ products: Product[] }>('/api/admin/products', token);
   return data.products;
@@ -109,6 +120,26 @@ export async function adminUploadSizeGuideImage(
   }
 
   return res.json() as Promise<{ sizeGuideImage: string }>;
+}
+
+export async function adminCreateProduct(
+  token: string,
+  form: FormData,
+): Promise<{ product: Product }> {
+  const res = await fetch('/api/admin/products', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: form,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
+
+  return res.json() as Promise<{ product: Product }>;
 }
 
 export async function adminSyncProducts(

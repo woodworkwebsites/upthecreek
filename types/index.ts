@@ -2,6 +2,8 @@
 
 export type PrintifyMode = 'dry_run' | 'draft' | 'live';
 
+export type FulfillmentProvider = 'printify' | 'manual';
+
 export interface PrintifyProductImage {
   src: string;
   isDefault: boolean;
@@ -60,6 +62,16 @@ export interface OrderRow {
   printify_payload: string | null;   // JSON
   printify_response: string | null;  // JSON
   error: string | null;
+  fulfillment_provider: FulfillmentProvider;
+  external_order_ref: string | null;
+  shipping_name: string;
+  shipping_phone: string;
+  shipping_address1: string;
+  shipping_address2: string;
+  shipping_city: string;
+  shipping_region: string;
+  shipping_zip: string;
+  shipping_country: string;
   created_at: string;
   updated_at: string;
 }
@@ -113,6 +125,7 @@ export type OrderStatus =
   | 'pending'
   | 'paid'
   | 'fulfillment_started'
+  | 'awaiting_fulfillment'
   | 'fulfilled'
   | 'failed';
 
@@ -149,6 +162,16 @@ export interface Order {
   printifyPayload: unknown | null;
   printifyResponse: unknown | null;
   error: string | null;
+  fulfillmentProvider: FulfillmentProvider;
+  externalOrderRef: string | null;
+  shippingName: string;
+  shippingPhone: string;
+  shippingAddress1: string;
+  shippingAddress2: string;
+  shippingCity: string;
+  shippingRegion: string;
+  shippingZip: string;
+  shippingCountry: string;
   createdAt: string;
   updatedAt: string;
   items?: OrderItem[];

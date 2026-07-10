@@ -7,6 +7,7 @@ export default function AdminSettingsPage() {
   const { token } = useAdminToken();
   const [liveOrders, setLiveOrders]       = useState(false);
   const [stripeTestMode, setStripeTestMode] = useState(false);
+  const [fulfillmentProvider, setFulfillmentProvider] = useState<'printify' | 'manual'>('printify');
   const [loading, setLoading]              = useState(true);
   const [saving, setSaving]                = useState(false);
   const [saved, setSaved]                  = useState(false);
@@ -19,6 +20,7 @@ export default function AdminSettingsPage() {
       const settings = await adminGetSettings(token);
       setLiveOrders(settings.live_orders_enabled === 'true');
       setStripeTestMode(settings.stripe_test_mode === 'true');
+      setFulfillmentProvider(settings.fulfillment_provider === 'manual' ? 'manual' : 'printify');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings');
     } finally {
@@ -46,6 +48,23 @@ export default function AdminSettingsPage() {
     }
   }
 
+  async function handleSetFulfillmentProvider(provider: 'printify' | 'manual') {
+    if (!token) return;
+    setSaving(true);
+    setSaved(false);
+    setError(null);
+    try {
+      await adminUpdateSettings(token, { fulfillment_provider: provider });
+      setFulfillmentProvider(provider);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading) return <PageLoader />;
 
   return (
@@ -55,9 +74,52 @@ export default function AdminSettingsPage() {
       <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4">
 
         <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Fulfillment Provider</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Controls what happens after a customer pays. <strong>Printify (automatic)</strong> submits the
+            order to Printify's API immediately, using the Live Orders / Draft setting below.
+            <strong> Manual (SellShirts)</strong> skips Printify entirely — the order is recorded as
+            "awaiting fulfilment" with full shipping details, you get a Pushover alert, and you dispatch
+            it yourself from the SellShirts admin console, then mark it fulfilled here.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => handleSetFulfillmentProvider('printify')}
+            disabled={saving}
+            className={`rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-50 ${
+              fulfillmentProvider === 'printify'
+                ? 'border-navy-800 bg-navy-800/5 dark:border-navy-400 dark:bg-navy-400/10'
+                : 'border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+            }`}
+          >
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Printify</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Automatic order submission</p>
+          </button>
+          <button
+            onClick={() => handleSetFulfillmentProvider('manual')}
+            disabled={saving}
+            className={`rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-50 ${
+              fulfillmentProvider === 'manual'
+                ? 'border-navy-800 bg-navy-800/5 dark:border-navy-400 dark:bg-navy-400/10'
+                : 'border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+            }`}
+          >
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Manual</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">SellShirts — dispatch yourself</p>
+          </button>
+        </div>
+      </div>
+
+      <div className={`rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4 ${fulfillmentProvider === 'manual' ? 'opacity-50' : ''}`}>
+
+        <div>
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Order Fulfilment Mode</p>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            When Live Orders is off, completed checkouts are submitted to Printify as <strong>drafts</strong> — no garments are printed or charged. Turn it on only when you're ready to fulfil real orders.
+            {fulfillmentProvider === 'manual'
+              ? 'Not used while Fulfillment Provider is set to Manual.'
+              : <>When Live Orders is off, completed checkouts are submitted to Printify as <strong>drafts</strong> — no garments are printed or charged. Turn it on only when you're ready to fulfil real orders.</>}
           </p>
         </div>
 

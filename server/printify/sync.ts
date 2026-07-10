@@ -15,6 +15,7 @@ import {
 import { writeSyncLog } from '../orders/repository.js';
 import { logger } from '../logging.js';
 import { storeRemoteAsset } from '../assets/storage.js';
+import { deriveProductAggregates } from '../products/aggregates.js';
 
 function extractVariantIdFromUrl(src: string): number | null {
   const match = src.match(/images\.printify\.com\/mockup\/[^/]+\/(\d+)\//);
@@ -64,21 +65,15 @@ function buildProductCore(raw: PrintifyApiProduct): ProductCore {
   }
 
   const enabledVariants = raw.variants.filter((v) => v.is_enabled);
-
-  const colors: PrintifyColor[] = [];
-  const colorsSeen = new Set<string>();
-  const sizesSeen = new Set<string>();
+  const colorHexByName = new Map(Array.from(colorMap.values()).map((c) => [c.name, c.hex]));
 
   const variants: PrintifyVariant[] = enabledVariants.map((v) => {
     let color = '';
-    let hex   = '#cccccc';
     let size  = '';
 
     for (const optId of v.options) {
       if (colorMap.has(optId)) {
-        const c = colorMap.get(optId)!;
-        color = c.name;
-        hex   = c.hex;
+        color = colorMap.get(optId)!.name;
       } else if (sizeMap.has(optId)) {
         size = sizeMap.get(optId)!;
       }
@@ -87,12 +82,6 @@ function buildProductCore(raw: PrintifyApiProduct): ProductCore {
     // Fallback: parse the variant title (e.g. "Black / XL")
     if (!color) color = v.title.split(' / ')[0]?.trim() ?? '';
     if (!size)  size  = v.title.split(' / ')[1]?.trim() ?? '';
-
-    if (color && !colorsSeen.has(color)) {
-      colorsSeen.add(color);
-      colors.push({ name: color, hex });
-    }
-    if (size) sizesSeen.add(size);
 
     return {
       id:        v.id,
@@ -126,19 +115,7 @@ function buildProductCore(raw: PrintifyApiProduct): ProductCore {
       };
     });
 
-  const prices = variants.map((v) => v.price);
-  const minPrice = prices.length ? Math.min(...prices) : 0;
-  const maxPrice = prices.length ? Math.max(...prices) : 0;
-
-  const standardSizeOrder = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
-  const sizes = Array.from(sizesSeen).sort((a, b) => {
-    const ai = standardSizeOrder.indexOf(a);
-    const bi = standardSizeOrder.indexOf(b);
-    if (ai === -1 && bi === -1) return a.localeCompare(b);
-    if (ai === -1) return 1;
-    if (bi === -1) return -1;
-    return ai - bi;
-  });
+  const { colors, sizes, minPrice, maxPrice } = deriveProductAggregates(variants, colorHexByName);
 
   return {
     title:       raw.title,

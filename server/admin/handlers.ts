@@ -2,6 +2,8 @@ import type { Env } from '../../types/env.js';
 import type {
   TestPayloadRequest,
   TestOrderHandoffRequest,
+  PrintifyVariant,
+  PrintifyProductImage,
 } from '../../types/index.js';
 import {
   listOrders,
@@ -13,8 +15,9 @@ import {
   listWebhookLogs,
   listPrintifyLogs,
 } from '../orders/repository.js';
-import { getAllProductsForAdmin, updateSizeGuideImage } from '../products/repository.js';
+import { getAllProductsForAdmin, updateSizeGuideImage, upsertProduct } from '../products/repository.js';
 import { getProductByPrintifyId } from '../products/repository.js';
+import { deriveProductAggregates } from '../products/aggregates.js';
 import { previewPrintifySync, reconcileSyncedProducts, syncProductsPageByPage } from '../printify/sync.js';
 import { buildPrintifyPayload, fulfillOrder } from '../printify/orders.js';
 import { getEffectivePrintifyMode } from '../env.js';
@@ -79,9 +82,149 @@ export async function handleGetOrder(env: Env, id: string): Promise<Response> {
   return json({ order });
 }
 
+export async function handleFulfillOrder(
+  env: Env,
+  id: string,
+  request: Request,
+): Promise<Response> {
+  let body: { externalOrderRef?: string };
+  try {
+    body = await request.json().catch(() => ({})) as { externalOrderRef?: string };
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const order = await getOrderWithItems(env.DB, id);
+  if (!order) return json({ error: 'Order not found' }, 404);
+
+  await updateOrderStatus(env.DB, id, 'fulfilled', {
+    externalOrderRef: body.externalOrderRef?.trim() || undefined,
+  });
+
+  return json({ success: true });
+}
+
 export async function handleListProducts(env: Env): Promise<Response> {
   const products = await getAllProductsForAdmin(env.DB);
   return json({ products });
+}
+
+interface ManualVariantRow {
+  color: string;
+  hex: string;
+  size: string;
+  price: number;
+  available: boolean;
+}
+
+interface ManualImageMeta {
+  color?: string;
+  isDefault?: boolean;
+}
+
+export async function handleCreateProduct(env: Env, request: Request): Promise<Response> {
+  const contentType = request.headers.get('content-type') ?? '';
+  if (!contentType.includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+
+  const form = await request.formData();
+  const title = (form.get('title') as string | null)?.trim() ?? '';
+  const description = (form.get('description') as string | null)?.trim() ?? '';
+  const category = (form.get('category') as string | null)?.trim() || 'apparel';
+
+  if (!title) return json({ error: 'Title is required' }, 400);
+
+  let variantRows: ManualVariantRow[];
+  try {
+    variantRows = JSON.parse((form.get('variants') as string | null) ?? '[]');
+  } catch {
+    return json({ error: 'Invalid variants payload' }, 400);
+  }
+  if (!Array.isArray(variantRows) || variantRows.length === 0) {
+    return json({ error: 'At least one variant is required' }, 400);
+  }
+
+  let imagesMeta: ManualImageMeta[];
+  try {
+    imagesMeta = JSON.parse((form.get('imagesMeta') as string | null) ?? '[]');
+  } catch {
+    return json({ error: 'Invalid imagesMeta payload' }, 400);
+  }
+
+  const imageFiles = form.getAll('images').filter((v): v is File => v instanceof File);
+
+  const id = crypto.randomUUID();
+  const printifyId = `manual_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+
+  const variants: PrintifyVariant[] = variantRows.map((row, index) => ({
+    id:        index + 1,
+    color:     row.color?.trim() ?? '',
+    size:      row.size?.trim() ?? '',
+    price:     Math.round(row.price) || 0,
+    available: row.available !== false,
+  }));
+
+  const colorHexByName = new Map(
+    variantRows
+      .filter((row) => row.color?.trim())
+      .map((row) => [row.color.trim(), row.hex || '#cccccc'] as [string, string]),
+  );
+
+  const { colors, sizes, minPrice, maxPrice } = deriveProductAggregates(variants, colorHexByName);
+
+  const images: PrintifyProductImage[] = [];
+  for (let i = 0; i < imageFiles.length; i++) {
+    const file = imageFiles[i];
+    const meta = imagesMeta[i] ?? {};
+
+    const stored = await storeAssetData(
+      env.IMAGES,
+      await file.arrayBuffer(),
+      file.type || 'image/jpeg',
+      {
+        kind: 'product-image',
+        keyPrefix: `product-images/${id}`,
+        keySeed: `${id}:${i}:${file.name}:${file.size}`,
+        sourceHint: file.name,
+        metadata: { productId: id, color: meta.color ?? '' },
+      },
+    );
+
+    const variantIdsForColor = meta.color
+      ? variants.filter((v) => v.color === meta.color).map((v) => v.id)
+      : variants.map((v) => v.id);
+
+    images.push({
+      src:        stored.url,
+      isDefault:  !!meta.isDefault,
+      variantIds: variantIdsForColor,
+      color:      meta.color || undefined,
+      assetKind:  'product-image',
+      storageKey: stored.key,
+    });
+  }
+
+  if (images.length > 0 && !images.some((img) => img.isDefault)) {
+    images[0].isDefault = true;
+  }
+
+  await upsertProduct(env.DB, {
+    id,
+    printifyId,
+    title,
+    description,
+    category,
+    images,
+    variants,
+    colors,
+    sizes,
+    minPrice,
+    maxPrice,
+  });
+
+  const product = await getProductByPrintifyId(env.DB, printifyId);
+  return json({ product });
 }
 
 export async function handleUpdateProduct(
@@ -237,6 +380,17 @@ export async function handleTestOrderHandoff(
     amountTotal:         variant.price * quantity,
     currency:            'gbp',
     printifyMode:        mode,
+    fulfillmentProvider: 'printify',
+    shipping: {
+      name:     'Test Customer',
+      phone:    '07700000000',
+      address1: '1 Test Street',
+      address2: '',
+      city:     'London',
+      region:   '',
+      zip:      'SW1A 1AA',
+      country:  'GB',
+    },
   });
 
   await createOrderItem(env.DB, {
@@ -317,7 +471,7 @@ export async function handleUpdateSettings(env: Env, request: Request): Promise<
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  const allowed = ['live_orders_enabled', 'stripe_test_mode'];
+  const allowed = ['live_orders_enabled', 'stripe_test_mode', 'fulfillment_provider'];
   for (const [key, value] of Object.entries(body)) {
     if (!allowed.includes(key)) return json({ error: `Unknown setting: ${key}` }, 400);
     await setSetting(env.DB, key, value);

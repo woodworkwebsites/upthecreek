@@ -12,6 +12,7 @@ import { getProductByPrintifyId } from '../products/repository.js';
 import { buildPrintifyPayload, fulfillOrder } from '../printify/orders.js';
 import { getEffectivePrintifyMode, getStripeKeys } from '../env.js';
 import { getSetting } from '../settings/repository.js';
+import { sendPushoverNotification } from '../notifications/pushover.js';
 import { logger } from '../logging.js';
 
 export async function handleStripeWebhook(
@@ -93,23 +94,11 @@ async function processCompletedSession(
 
   const liveEnabled = (await getSetting(env.DB, 'live_orders_enabled')) === 'true';
   const mode = getEffectivePrintifyMode(request, liveEnabled);
+  const fulfillmentProvider = (await getSetting(env.DB, 'fulfillment_provider')) === 'manual' ? 'manual' : 'printify';
   const orderId = crypto.randomUUID();
 
   const customerEmail = session.customer_details?.email ?? session.customer_email ?? 'unknown';
   const customerName  = session.customer_details?.name ?? null;
-
-  await createOrder(env.DB, {
-    id:                  orderId,
-    stripeSessionId:     sessionId,
-    stripePaymentIntent: typeof session.payment_intent === 'string' ? session.payment_intent : null,
-    customerEmail,
-    customerName,
-    amountTotal:         session.amount_total ?? 0,
-    currency:            session.currency ?? 'gbp',
-    printifyMode:        mode,
-  });
-
-  await updateOrderStatus(env.DB, orderId, 'fulfillment_started');
 
   // Stripe moved shipping across API versions:
   //   < 2024-09-30: session.shipping / session.shipping_details
@@ -129,9 +118,10 @@ async function processCompletedSession(
     country: shipping?.address?.country ?? null,
   });
 
+  const fullName = shipping?.name ?? customerName ?? '';
   const address = {
-    firstName: (shipping?.name ?? customerName ?? '').split(' ')[0] ?? '',
-    lastName:  (shipping?.name ?? customerName ?? '').split(' ').slice(1).join(' ') || '',
+    firstName: fullName.split(' ')[0] ?? '',
+    lastName:  fullName.split(' ').slice(1).join(' ') || '',
     email:     customerEmail,
     phone:     session.customer_details?.phone ?? '',
     country:   shipping?.address?.country ?? 'GB',
@@ -141,6 +131,30 @@ async function processCompletedSession(
     city:      shipping?.address?.city ?? '',
     zip:       shipping?.address?.postal_code ?? '',
   };
+
+  await createOrder(env.DB, {
+    id:                  orderId,
+    stripeSessionId:     sessionId,
+    stripePaymentIntent: typeof session.payment_intent === 'string' ? session.payment_intent : null,
+    customerEmail,
+    customerName,
+    amountTotal:         session.amount_total ?? 0,
+    currency:            session.currency ?? 'gbp',
+    printifyMode:        mode,
+    fulfillmentProvider,
+    shipping: {
+      name:     fullName,
+      phone:    address.phone,
+      address1: address.address1,
+      address2: address.address2,
+      city:     address.city,
+      region:   address.region,
+      zip:      address.zip,
+      country:  address.country,
+    },
+  });
+
+  await updateOrderStatus(env.DB, orderId, 'fulfillment_started');
 
   const lineItems: Array<{
     printifyId: string;
@@ -178,6 +192,24 @@ async function processCompletedSession(
       variantId:  compact.vid,
       quantity:   compact.qty,
     });
+  }
+
+  if (fulfillmentProvider === 'manual') {
+    await updateOrderStatus(env.DB, orderId, 'awaiting_fulfillment');
+    logger.info('Order awaiting manual fulfillment', { orderId });
+
+    const itemSummary = lineItems.length > 0
+      ? lineItems.map((item) => `${item.quantity}x ${item.printifyId} (variant ${item.variantId})`).join(', ')
+      : 'No items';
+
+    await sendPushoverNotification(env, {
+      title:   'New order — awaiting fulfillment',
+      message: `${customerEmail} · ${((session.amount_total ?? 0) / 100).toFixed(2)} ${(session.currency ?? 'gbp').toUpperCase()}\n${itemSummary}\nShip to: ${fullName}, ${address.address1}, ${address.city}, ${address.zip}, ${address.country}`,
+      url:     new URL('/admin/orders', new URL(request.url).origin).toString(),
+      urlTitle: 'Open Admin Orders',
+    });
+
+    return;
   }
 
   const payload = buildPrintifyPayload(orderId, lineItems, address);

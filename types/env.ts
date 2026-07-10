@@ -11,4 +11,6 @@ export interface Env {
   PRINTIFY_SHOP_ID: string;
   LIVE_ORDERS_ENABLED: string;
   ADMIN_TOKEN: string;
+  PUSHOVER_APP_TOKEN?: string;
+  PUSHOVER_USER_KEY?: string;
 }

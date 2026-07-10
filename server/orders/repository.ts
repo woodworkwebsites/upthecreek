@@ -6,6 +6,7 @@ import type {
   OrderItemRow,
   OrderStatus,
   PrintifyMode,
+  FulfillmentProvider,
   SyncLogRow,
   WebhookLogRow,
   PrintifyLogRow,
@@ -26,6 +27,16 @@ function parseOrder(row: OrderRow): Order {
     printifyPayload:       row.printify_payload ? JSON.parse(row.printify_payload) : null,
     printifyResponse:      row.printify_response ? JSON.parse(row.printify_response) : null,
     error:                 row.error,
+    fulfillmentProvider:   row.fulfillment_provider,
+    externalOrderRef:      row.external_order_ref,
+    shippingName:          row.shipping_name,
+    shippingPhone:         row.shipping_phone,
+    shippingAddress1:      row.shipping_address1,
+    shippingAddress2:      row.shipping_address2,
+    shippingCity:          row.shipping_city,
+    shippingRegion:        row.shipping_region,
+    shippingZip:           row.shipping_zip,
+    shippingCountry:       row.shipping_country,
     createdAt:             row.created_at,
     updatedAt:             row.updated_at,
   };
@@ -66,6 +77,17 @@ export interface CreateOrderData {
   amountTotal: number;
   currency: string;
   printifyMode: PrintifyMode;
+  fulfillmentProvider: FulfillmentProvider;
+  shipping: {
+    name: string;
+    phone: string;
+    address1: string;
+    address2: string;
+    city: string;
+    region: string;
+    zip: string;
+    country: string;
+  };
 }
 
 export async function createOrder(
@@ -76,8 +98,11 @@ export async function createOrder(
     .prepare(`
       INSERT INTO orders
         (id, stripe_session_id, stripe_payment_intent, customer_email, customer_name,
-         amount_total, currency, status, printify_mode, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', ?, datetime('now'), datetime('now'))
+         amount_total, currency, status, printify_mode, fulfillment_provider,
+         shipping_name, shipping_phone, shipping_address1, shipping_address2,
+         shipping_city, shipping_region, shipping_zip, shipping_country,
+         created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `)
     .bind(
       data.id,
@@ -88,6 +113,15 @@ export async function createOrder(
       data.amountTotal,
       data.currency,
       data.printifyMode,
+      data.fulfillmentProvider,
+      data.shipping.name,
+      data.shipping.phone,
+      data.shipping.address1,
+      data.shipping.address2,
+      data.shipping.city,
+      data.shipping.region,
+      data.shipping.zip,
+      data.shipping.country,
     )
     .run();
 }
@@ -137,17 +171,19 @@ export async function updateOrderStatus(
     printifyPayload?: unknown;
     printifyResponse?: unknown;
     error?: string;
+    externalOrderRef?: string;
   },
 ): Promise<void> {
   await db
     .prepare(`
       UPDATE orders
-      SET status            = ?,
-          printify_order_id = COALESCE(?, printify_order_id),
-          printify_payload  = COALESCE(?, printify_payload),
-          printify_response = COALESCE(?, printify_response),
-          error             = COALESCE(?, error),
-          updated_at        = datetime('now')
+      SET status             = ?,
+          printify_order_id  = COALESCE(?, printify_order_id),
+          printify_payload   = COALESCE(?, printify_payload),
+          printify_response  = COALESCE(?, printify_response),
+          error              = COALESCE(?, error),
+          external_order_ref = COALESCE(?, external_order_ref),
+          updated_at         = datetime('now')
       WHERE id = ?
     `)
     .bind(
@@ -156,6 +192,7 @@ export async function updateOrderStatus(
       extra?.printifyPayload !== undefined ? JSON.stringify(extra.printifyPayload) : null,
       extra?.printifyResponse !== undefined ? JSON.stringify(extra.printifyResponse) : null,
       extra?.error ?? null,
+      extra?.externalOrderRef ?? null,
       id,
     )
     .run();

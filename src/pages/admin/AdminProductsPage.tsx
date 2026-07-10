@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import type { Product } from '../../../types/index.js';
 import { adminFetchProducts, adminSyncProducts, adminUpdateProduct, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
@@ -153,7 +154,11 @@ function ProductCard({ product, token }: { product: Product; token: string }) {
         </div>
 
         <p className="text-xs text-gray-300 dark:text-gray-600 font-mono truncate">{product.printifyId}</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500">Synced {formatDate(product.syncedAt)}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          {product.printifyId.startsWith('manual_')
+            ? `Added manually ${formatDate(product.syncedAt)}`
+            : `Synced ${formatDate(product.syncedAt)}`}
+        </p>
       </div>
     </div>
   );
@@ -267,14 +272,21 @@ export default function AdminProductsPage() {
         <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
           Products
         </h1>
-        <Button
-          variant="secondary"
-          size="sm"
-          loading={syncing}
-          onClick={handlePreviewSync}
-        >
-          Sync from Printify
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link to="/admin/products/new">
+            <Button variant="primary" size="sm">
+              + Add product
+            </Button>
+          </Link>
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={syncing}
+            onClick={handlePreviewSync}
+          >
+            Sync from Printify
+          </Button>
+        </div>
       </div>
 
       {syncMsg && (
