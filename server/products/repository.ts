@@ -204,6 +204,9 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const images = view === 'admin'
     ? orderedImages
     : orderedImages.filter((image) => {
+        if (image.isDefault) {
+          return true;
+        }
         if (image.color && hiddenColorSet.has(image.color)) {
           return false;
         }

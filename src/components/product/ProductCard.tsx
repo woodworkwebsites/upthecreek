@@ -57,7 +57,12 @@ export function ProductCard({ product }: ProductCardProps) {
           </>
         ) : (
           <div className="flex h-full items-center justify-center">
-            <span className="text-5xl opacity-10">🏓</span>
+            <img
+              src="/UTC_Logo.png"
+              alt="UTC logo"
+              className="h-24 w-24 object-contain opacity-20"
+              loading="lazy"
+            />
           </div>
         )}
 

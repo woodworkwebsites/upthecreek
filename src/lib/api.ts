@@ -46,12 +46,16 @@ function adminFetch<T>(path: string, token: string, options?: RequestInit): Prom
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function fetchProducts(): Promise<Product[]> {
-  const data = await apiFetch<{ products: Product[] }>('/api/products');
+  const data = await apiFetch<{ products: Product[] }>('/api/products', {
+    cache: 'no-store',
+  });
   return data.products;
 }
 
 export async function fetchProduct(id: string): Promise<Product> {
-  const data = await apiFetch<{ product: Product }>(`/api/products/${id}`);
+  const data = await apiFetch<{ product: Product }>(`/api/products/${id}`, {
+    cache: 'no-store',
+  });
   return data.product;
 }
 
