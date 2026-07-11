@@ -22,6 +22,8 @@ export interface CatalogOptions {
   pricingRows: PricingRowOption[];
 }
 
+export const DEFAULT_SIZE_OPTIONS = ['Small', 'Medium', 'Large', 'XL', '2XL', '3XL'];
+
 export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
   audiences: ['Men', 'Womens', 'Kids'],
   products: ['Tshirt', 'Hoody', 'Sweatshirt'],

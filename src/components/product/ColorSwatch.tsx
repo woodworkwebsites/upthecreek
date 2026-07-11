@@ -32,16 +32,15 @@ export function ColorSwatch({ colors, selected, onSelect }: ColorSwatchProps) {
               'relative h-10 w-10 rounded-full transition-all duration-200',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2',
               selected === color.name
-                ? 'ring-2 ring-navy-800 ring-offset-[3px] scale-110'
+                ? 'scale-110 ring-4 ring-white ring-offset-2 ring-offset-gray-50 shadow-[0_8px_20px_rgba(11,20,55,0.18)] dark:ring-offset-gray-900'
                 : 'ring-1 ring-black/10 hover:scale-110 hover:ring-black/20',
             )}
             style={{ backgroundColor: color.hex }}
           >
             {selected === color.name && (
-              <span className="absolute inset-0 flex items-center justify-center rounded-full">
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-navy-800 text-white shadow-lg shadow-black/20 dark:border-gray-900">
                 <svg
-                  className="h-4 w-4 drop-shadow"
-                  style={{ color: isLight(color.hex) ? '#0B1437' : '#ffffff' }}
+                  className="h-3 w-3"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >

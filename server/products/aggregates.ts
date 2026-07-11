@@ -1,6 +1,19 @@
 import type { PrintifyVariant, PrintifyColor } from '../../types/index.js';
 
-const STANDARD_SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
+const STANDARD_SIZE_ORDER = [
+  'XS',
+  'Extra Small',
+  'S',
+  'Small',
+  'M',
+  'Medium',
+  'L',
+  'Large',
+  'XL',
+  '2XL',
+  '3XL',
+  '4XL',
+];
 
 export interface ProductAggregates {
   colors: PrintifyColor[];

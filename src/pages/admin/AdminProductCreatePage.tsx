@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { adminCreateProduct, adminGetSettings } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
-import { DEFAULT_CATALOG_OPTIONS, parseCatalogSettings, type PricingRowOption } from '../../lib/catalog.js';
+import { DEFAULT_CATALOG_OPTIONS, DEFAULT_SIZE_OPTIONS, parseCatalogSettings, type PricingRowOption } from '../../lib/catalog.js';
 
 interface VariantRow {
   color: string;
@@ -58,7 +58,9 @@ export default function AdminProductCreatePage() {
   const [productType, setProductType] = useState(DEFAULT_CATALOG_OPTIONS.products[0] ?? '');
   const [garmentType, setGarmentType] = useState(DEFAULT_CATALOG_OPTIONS.garments[0] ?? '');
   const [catalog, setCatalog] = useState(DEFAULT_CATALOG_OPTIONS);
-  const [variants, setVariants] = useState<VariantRow[]>([emptyVariant()]);
+  const [variants, setVariants] = useState<VariantRow[]>(
+    DEFAULT_SIZE_OPTIONS.map((size) => ({ ...emptyVariant(), size })),
+  );
   const [images, setImages] = useState<ImageRow[]>([]);
   const [pricingTemplate, setPricingTemplate] = useState<VariantRow>(() => emptyVariant());
   const [submitting, setSubmitting] = useState(false);

@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatPriceRange, formatDate } from '../../lib/utils.js';
-import { DEFAULT_CATALOG_OPTIONS, findPricingPresetRow, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
+import { DEFAULT_CATALOG_OPTIONS, DEFAULT_SIZE_OPTIONS, findPricingPresetRow, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
 
 interface DraftVariantRow {
   color: string;
@@ -72,7 +72,7 @@ function InlineDraftProductRow({
   const [colorHex, setColorHex] = useState('#333333');
   const [colors, setColors] = useState<Array<{ name: string; hex: string }>>([]);
   const [sizeValue, setSizeValue] = useState('');
-  const [sizes, setSizes] = useState<string[]>([]);
+  const [sizes, setSizes] = useState<string[]>(DEFAULT_SIZE_OPTIONS);
   const [variantRows, setVariantRows] = useState<Record<string, DraftVariantRow>>({});
   const [images, setImages] = useState<DraftImageRow[]>([]);
   const imagesRef = useRef<DraftImageRow[]>([]);
