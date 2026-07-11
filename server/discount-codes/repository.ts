@@ -2,7 +2,7 @@ import type { D1Database } from '@cloudflare/workers-types';
 import type { DiscountCode, DiscountCodeKind, DiscountCodeRow, DiscountCodeInput } from '../../types/index.js';
 
 export async function ensureDiscountCodeSchema(db: D1Database): Promise<void> {
-  await db.exec(`
+  await db.prepare(`
     CREATE TABLE IF NOT EXISTS discount_codes (
       id            TEXT PRIMARY KEY,
       code          TEXT UNIQUE NOT NULL,
@@ -15,11 +15,11 @@ export async function ensureDiscountCodeSchema(db: D1Database): Promise<void> {
       notes         TEXT,
       created_at    TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
-    );
+    )
+  `).run();
 
-    CREATE INDEX IF NOT EXISTS idx_discount_codes_code   ON discount_codes(code);
-    CREATE INDEX IF NOT EXISTS idx_discount_codes_active ON discount_codes(active);
-  `);
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_discount_codes_code ON discount_codes(code)').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_discount_codes_active ON discount_codes(active)').run();
 }
 
 function parseDiscountCode(row: DiscountCodeRow): DiscountCode {

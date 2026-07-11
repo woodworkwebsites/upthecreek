@@ -237,6 +237,7 @@ export async function createCheckoutSession(
         },
         unit_amount: discountedUnitPrices[index],
       },
+      quantity: 1,
       })),
       shipping_address_collection: {
         allowed_countries: ['GB', 'US', 'CA', 'AU', 'DE', 'FR', 'ES', 'IT', 'NL', 'SE'],
