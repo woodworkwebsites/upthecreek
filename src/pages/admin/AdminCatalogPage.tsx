@@ -199,21 +199,46 @@ export default function AdminCatalogPage() {
           </button>
         </div>
 
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {colors.map((color, index) => (
-            <div key={index} className="grid gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 sm:grid-cols-[1fr_160px_auto] sm:items-center">
-              <input
-                value={color.name}
-                onChange={(e) => updateColor(index, { name: e.target.value })}
-                placeholder="Colour name"
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-              />
-              <div className="flex items-center gap-3">
+            <div
+              key={index}
+              className="rounded-xl border border-gray-100 bg-gray-50 p-3 shadow-sm dark:border-gray-800 dark:bg-gray-950"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <button
+                    type="button"
+                    aria-label={`Colour swatch for ${color.name || 'untitled colour'}`}
+                    className="h-10 w-10 flex-shrink-0 rounded-full border border-black/10 shadow-inner"
+                    style={{ backgroundColor: color.hex }}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                      Colour
+                    </p>
+                    <input
+                      value={color.name}
+                      onChange={(e) => updateColor(index, { name: e.target.value })}
+                      placeholder="Colour name"
+                      className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeColor(index)}
+                  className="rounded-full border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-red-400"
+                >
+                  X
+                </button>
+              </div>
+              <div className="mt-3 grid grid-cols-[44px_minmax(0,1fr)] gap-2">
                 <input
                   type="color"
                   value={color.hex}
                   onChange={(e) => updateColor(index, { hex: e.target.value })}
-                  className="h-10 w-14 rounded-lg border border-gray-200 bg-transparent p-1 dark:border-gray-700"
+                  className="h-11 w-11 rounded-lg border border-gray-200 bg-transparent p-1 dark:border-gray-700"
                 />
                 <input
                   value={color.hex}
@@ -221,13 +246,6 @@ export default function AdminCatalogPage() {
                   className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-mono text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => removeColor(index)}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-red-400"
-              >
-                Remove
-              </button>
             </div>
           ))}
         </div>
