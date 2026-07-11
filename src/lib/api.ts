@@ -4,6 +4,7 @@ import type {
   Order,
   CheckoutItem,
   CheckoutResponse,
+  DiscountCodePreview,
   SyncLogRow,
   WebhookLogRow,
   PrintifyLogRow,
@@ -70,6 +71,21 @@ export async function createCheckout(
       discountCode: discountCode?.trim() || null,
     }),
   });
+}
+
+export async function validateDiscountCode(
+  code: string,
+  subtotal: number,
+): Promise<DiscountCodePreview | null> {
+  const trimmed = code.trim();
+  if (!trimmed) return null;
+
+  const data = await apiFetch<{ discount: DiscountCodePreview | null }>('/api/discount-codes/validate', {
+    method: 'POST',
+    body: JSON.stringify({ code: trimmed, subtotal }),
+  });
+
+  return data.discount;
 }
 
 // ─── Admin API ────────────────────────────────────────────────────────────────

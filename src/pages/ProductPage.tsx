@@ -34,9 +34,9 @@ const ProductDescription = memo(function ProductDescription({ html }: { html: st
   }
 
   return (
-    <div className="space-y-3 text-sm leading-relaxed text-gray-500">
+    <div className="space-y-3 text-sm leading-relaxed text-gray-500 whitespace-pre-line">
       {clean.split(/\n\n+/).map((para, i) => (
-        <p key={i}>{para.replace(/\n/g, ' ')}</p>
+        <p key={i}>{para}</p>
       ))}
     </div>
   );

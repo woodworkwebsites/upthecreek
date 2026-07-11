@@ -199,7 +199,6 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     available: true,
   }));
 
-  const variantIds = new Set(variants.map((variant) => variant.id));
   const orderedImages = sortDefaultImageFirst(rawImages);
   const images = view === 'admin'
     ? orderedImages
@@ -210,10 +209,7 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
         if (image.color && hiddenColorSet.has(image.color)) {
           return false;
         }
-        if (image.variantIds.length === 0) {
-          return true;
-        }
-        return image.variantIds.some((variantId) => variantIds.has(variantId));
+        return true;
       });
 
   const colorHexByName = new Map(colors.map((color) => [color.name, color.hex] as const));

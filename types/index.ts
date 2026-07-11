@@ -226,6 +226,7 @@ export interface OrderItem {
   size: string;
   quantity: number;
   unitPrice: number;
+  imageSrc?: string;
   createdAt: string;
 }
 
@@ -268,6 +269,16 @@ export interface CheckoutRequest {
 
 export interface CheckoutResponse {
   url: string;
+}
+
+export interface DiscountCodePreview {
+  id: string;
+  code: string;
+  kind: DiscountCodeKind;
+  value: number;
+  amount: number;
+  subtotal: number;
+  total: number;
 }
 
 export interface PrintifyOrderPayload {

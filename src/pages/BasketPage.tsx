@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useBasket } from '../context/BasketContext.js';
-import { createCheckout } from '../lib/api.js';
+import { createCheckout, validateDiscountCode } from '../lib/api.js';
 import { formatPrice } from '../lib/utils.js';
 
 export default function BasketPage() {
@@ -9,14 +9,85 @@ export default function BasketPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [discountCode, setDiscountCode] = useState('');
+  const [discountPreview, setDiscountPreview] = useState<{
+    code: string;
+    amount: number;
+    total: number;
+  } | null>(null);
+  const [discountLoading, setDiscountLoading] = useState(false);
+  const [discountError, setDiscountError] = useState<string | null>(null);
+  const validationSeq = useRef(0);
 
   const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const total = discountPreview?.total ?? subtotal;
+
+  useEffect(() => {
+    const code = discountCode.trim();
+    const seq = ++validationSeq.current;
+
+    if (!code) {
+      setDiscountPreview(null);
+      setDiscountError(null);
+      setDiscountLoading(false);
+      return;
+    }
+
+    setDiscountLoading(true);
+    const timer = window.setTimeout(() => {
+      void validateDiscountCode(code, subtotal)
+        .then((discount) => {
+          if (validationSeq.current !== seq) return;
+          if (!discount) {
+            setDiscountPreview(null);
+            setDiscountError('Invalid voucher code');
+            return;
+          }
+
+          setDiscountPreview({
+            code: discount.code,
+            amount: discount.amount,
+            total: discount.total,
+          });
+          setDiscountError(null);
+        })
+        .catch((err) => {
+          if (validationSeq.current !== seq) return;
+          setDiscountPreview(null);
+          setDiscountError(err instanceof Error ? err.message : 'Could not validate voucher code');
+        })
+        .finally(() => {
+          if (validationSeq.current === seq) {
+            setDiscountLoading(false);
+          }
+        });
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [discountCode, subtotal]);
 
   async function handleCheckout() {
     if (items.length === 0) return;
     setError(null);
     setLoading(true);
     try {
+      const code = discountCode.trim();
+      if (code) {
+        const discount = await validateDiscountCode(code, subtotal);
+        if (!discount) {
+          setDiscountPreview(null);
+          setDiscountError('Invalid voucher code');
+          setLoading(false);
+          return;
+        }
+        setDiscountPreview({
+          code: discount.code,
+          amount: discount.amount,
+          total: discount.total,
+        });
+        setDiscountError(null);
+      }
       const { url } = await createCheckout(toCheckoutItems(), discountCode);
       window.location.href = url;
     } catch (err) {
@@ -164,12 +235,33 @@ export default function BasketPage() {
               </label>
 
               <p className="mt-2 text-[11px] text-gray-400">
-                Apply this at checkout. If the code is invalid, checkout will fail before payment.
+                {discountLoading
+                  ? 'Validating voucher code...'
+                  : discountPreview
+                    ? `Voucher applied: -${formatPrice(discountPreview.amount)}`
+                    : 'Enter a voucher code to update the total before checkout.'}
               </p>
 
-              <div className="flex justify-between text-base font-black text-navy-800">
+              {discountError && !discountLoading && (
+                <p className="mt-2 text-xs font-semibold text-red-600">{discountError}</p>
+              )}
+
+              {discountPreview && (
+                <div className="mt-4 space-y-2 text-sm">
+                  <div className="flex justify-between text-gray-500">
+                    <span>Subtotal</span>
+                    <span className="font-semibold">{formatPrice(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-600">
+                    <span>{discountPreview.code}</span>
+                    <span className="font-semibold">-{formatPrice(discountPreview.amount)}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 flex justify-between text-base font-black text-navy-800">
                 <span>Total</span>
-                <span>{formatPrice(subtotal)}</span>
+                <span>{formatPrice(total)}</span>
               </div>
 
               {error && (
