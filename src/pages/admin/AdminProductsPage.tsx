@@ -27,10 +27,6 @@ function InlineDraftProductRow({
   onCancel: () => void;
   rowRef?: Ref<HTMLTableRowElement>;
 }) {
-  const [design, setDesign] = useState('');
-  const [productName, setProductName] = useState('');
-  const [garment, setGarment] = useState('');
-  const [gender, setGender] = useState('');
   const [printSurface, setPrintSurface] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -52,13 +48,6 @@ function InlineDraftProductRow({
       imagesRef.current.forEach((img) => URL.revokeObjectURL(img.previewUrl));
     };
   }, []);
-
-  useEffect(() => {
-    const parts = [design.trim(), garment.trim(), productName.trim(), gender.trim()].filter(Boolean);
-    if (parts.length > 0) {
-      setTitle(parts.join(' / '));
-    }
-  }, [design, garment, productName, gender]);
 
   function handleFilesSelected(fileList: FileList | null) {
     if (!fileList) return;
@@ -85,21 +74,18 @@ function InlineDraftProductRow({
     if (!token) return;
     setError(null);
 
-    const resolvedTitle = title.trim() || design.trim();
+    const resolvedTitle = title.trim();
     if (!resolvedTitle) {
-      setError('Design or title is required');
+      setError('Title is required');
       return;
     }
 
     setSubmitting(true);
     try {
       const metadataDescription = [
-        design.trim() && `Design: ${design.trim()}`,
-        productName.trim() && `Product: ${productName.trim()}`,
-        garment.trim() && `Garment: ${garment.trim()}`,
-        gender.trim() && `Gender: ${gender.trim()}`,
-        productType.trim() && `Product type: ${productType.trim()}`,
-        garmentType.trim() && `Garment fit: ${garmentType.trim()}`,
+        category.trim() && `Audience: ${category.trim()}`,
+        productType.trim() && `Product: ${productType.trim()}`,
+        garmentType.trim() && `Garment: ${garmentType.trim()}`,
         printSurface.trim() && `Print surface: ${printSurface.trim()}`,
       ].filter(Boolean).join('\n');
 
@@ -143,7 +129,7 @@ function InlineDraftProductRow({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">New product</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Fill the fields below and create the row directly in the table.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Use the dropdowns below to create the row directly in the table.</p>
             </div>
             <button
               type="button"
@@ -158,13 +144,33 @@ function InlineDraftProductRow({
             <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Identity</p>
               <div className="mt-3 space-y-3">
-                <input type="text" value={design} onChange={(e) => setDesign(e.target.value)} placeholder="Design" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <input type="text" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Product" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                  <input type="text" value={garment} onChange={(e) => setGarment(e.target.value)} placeholder="Garment" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                  <input type="text" value={gender} onChange={(e) => setGender(e.target.value)} placeholder="Gender" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                    <option value="">Audience</option>
+                    {catalog.audiences.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                  <select value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                    <option value="">Product</option>
+                    {catalog.products.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                  <select value={garmentType} onChange={(e) => setGarmentType(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                    <option value="">Garment</option>
+                    {catalog.garments.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                  <select value={printSurface} onChange={(e) => setPrintSurface(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                    <option value="">Print surface</option>
+                    {Array.from(new Set(catalog.pricingRows.map((row) => row.printSurface.trim()).filter(Boolean))).map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
-                <input type="text" value={printSurface} onChange={(e) => setPrintSurface(e.target.value)} placeholder="Print surface" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" rows={4} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
               </div>
             </div>
@@ -172,25 +178,6 @@ function InlineDraftProductRow({
             <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Publication</p>
               <div className="mt-3 space-y-3">
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                  <option value="">Audience</option>
-                  {catalog.audiences.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-                <select value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                  <option value="">Product</option>
-                  {catalog.products.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-                <select value={garmentType} onChange={(e) => setGarmentType(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                  <option value="">Garment</option>
-                  {catalog.garments.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
                 <button
                   type="button"
                   onClick={() => setIsEnabled((current) => !current)}
