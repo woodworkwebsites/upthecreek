@@ -63,6 +63,13 @@ function filterVisibleColors(colors: PrintifyColor[], hiddenColors: Set<string>)
   return colors.filter((color) => !hiddenColors.has(normalizeColorName(color.name)));
 }
 
+function sortDefaultImageFirst(images: PrintifyProductImage[]): PrintifyProductImage[] {
+  return [...images].sort((a, b) => {
+    if (a.isDefault === b.isDefault) return 0;
+    return a.isDefault ? -1 : 1;
+  });
+}
+
 function parseSalePriceToPence(pricingMatrix: PricingMatrixRow | null): number {
   const parsed = parseFloat(pricingMatrix?.salePrice?.trim() ?? '');
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
@@ -193,9 +200,10 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   }));
 
   const variantIds = new Set(variants.map((variant) => variant.id));
+  const orderedImages = sortDefaultImageFirst(rawImages);
   const images = view === 'admin'
-    ? rawImages
-    : rawImages.filter((image) => {
+    ? orderedImages
+    : orderedImages.filter((image) => {
         if (image.color && hiddenColorSet.has(image.color)) {
           return false;
         }

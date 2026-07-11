@@ -347,7 +347,6 @@ function ProductRow({
   catalog: CatalogOptions;
   onDeleted: (id: string) => void;
 }) {
-  const img = product.images.find((i) => i.isDefault) ?? product.images[0];
   const [images, setImages] = useState(product.images);
   const [title, setTitle] = useState(product.title);
   const [description, setDescription] = useState(product.description ?? '');
@@ -392,6 +391,8 @@ function ProductRow({
     setIsEnabled(product.isEnabled);
     setImages(product.images);
   }, [product]);
+
+  const img = images.find((i) => i.isDefault) ?? images[0];
 
   useEffect(() => {
     if (imageUploadFiles.length === 0) {

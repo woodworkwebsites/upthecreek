@@ -749,6 +749,10 @@ export async function handleUpdateProductImage(
     images.forEach((entry) => {
       entry.isDefault = entry.storageKey === storageKey;
     });
+    images.sort((a, b) => {
+      if (a.isDefault === b.isDefault) return 0;
+      return a.isDefault ? -1 : 1;
+    });
   }
 
   if (!images.some((entry) => entry.isDefault) && images.length > 0) {
