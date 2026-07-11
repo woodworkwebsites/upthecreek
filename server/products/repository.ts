@@ -7,6 +7,7 @@ import type {
   PrintifyColor,
   PricingMatrixRow,
 } from '../../types/index.js';
+import { DEFAULT_SIZE_OPTIONS } from '../../types/catalog.js';
 import { deriveProductAggregates } from './aggregates.js';
 
 function parseJsonArray<T>(value: string | null | undefined): T[] {
@@ -27,6 +28,10 @@ function parseJsonObject<T>(value: string | null | undefined): T | null {
   } catch {
     return null;
   }
+}
+
+function isEmptyObject(value: unknown): value is Record<string, never> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0);
 }
 
 function normalizeHiddenColors(hiddenColors: unknown[]): string[] {
@@ -56,6 +61,31 @@ function normalizeColors(colors: PrintifyColor[]): PrintifyColor[] {
 
 function filterVisibleColors(colors: PrintifyColor[], hiddenColors: Set<string>): PrintifyColor[] {
   return colors.filter((color) => !hiddenColors.has(normalizeColorName(color.name)));
+}
+
+function parseSalePriceToPence(pricingMatrix: PricingMatrixRow | null): number {
+  const parsed = parseFloat(pricingMatrix?.salePrice?.trim() ?? '');
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
+}
+
+function buildSyntheticVariants(colors: PrintifyColor[], pricingMatrix: PricingMatrixRow | null): PrintifyVariant[] {
+  const salePrice = parseSalePriceToPence(pricingMatrix);
+  const variants: PrintifyVariant[] = [];
+  let nextId = 1;
+
+  for (const color of colors) {
+    for (const size of DEFAULT_SIZE_OPTIONS) {
+      variants.push({
+        id: nextId++,
+        color: color.name,
+        size,
+        price: salePrice,
+        available: true,
+      });
+    }
+  }
+
+  return variants;
 }
 
 interface ProductMetadata {
@@ -144,15 +174,18 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const rawCustomColors = parseJsonArray<PrintifyColor>(row.custom_colors);
   const pricingMatrix = parseJsonObject<PricingMatrixRow>(row.pricing_matrix);
   const categoryMetadata = parseProductMetadata(row.category);
+  const effectivePricingMatrix = isEmptyObject(pricingMatrix) ? (categoryMetadata.pricingMatrix ?? null) : pricingMatrix;
 
   const customColors = rawCustomColors.length > 0 ? rawCustomColors : (categoryMetadata.customColors ?? []);
-  const legacyColors = normalizeColors(rawColors);
+  const syntheticVariants = rawVariants.length > 0
+    ? rawVariants
+    : buildSyntheticVariants(normalizeColors(customColors), effectivePricingMatrix);
   const colors = view === 'admin'
-    ? legacyColors
-    : filterVisibleColors(customColors.length > 0 ? normalizeColors(customColors) : legacyColors, hiddenColorSet);
+    ? normalizeColors(rawColors)
+    : filterVisibleColors(normalizeColors(customColors), hiddenColorSet);
 
   const variants = (view === 'admin'
-    ? rawVariants
+    ? syntheticVariants
     : rawVariants.filter((variant) => !hiddenColorSet.has(variant.color))
   ).map((variant) => ({
     ...variant,
@@ -174,8 +207,12 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
 
   const colorHexByName = new Map(colors.map((color) => [color.name, color.hex] as const));
   const aggregates = view === 'admin'
-    ? deriveProductAggregates(rawVariants, new Map(rawColors.map((color) => [color.name, color.hex] as const)))
-    : deriveProductAggregates(variants, colorHexByName);
+    ? deriveProductAggregates(
+        rawVariants,
+        new Map(rawColors.map((color) => [color.name, color.hex] as const)),
+        parseSalePriceToPence(effectivePricingMatrix),
+      )
+    : deriveProductAggregates(variants, colorHexByName, parseSalePriceToPence(effectivePricingMatrix));
 
   return {
     id:             row.id,
@@ -186,7 +223,7 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     audience:       row.audience || categoryMetadata.audience || '',
     productType:    row.product_type || categoryMetadata.productType || '',
     garment:        row.garment || categoryMetadata.garment || '',
-    pricingMatrix:  pricingMatrix ?? categoryMetadata.pricingMatrix ?? null,
+    pricingMatrix:  effectivePricingMatrix,
     images,
     variants,
     colors,
@@ -396,9 +433,9 @@ export async function updateProductFields(
   fields: UpdateProductFields,
 ): Promise<boolean> {
   const current = await db
-    .prepare('SELECT category, variants, custom_colors FROM products WHERE printify_id = ?')
+    .prepare('SELECT category, variants, custom_colors, pricing_matrix FROM products WHERE printify_id = ?')
     .bind(printifyId)
-    .first<{ category: string; variants: string; custom_colors: string | null }>();
+    .first<{ category: string; variants: string; custom_colors: string | null; pricing_matrix: string | null }>();
 
   if (!current) return false;
 
@@ -460,6 +497,11 @@ export async function updateProductFields(
     values.push(JSON.stringify(normalizeColors(fields.customColors)));
   }
 
+  if (fields.pricingMatrix !== undefined) {
+    sets.push('pricing_matrix = ?');
+    values.push(JSON.stringify(fields.pricingMatrix ?? {}));
+  }
+
   const nextSalePrice = fields.pricingMatrix?.salePrice?.trim();
   if (nextSalePrice) {
     const parsed = parseFloat(nextSalePrice);
@@ -470,7 +512,7 @@ export async function updateProductFields(
         available: true,
         price: unitPrice,
       }));
-      const { minPrice, maxPrice } = deriveProductAggregates(variants);
+      const { minPrice, maxPrice } = deriveProductAggregates(variants, new Map(), unitPrice);
 
       sets.push('variants = ?', 'min_price = ?', 'max_price = ?');
       values.push(JSON.stringify(variants), minPrice, maxPrice);
@@ -509,9 +551,9 @@ export async function upsertProduct(
   await db
     .prepare(`
       INSERT INTO products
-        (id, printify_id, title, description, category, images, variants, colors, custom_colors, hidden_colors, sizes,
+        (id, printify_id, title, description, category, images, variants, colors, custom_colors, pricing_matrix, hidden_colors, sizes,
          min_price, max_price, is_enabled, size_guide_image, synced_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL, datetime('now'), datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL, datetime('now'), datetime('now'), datetime('now'))
       ON CONFLICT(printify_id) DO UPDATE SET
         is_enabled     = 1,
         title          = excluded.title,
@@ -521,6 +563,7 @@ export async function upsertProduct(
         variants       = excluded.variants,
         colors         = excluded.colors,
         custom_colors  = excluded.custom_colors,
+        pricing_matrix = excluded.pricing_matrix,
         hidden_colors  = excluded.hidden_colors,
         sizes          = excluded.sizes,
         min_price      = excluded.min_price,
@@ -538,6 +581,7 @@ export async function upsertProduct(
       JSON.stringify(data.variants),
       JSON.stringify(data.colors),
       JSON.stringify(nextCustomColors),
+      JSON.stringify(data.pricingMatrix ?? {}),
       JSON.stringify(normalizeHiddenColors(data.hiddenColors ?? [])),
       JSON.stringify(data.sizes),
       data.minPrice,

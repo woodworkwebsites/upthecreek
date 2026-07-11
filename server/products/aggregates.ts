@@ -16,6 +16,7 @@ export interface ProductAggregates {
 export function deriveProductAggregates(
   variants: PrintifyVariant[],
   colorHexByName: Map<string, string> = new Map(),
+  fallbackPricePence = 0,
 ): ProductAggregates {
   const colors: PrintifyColor[] = [];
   const colorsSeen = new Set<string>();
@@ -28,8 +29,8 @@ export function deriveProductAggregates(
   }
 
   const prices = variants.map((v) => v.price);
-  const minPrice = prices.length ? Math.min(...prices) : 0;
-  const maxPrice = prices.length ? Math.max(...prices) : 0;
+  const minPrice = prices.length ? Math.min(...prices) : fallbackPricePence;
+  const maxPrice = prices.length ? Math.max(...prices) : fallbackPricePence;
 
   const sizes = [...DEFAULT_SIZE_OPTIONS];
 

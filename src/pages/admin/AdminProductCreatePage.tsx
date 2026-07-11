@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { adminCreateProduct, adminGetSettings } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
-import { DEFAULT_CATALOG_OPTIONS, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
+import { DEFAULT_CATALOG_OPTIONS, findPricingPresetRow, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
 
 interface ImageRow {
   file: File;
@@ -108,6 +108,26 @@ export default function AdminProductCreatePage() {
       form.append('audience', category.trim() || catalog.audiences[0] || '');
       form.append('productType', productType.trim() || catalog.products[0] || '');
       form.append('garment', garmentType.trim() || catalog.garments[0] || '');
+      const pricingPreset = findPricingPresetRow(catalog.pricingRows, category, productType, garmentType);
+      form.append('pricingMatrix', JSON.stringify(pricingPreset ? {
+        audience: pricingPreset.audience.trim(),
+        product: pricingPreset.product.trim(),
+        garment: pricingPreset.garment.trim(),
+        printSurface: pricingPreset.printSurface.trim(),
+        manufacturingCost: pricingPreset.manufacturingCost.trim(),
+        saleCost: pricingPreset.saleCost.trim(),
+        delivery: pricingPreset.delivery.trim(),
+        salePrice: pricingPreset.salePrice.trim(),
+      } : {
+        audience: '',
+        product: '',
+        garment: '',
+        printSurface: printSurface.trim(),
+        manufacturingCost: '',
+        saleCost: '',
+        delivery: '',
+        salePrice: '',
+      }));
       form.append('variants', JSON.stringify([]));
       form.append('imagesMeta', JSON.stringify(images.map((img) => ({
         isDefault: img.isDefault,
@@ -231,8 +251,13 @@ export default function AdminProductCreatePage() {
                 <img src={img.previewUrl} alt="" className="h-32 w-full rounded-lg object-cover" />
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs text-gray-500 dark:text-gray-400">All colours</span>
-                  <button onClick={() => removeImage(index)} className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline">
-                    Remove
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    aria-label="Remove image"
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                  >
+                    X
                   </button>
                 </div>
                 <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">

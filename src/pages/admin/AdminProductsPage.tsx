@@ -110,6 +110,17 @@ function InlineDraftProductRow({
       form.append('audience', category.trim() || catalog.audiences[0] || '');
       form.append('productType', productType.trim() || catalog.products[0] || '');
       form.append('garment', garmentType.trim() || catalog.garments[0] || '');
+      const pricingPreset = matchPricingPresetBySelection(category, productType, garmentType, catalog);
+      form.append('pricingMatrix', JSON.stringify(pricingPreset ?? {
+        audience: '',
+        product: '',
+        garment: '',
+        printSurface: printSurface.trim(),
+        manufacturingCost: '',
+        saleCost: '',
+        delivery: '',
+        salePrice: '',
+      }));
       form.append('variants', JSON.stringify([]));
       form.append('imagesMeta', JSON.stringify(images.map((img) => ({
         isDefault: img.isDefault,
@@ -220,7 +231,14 @@ function InlineDraftProductRow({
                     <img src={img.previewUrl} alt="" className="h-32 w-full rounded-lg object-cover" />
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs text-gray-500 dark:text-gray-400">All colours</span>
-                      <button type="button" onClick={() => removeImage(index)} className="text-xs font-semibold text-red-600 hover:underline dark:text-red-400">Remove</button>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        aria-label="Remove image"
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                      >
+                        X
+                      </button>
                     </div>
                     <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
                       <input type="radio" name="default-image" checked={img.isDefault} onChange={() => setDefaultImage(index)} />
@@ -814,7 +832,7 @@ function ProductRow({
               </span>
             ))}
           </div>
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{product.variants.length} variants</p>
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Design shell · static sizes</p>
         </td>
 
                       <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">

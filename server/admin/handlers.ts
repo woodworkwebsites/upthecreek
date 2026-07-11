@@ -194,6 +194,17 @@ interface ManualImageMeta {
   isDefault?: boolean;
 }
 
+interface ManualPricingMatrix {
+  audience: string;
+  product: string;
+  garment: string;
+  printSurface: string;
+  manufacturingCost: string;
+  saleCost: string;
+  delivery: string;
+  salePrice: string;
+}
+
 function normalizeHiddenColors(hiddenColors: unknown): string[] {
   if (!Array.isArray(hiddenColors)) return [];
   return Array.from(
@@ -295,6 +306,28 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
     return json({ error: 'Invalid imagesMeta payload' }, 400);
   }
 
+  let pricingMatrix: ManualPricingMatrix | null = null;
+  const rawPricingMatrix = (form.get('pricingMatrix') as string | null) ?? '';
+  if (rawPricingMatrix.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(rawPricingMatrix) as Partial<ManualPricingMatrix> | null;
+      if (parsed && typeof parsed === 'object') {
+        pricingMatrix = {
+          audience: parsed.audience?.trim() ?? '',
+          product: parsed.product?.trim() ?? '',
+          garment: parsed.garment?.trim() ?? '',
+          printSurface: parsed.printSurface?.trim() ?? '',
+          manufacturingCost: parsed.manufacturingCost?.trim() ?? '',
+          saleCost: parsed.saleCost?.trim() ?? '',
+          delivery: parsed.delivery?.trim() ?? '',
+          salePrice: parsed.salePrice?.trim() ?? '',
+        };
+      }
+    } catch {
+      return json({ error: 'Invalid pricingMatrix payload' }, 400);
+    }
+  }
+
   const imageFiles = form.getAll('images').filter((v): v is File => v instanceof File);
 
   const id = crypto.randomUUID();
@@ -314,7 +347,8 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
       .map((row) => [row.color.trim(), row.hex || '#cccccc'] as [string, string]),
   );
 
-  const { colors, sizes, minPrice, maxPrice } = deriveProductAggregates(variants, colorHexByName);
+  const salePrice = pricingMatrix?.salePrice ? Math.round(parseFloat(pricingMatrix.salePrice) * 100) : 0;
+  const { colors, sizes, minPrice, maxPrice } = deriveProductAggregates(variants, colorHexByName, Number.isFinite(salePrice) ? salePrice : 0);
 
   const images: PrintifyProductImage[] = [];
   for (let i = 0; i < imageFiles.length; i++) {
@@ -364,6 +398,7 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
     images,
     variants,
     colors,
+    pricingMatrix,
     hiddenColors: [],
     sizes,
     minPrice,

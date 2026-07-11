@@ -66,11 +66,6 @@ export default function ProductPage() {
     );
   }, [product, selectedColor]);
 
-  const availableSizes = useMemo(
-    () => Array.from(new Set(availableVariants.map((v) => v.size))),
-    [availableVariants],
-  );
-
   const selectedVariant = useMemo(() => {
     if (!product || !selectedColor || !selectedSize) return null;
     return product.variants.find(
@@ -115,11 +110,6 @@ export default function ProductPage() {
     }
     return product.images.find((img) => img.isDefault)?.src ?? product.images[0]?.src ?? '';
   }, [product, activeVariantIds, selectedColor]);
-
-  const unavailableSizes = useMemo(() => {
-    if (!product || !selectedColor) return [];
-    return product.sizes.filter((size) => !availableSizes.includes(size));
-  }, [product, selectedColor, availableSizes]);
 
   function handleAddToBasket() {
     if (!product || !selectedVariant) return;
@@ -265,7 +255,6 @@ export default function ProductPage() {
                 sizes={product.sizes}
                 selected={selectedSize}
                 onSelect={setSelectedSize}
-                unavailable={unavailableSizes}
                 hideLabel
               />
             </div>
