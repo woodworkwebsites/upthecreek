@@ -544,6 +544,8 @@ function ProductRow({
     || hiddenColors.some((color) => !(product.hiddenColors ?? []).includes(color));
 
   async function handleSaveRow(closeDetails = false) {
+    if (saving) return false;
+
     if (title.trim().length === 0) {
       setError('Title cannot be empty');
       return false;
@@ -861,13 +863,12 @@ function ProductRow({
 
         <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
           <div className="space-y-2">
-            <button
-              onClick={() => void handleSaveRow()}
-              disabled={saving || !hasChanges}
-              className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
-            >
-              {saving ? 'Saving…' : 'Save row'}
-            </button>
+              <button
+                onClick={() => void handleSaveRow()}
+                className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 transition-colors"
+              >
+                {saving ? 'Saving…' : 'Save row'}
+              </button>
             <button
               type="button"
               onClick={() => void handleDeleteProductRow()}
@@ -927,8 +928,7 @@ function ProductRow({
                   <button
                     type="button"
                     onClick={() => { void handleSaveRow(true); }}
-                    disabled={saving || !hasChanges}
-                    className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
+                    className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-700 transition-colors"
                   >
                     {saving ? 'Saving…' : 'Save changes'}
                   </button>
