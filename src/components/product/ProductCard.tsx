@@ -12,7 +12,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const altImage     = product.images.find((i) => !i.isDefault && i !== defaultImage) ?? null;
   const [isHovered, setIsHovered] = useState(false);
   const showAltImage = !!altImage && isHovered;
-  const displayColors = [...product.colors, ...product.customColors].filter((color, index, list) => {
+  const displayColors = product.colors.filter((color, index, list) => {
     if (product.hiddenColors.includes(color.name)) return false;
     return index === list.findIndex((entry) => entry.name === color.name);
   });

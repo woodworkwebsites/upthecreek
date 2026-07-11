@@ -40,6 +40,24 @@ function normalizeHiddenColors(hiddenColors: unknown[]): string[] {
   );
 }
 
+function normalizeColorName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function normalizeColors(colors: PrintifyColor[]): PrintifyColor[] {
+  const seen = new Set<string>();
+  return colors.filter((color) => {
+    const key = normalizeColorName(color.name);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function filterVisibleColors(colors: PrintifyColor[], hiddenColors: Set<string>): PrintifyColor[] {
+  return colors.filter((color) => !hiddenColors.has(normalizeColorName(color.name)));
+}
+
 interface ProductMetadata {
   baseCategory?: string;
   audience?: string;
@@ -127,10 +145,11 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const pricingMatrix = parseJsonObject<PricingMatrixRow>(row.pricing_matrix);
   const categoryMetadata = parseProductMetadata(row.category);
 
-  const colors = view === 'admin'
-    ? rawColors
-    : rawColors.filter((color) => !hiddenColorSet.has(color.name));
   const customColors = rawCustomColors.length > 0 ? rawCustomColors : (categoryMetadata.customColors ?? []);
+  const legacyColors = normalizeColors(rawColors);
+  const colors = view === 'admin'
+    ? legacyColors
+    : filterVisibleColors(customColors.length > 0 ? normalizeColors(customColors) : legacyColors, hiddenColorSet);
 
   const variants = (view === 'admin'
     ? rawVariants
@@ -377,9 +396,9 @@ export async function updateProductFields(
   fields: UpdateProductFields,
 ): Promise<boolean> {
   const current = await db
-    .prepare('SELECT category, variants FROM products WHERE printify_id = ?')
+    .prepare('SELECT category, variants, custom_colors FROM products WHERE printify_id = ?')
     .bind(printifyId)
-    .first<{ category: string; variants: string }>();
+    .first<{ category: string; variants: string; custom_colors: string | null }>();
 
   if (!current) return false;
 
@@ -436,6 +455,11 @@ export async function updateProductFields(
     values.push(JSON.stringify(normalizeHiddenColors(fields.hiddenColors)));
   }
 
+  if (fields.customColors !== undefined) {
+    sets.push('custom_colors = ?');
+    values.push(JSON.stringify(normalizeColors(fields.customColors)));
+  }
+
   const nextSalePrice = fields.pricingMatrix?.salePrice?.trim();
   if (nextSalePrice) {
     const parsed = parseFloat(nextSalePrice);
@@ -467,21 +491,27 @@ export async function upsertProduct(
   db: D1Database,
   data: UpsertProductData,
 ): Promise<void> {
+  const existing = await db
+    .prepare('SELECT custom_colors FROM products WHERE printify_id = ?')
+    .bind(data.printifyId)
+    .first<{ custom_colors: string | null }>();
+  const existingCustomColors = parseJsonArray<PrintifyColor>(existing?.custom_colors);
+  const nextCustomColors = data.customColors !== undefined ? data.customColors : existingCustomColors;
   const category = serializeProductMetadata({
     baseCategory: data.category,
     audience: data.audience,
     productType: data.productType,
     garment: data.garment,
     pricingMatrix: data.pricingMatrix ?? undefined,
-    customColors: data.customColors ?? [],
+    customColors: nextCustomColors,
   });
 
   await db
     .prepare(`
       INSERT INTO products
-        (id, printify_id, title, description, category, images, variants, colors, hidden_colors, sizes,
+        (id, printify_id, title, description, category, images, variants, colors, custom_colors, hidden_colors, sizes,
          min_price, max_price, is_enabled, size_guide_image, synced_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL, datetime('now'), datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL, datetime('now'), datetime('now'), datetime('now'))
       ON CONFLICT(printify_id) DO UPDATE SET
         is_enabled     = 1,
         title          = excluded.title,
@@ -490,6 +520,7 @@ export async function upsertProduct(
         images         = excluded.images,
         variants       = excluded.variants,
         colors         = excluded.colors,
+        custom_colors  = excluded.custom_colors,
         hidden_colors  = excluded.hidden_colors,
         sizes          = excluded.sizes,
         min_price      = excluded.min_price,
@@ -506,6 +537,7 @@ export async function upsertProduct(
       JSON.stringify(data.images),
       JSON.stringify(data.variants),
       JSON.stringify(data.colors),
+      JSON.stringify(nextCustomColors),
       JSON.stringify(normalizeHiddenColors(data.hiddenColors ?? [])),
       JSON.stringify(data.sizes),
       data.minPrice,

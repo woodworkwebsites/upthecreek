@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, type Ref } from 'react';
 import type { Product } from '../../../types/index.js';
 import { adminCreateProduct, adminDeleteProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminReorderProductImages, adminSyncProducts, adminUpdateProduct, adminUpdateProductImage, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
@@ -6,42 +6,12 @@ import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatPriceRange, formatDate } from '../../lib/utils.js';
-import { DEFAULT_CATALOG_OPTIONS, DEFAULT_SIZE_OPTIONS, findPricingPresetRow, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
-
-interface DraftVariantRow {
-  color: string;
-  hex: string;
-  size: string;
-  manufacturingCost: string;
-  delivery: string;
-  salePrice: string;
-}
+import { DEFAULT_CATALOG_OPTIONS, findPricingPresetRow, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
 
 interface DraftImageRow {
   file: File;
   previewUrl: string;
-  color: string;
   isDefault: boolean;
-}
-
-function emptyDraftVariant(): DraftVariantRow {
-  return {
-    color: '',
-    hex: '#333333',
-    size: '',
-    manufacturingCost: '',
-    delivery: '2.99',
-    salePrice: '24.99',
-  };
-}
-
-function parseMoney(value: string): number {
-  const parsed = parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function formatMoney(value: number): string {
-  return `£${value.toFixed(2)}`;
 }
 
 function InlineDraftProductRow({
@@ -49,11 +19,13 @@ function InlineDraftProductRow({
   catalog,
   onCreated,
   onCancel,
+  rowRef,
 }: {
   token: string;
   catalog: CatalogOptions;
   onCreated: () => Promise<void> | void;
   onCancel: () => void;
+  rowRef?: Ref<HTMLTableRowElement>;
 }) {
   const [design, setDesign] = useState('');
   const [productName, setProductName] = useState('');
@@ -66,12 +38,6 @@ function InlineDraftProductRow({
   const [productType, setProductType] = useState(catalog.products[0] ?? '');
   const [garmentType, setGarmentType] = useState(catalog.garments[0] ?? '');
   const [isEnabled, setIsEnabled] = useState(true);
-  const [colorName, setColorName] = useState('');
-  const [colorHex, setColorHex] = useState('#333333');
-  const [colors, setColors] = useState<Array<{ name: string; hex: string }>>([]);
-  const [sizeValue, setSizeValue] = useState('');
-  const [sizes, setSizes] = useState<string[]>(DEFAULT_SIZE_OPTIONS);
-  const [variantRows, setVariantRows] = useState<Record<string, DraftVariantRow>>({});
   const [images, setImages] = useState<DraftImageRow[]>([]);
   const imagesRef = useRef<DraftImageRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -94,79 +60,14 @@ function InlineDraftProductRow({
     }
   }, [design, garment, productName, gender]);
 
-  useEffect(() => {
-    setVariantRows((current) => {
-      const next: Record<string, DraftVariantRow> = {};
-      for (const color of colors) {
-        for (const size of sizes) {
-          const key = `${color.name}||${size}`;
-          const existing = current[key] ?? emptyDraftVariant();
-          next[key] = {
-            ...existing,
-            color: color.name,
-            hex: color.hex,
-            size,
-          };
-        }
-      }
-      return next;
-    });
-  }, [colors, sizes]);
-
-  function addColor() {
-    const name = colorName.trim();
-    if (!name) return;
-    setColors((current) => {
-      if (current.some((color) => color.name.toLowerCase() === name.toLowerCase())) return current;
-      return [...current, { name, hex: colorHex }];
-    });
-    setColorName('');
-    setColorHex('#333333');
-  }
-
-  function removeColor(name: string) {
-    setColors((current) => current.filter((color) => color.name !== name));
-  }
-
-  function addSize() {
-    const size = sizeValue.trim();
-    if (!size) return;
-    setSizes((current) => (current.includes(size) ? current : [...current, size]));
-    setSizeValue('');
-  }
-
-  function removeSize(size: string) {
-    setSizes((current) => current.filter((value) => value !== size));
-  }
-
-  function updateVariant(key: string, patch: Partial<DraftVariantRow>) {
-    setVariantRows((current) => ({
-      ...current,
-      [key]: { ...current[key], ...patch },
-    }));
-  }
-
-  function deleteVariant(key: string) {
-    setVariantRows((current) => {
-      const next = { ...current };
-      delete next[key];
-      return next;
-    });
-  }
-
   function handleFilesSelected(fileList: FileList | null) {
     if (!fileList) return;
     const newRows: DraftImageRow[] = Array.from(fileList).map((file, i) => ({
       file,
       previewUrl: URL.createObjectURL(file),
-      color: '',
       isDefault: images.length === 0 && i === 0,
     }));
     setImages((current) => [...current, ...newRows]);
-  }
-
-  function updateImage(index: number, patch: Partial<DraftImageRow>) {
-    setImages((current) => current.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   }
 
   function removeImage(index: number) {
@@ -189,16 +90,6 @@ function InlineDraftProductRow({
       setError('Design or title is required');
       return;
     }
-    if (colors.length === 0 || sizes.length === 0) {
-      setError('Add at least one colour and one size');
-      return;
-    }
-
-    const validVariants = Object.values(variantRows).filter((row) => row.color.trim() && row.size.trim() && row.salePrice.trim());
-    if (validVariants.length === 0) {
-      setError('At least one complete variant row is required');
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -219,17 +110,8 @@ function InlineDraftProductRow({
       form.append('audience', category.trim() || catalog.audiences[0] || '');
       form.append('productType', productType.trim() || catalog.products[0] || '');
       form.append('garment', garmentType.trim() || catalog.garments[0] || '');
-                form.append('variants', JSON.stringify(validVariants.map((v) => ({
-        color: v.color.trim(),
-        hex: v.hex,
-        size: v.size.trim(),
-        price: Math.round(parseMoney(v.salePrice) * 100),
-        manufacturingCost: Math.round(parseMoney(v.manufacturingCost) * 100),
-        delivery: Math.round(parseMoney(v.delivery) * 100),
-        salePrice: Math.round(parseMoney(v.salePrice) * 100),
-      }))));
+      form.append('variants', JSON.stringify([]));
       form.append('imagesMeta', JSON.stringify(images.map((img) => ({
-        color: img.color || undefined,
         isDefault: img.isDefault,
       }))));
       images.forEach((img) => form.append('images', img.file, img.file.name));
@@ -244,7 +126,7 @@ function InlineDraftProductRow({
   }
 
   return (
-    <tr className="border-t border-dashed border-gray-200 bg-cream/20 dark:border-gray-700 dark:bg-gray-950/40">
+    <tr ref={rowRef} className="border-t border-dashed border-gray-200 bg-cream/20 dark:border-gray-700 dark:bg-gray-950/40">
       <td colSpan={6} className="p-0">
         <div className="space-y-6 p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -316,96 +198,11 @@ function InlineDraftProductRow({
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Colours</p>
-              <div className="mt-3 flex gap-2">
-                <input value={colorName} onChange={(e) => setColorName(e.target.value)} placeholder="Add colour" className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                <input type="color" value={colorHex} onChange={(e) => setColorHex(e.target.value)} className="h-10 w-14 rounded-lg border border-gray-200 bg-transparent p-1 dark:border-gray-700" />
-                <button type="button" onClick={addColor} className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white">Add</button>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {colors.map((color) => (
-                  <button key={color.name} type="button" onClick={() => removeColor(color.name)} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                    <span className="mr-1 inline-block h-3 w-3 rounded-full border border-black/10" style={{ backgroundColor: color.hex }} />
-                    {color.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Sizes</p>
-              <div className="mt-3 flex gap-2">
-                <input value={sizeValue} onChange={(e) => setSizeValue(e.target.value)} placeholder="Add size" className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                <button type="button" onClick={addSize} className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white">Add</button>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {sizes.map((size) => (
-                  <button key={size} type="button" onClick={() => removeSize(size)} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800">
-            <table className="min-w-[960px] w-full border-separate border-spacing-0 text-left">
-              <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
-                <tr className="text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
-                  <th className="px-3 py-3">Colour</th>
-                  <th className="px-3 py-3">Size</th>
-                  <th className="px-3 py-3">Manufacturing</th>
-                  <th className="px-3 py-3">Delivery</th>
-                  <th className="px-3 py-3">Sale price</th>
-                  <th className="px-3 py-3">Margin</th>
-                  <th className="px-3 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(variantRows).map(([key, row]) => {
-                  const margin = parseMoney(row.salePrice) - parseMoney(row.manufacturingCost) - parseMoney(row.delivery);
-                  return (
-                    <tr key={key} className="border-t border-gray-100 dark:border-gray-800">
-                      <td className="px-3 py-2">
-                        <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                          {row.color}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                          {row.size}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2">
-                        <input value={row.manufacturingCost} onChange={(e) => updateVariant(key, { manufacturingCost: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input value={row.delivery} onChange={(e) => updateVariant(key, { delivery: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input value={row.salePrice} onChange={(e) => updateVariant(key, { salePrice: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className={`rounded-lg px-2 py-2 text-xs font-semibold ${margin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
-                          {formatMoney(margin)}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2">
-                        <button
-                          type="button"
-                          onClick={() => deleteVariant(key)}
-                          className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Delete row
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Variants later</p>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              This creates the product shell only. Add colours and sizes after the row exists.
+            </p>
           </div>
 
           <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
@@ -421,13 +218,8 @@ function InlineDraftProductRow({
                 {images.map((img, index) => (
                   <div key={index} className="rounded-xl border border-gray-100 p-2 space-y-2 dark:border-gray-800">
                     <img src={img.previewUrl} alt="" className="h-32 w-full rounded-lg object-cover" />
-                    <div className="flex items-center gap-2">
-                      <select value={img.color} onChange={(e) => updateImage(index, { color: e.target.value })} className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                        <option value="">All colours</option>
-                        {colors.map((color) => (
-                          <option key={color.name} value={color.name}>{color.name}</option>
-                        ))}
-                      </select>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">All colours</span>
                       <button type="button" onClick={() => removeImage(index)} className="text-xs font-semibold text-red-600 hover:underline dark:text-red-400">Remove</button>
                     </div>
                     <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
@@ -715,7 +507,7 @@ function ProductRow({
   }
 
   const allColors = (() => {
-    const combined = [...catalog.colors, ...product.colors, ...(product.customColors ?? [])];
+    const combined = [...catalog.colors];
     const seen = new Set<string>();
     return combined.filter((color) => {
       const key = color.name.trim().toLowerCase();
@@ -763,6 +555,7 @@ function ProductRow({
         productType: productType.trim(),
         garment: garmentType.trim(),
         pricingMatrix: normalizePricingMatrix(pricingMatrix),
+        customColors: visibleColors,
         sizeGuideImage: sizeGuideUrl.trim() || null,
         hiddenColors,
         isEnabled,
@@ -1004,29 +797,6 @@ function ProductRow({
                 ))}
               </div>
             )}
-            <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-950/60">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
-                Customer site preview
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {visibleColors.length > 0 ? (
-                  visibleColors.map((color) => (
-                    <span
-                      key={`preview-${color.name}`}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-                    >
-                      <span
-                        className="inline-block h-3 w-3 rounded-full border border-black/10"
-                        style={{ backgroundColor: color.hex }}
-                      />
-                      {color.name}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-[11px] text-gray-400 dark:text-gray-500">No client colors yet</span>
-                )}
-              </div>
-            </div>
           </div>
           <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             {visibleColors.length} visible, {hiddenCount} hidden
@@ -1414,6 +1184,7 @@ export default function AdminProductsPage() {
   const [syncMsg,  setSyncMsg]  = useState<string | null>(null);
   const [error,    setError]    = useState<string | null>(null);
   const [draftOpen, setDraftOpen] = useState(false);
+  const draftRowRef = useRef<HTMLTableRowElement | null>(null);
   const [catalog, setCatalog] = useState<CatalogOptions>(DEFAULT_CATALOG_OPTIONS);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<{
@@ -1442,6 +1213,11 @@ export default function AdminProductsPage() {
   }, [token]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (!draftOpen) return;
+    draftRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [draftOpen]);
 
   async function handleApproveSync() {
     if (!token) return;
@@ -1584,6 +1360,7 @@ export default function AdminProductsPage() {
                   <InlineDraftProductRow
                     token={token!}
                     catalog={catalog}
+                    rowRef={draftRowRef}
                     onCancel={() => setDraftOpen(false)}
                     onCreated={async () => {
                       setDraftOpen(false);

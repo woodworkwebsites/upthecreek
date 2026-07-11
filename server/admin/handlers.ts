@@ -284,8 +284,8 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
   } catch {
     return json({ error: 'Invalid variants payload' }, 400);
   }
-  if (!Array.isArray(variantRows) || variantRows.length === 0) {
-    return json({ error: 'At least one variant is required' }, 400);
+  if (!Array.isArray(variantRows)) {
+    variantRows = [];
   }
 
   let imagesMeta: ManualImageMeta[];

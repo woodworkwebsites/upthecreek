@@ -1,3 +1,5 @@
+import { DEFAULT_SIZE_OPTIONS as SHARED_DEFAULT_SIZE_OPTIONS } from '../../types/catalog.js';
+
 export interface CatalogColorOption {
   name: string;
   hex: string;
@@ -22,7 +24,7 @@ export interface CatalogOptions {
   pricingRows: PricingRowOption[];
 }
 
-export const DEFAULT_SIZE_OPTIONS = ['Small', 'Medium', 'Large', 'XL', '2XL', '3XL'];
+export const DEFAULT_SIZE_OPTIONS = [...SHARED_DEFAULT_SIZE_OPTIONS];
 
 export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
   audiences: ['Men', 'Womens', 'Kids'],

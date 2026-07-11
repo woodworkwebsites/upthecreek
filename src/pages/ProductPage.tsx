@@ -53,7 +53,7 @@ export default function ProductPage() {
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const { addToBasket, itemCount } = useBasket();
   const displayColors = product
-    ? [...product.colors, ...product.customColors].filter((color, index, list) => {
+    ? product.colors.filter((color, index, list) => {
         if (product.hiddenColors.includes(color.name)) return false;
         return index === list.findIndex((entry) => entry.name === color.name);
       })
