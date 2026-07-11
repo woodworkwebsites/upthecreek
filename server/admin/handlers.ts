@@ -629,20 +629,50 @@ export async function handleUpdateProductImage(
   printifyId: string,
   request: Request,
 ): Promise<Response> {
-  let body: { storageKey?: string; color?: string | null; isDefault?: boolean };
+  let body: { storageKey?: string; color?: string | null; isDefault?: boolean; order?: string[] };
   try {
-    body = await request.json() as { storageKey?: string; color?: string | null; isDefault?: boolean };
+    body = await request.json() as { storageKey?: string; color?: string | null; isDefault?: boolean; order?: string[] };
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const product = await getProductByPrintifyIdForAdmin(env.DB, printifyId);
+  if (!product) return json({ error: 'Product not found' }, 404);
+
+  if (Array.isArray(body.order) && body.order.length > 0) {
+    const knownImages = new Map(
+      product.images
+        .filter((entry) => Boolean(entry.storageKey))
+        .map((entry) => [entry.storageKey as string, entry] as const),
+    );
+    const seen = new Set<string>();
+    const reordered = body.order
+      .map((key) => key.trim())
+      .filter((key) => key.length > 0 && knownImages.has(key) && !seen.has(key))
+      .map((key) => {
+        seen.add(key);
+        return { ...knownImages.get(key)! };
+      });
+
+    for (const image of product.images) {
+      if (!image.storageKey || seen.has(image.storageKey)) continue;
+      reordered.push({ ...image });
+    }
+
+    if (!reordered.some((entry) => entry.isDefault) && reordered.length > 0) {
+      reordered[0].isDefault = true;
+    }
+
+    const updated = await updateProductImages(env.DB, printifyId, reordered);
+    if (!updated) return json({ error: 'Product not found' }, 404);
+
+    return json({ success: true, images: reordered });
   }
 
   const storageKey = body.storageKey?.trim() || '';
   if (!storageKey) {
     return json({ error: 'Missing storageKey' }, 400);
   }
-
-  const product = await getProductByPrintifyIdForAdmin(env.DB, printifyId);
-  if (!product) return json({ error: 'Product not found' }, 404);
 
   const index = product.images.findIndex((entry) => entry.storageKey === storageKey);
   if (index < 0) return json({ error: 'Image not found' }, 404);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Product } from '../../../types/index.js';
-import { adminCreateProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminSyncProducts, adminUpdateProduct, adminUpdateProductImage, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
+import { adminCreateProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminReorderProductImages, adminSyncProducts, adminUpdateProduct, adminUpdateProductImage, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -552,6 +552,8 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   const [imageUploadDefault, setImageUploadDefault] = useState(false);
   const [imageSaving, setImageSaving] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [draggingImageKey, setDraggingImageKey] = useState<string | null>(null);
+  const [dropTargetImageKey, setDropTargetImageKey] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -668,6 +670,27 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
     } catch (err) {
       setImageError(err instanceof Error ? err.message : 'Update failed');
     } finally {
+      setImageSaving(false);
+    }
+  }
+
+  async function handleReorderImages(nextImages: typeof images) {
+    const previousImages = images;
+    setImages(nextImages);
+    setImageSaving(true);
+    setImageError(null);
+    try {
+      const order = nextImages
+        .map((image) => image.storageKey)
+        .filter((key): key is string => Boolean(key));
+      const result = await adminReorderProductImages(token, product.printifyId, order);
+      setImages(result.images);
+    } catch (err) {
+      setImages(previousImages);
+      setImageError(err instanceof Error ? err.message : 'Reorder failed');
+    } finally {
+      setDraggingImageKey(null);
+      setDropTargetImageKey(null);
       setImageSaving(false);
     }
   }
@@ -1156,7 +1179,63 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                     <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Current images</div>
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                       {images.map((image, index) => (
-                        <div key={`${image.src}-${index}`} className="relative rounded-xl border border-gray-100 p-2 dark:border-gray-800">
+                        <div
+                          key={`${image.src}-${index}`}
+                          draggable={!imageSaving}
+                          onDragStart={(event) => {
+                            if (!image.storageKey || imageSaving) return;
+                            event.dataTransfer.effectAllowed = 'move';
+                            event.dataTransfer.setData('text/plain', image.storageKey);
+                            setDraggingImageKey(image.storageKey);
+                          }}
+                          onDragOver={(event) => {
+                            if (!draggingImageKey || draggingImageKey === image.storageKey) return;
+                            event.preventDefault();
+                            setDropTargetImageKey(image.storageKey ?? null);
+                          }}
+                          onDragLeave={() => {
+                            if (dropTargetImageKey === image.storageKey) {
+                              setDropTargetImageKey(null);
+                            }
+                          }}
+                          onDrop={(event) => {
+                            event.preventDefault();
+                            const fromKey = draggingImageKey ?? event.dataTransfer.getData('text/plain');
+                            const targetKey = image.storageKey;
+                            if (!fromKey || !targetKey || fromKey === targetKey) {
+                              setDraggingImageKey(null);
+                              setDropTargetImageKey(null);
+                              return;
+                            }
+
+                            const fromIndex = images.findIndex((entry) => entry.storageKey === fromKey);
+                            const targetIndex = images.findIndex((entry) => entry.storageKey === targetKey);
+                            if (fromIndex < 0 || targetIndex < 0) {
+                              setDraggingImageKey(null);
+                              setDropTargetImageKey(null);
+                              return;
+                            }
+
+                            const next = [...images];
+                            const [moved] = next.splice(fromIndex, 1);
+                            const insertIndex = fromIndex < targetIndex ? targetIndex - 1 : targetIndex;
+                            next.splice(insertIndex, 0, moved);
+                            void handleReorderImages(next);
+                          }}
+                          onDragEnd={() => {
+                            setDraggingImageKey(null);
+                            setDropTargetImageKey(null);
+                          }}
+                          className={`relative rounded-xl border p-2 transition-colors ${
+                            dropTargetImageKey === image.storageKey
+                              ? 'border-navy-400 bg-navy-50 dark:border-navy-700 dark:bg-navy-950/40'
+                              : 'border-gray-100 dark:border-gray-800'
+                          } ${draggingImageKey === image.storageKey ? 'opacity-60' : ''}`}
+                        >
+                          <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+                            <span>Drag to reorder</span>
+                            <span>{index + 1}</span>
+                          </div>
                           <button
                             type="button"
                             onClick={async () => {

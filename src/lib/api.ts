@@ -195,6 +195,17 @@ export async function adminUpdateProductImage(
   });
 }
 
+export async function adminReorderProductImages(
+  token: string,
+  printifyId: string,
+  order: string[],
+): Promise<{ images: Array<{ src: string; isDefault: boolean; variantIds: number[]; color?: string; storageKey?: string }> }> {
+  return adminFetch(`/api/admin/products/${printifyId}/images`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ order }),
+  });
+}
+
 export async function adminDeleteProductImage(
   token: string,
   printifyId: string,
