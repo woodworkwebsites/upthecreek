@@ -1009,8 +1009,8 @@ function ProductRow({
                 Customer site preview
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {product.colors.length > 0 ? (
-                  product.colors.map((color) => (
+                {visibleColors.length > 0 ? (
+                  visibleColors.map((color) => (
                     <span
                       key={`preview-${color.name}`}
                       className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"

@@ -52,6 +52,12 @@ export default function ProductPage() {
   const [basketMessage, setBasketMessage] = useState<string | null>(null);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const { addToBasket, itemCount } = useBasket();
+  const displayColors = product
+    ? [...product.colors, ...product.customColors].filter((color, index, list) => {
+        if (product.hiddenColors.includes(color.name)) return false;
+        return index === list.findIndex((entry) => entry.name === color.name);
+      })
+    : [];
 
   const availableVariants = useMemo<PrintifyVariant[]>(() => {
     if (!product) return [];
@@ -234,7 +240,7 @@ export default function ProductPage() {
 
             {/* colour */}
             <ColorSwatch
-              colors={product.colors}
+              colors={displayColors}
               selected={selectedColor}
               onSelect={(color) => {
                 setSelectedColor(color);

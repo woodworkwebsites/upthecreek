@@ -12,6 +12,10 @@ export function ProductCard({ product }: ProductCardProps) {
   const altImage     = product.images.find((i) => !i.isDefault && i !== defaultImage) ?? null;
   const [isHovered, setIsHovered] = useState(false);
   const showAltImage = !!altImage && isHovered;
+  const displayColors = [...product.colors, ...product.customColors].filter((color, index, list) => {
+    if (product.hiddenColors.includes(color.name)) return false;
+    return index === list.findIndex((entry) => entry.name === color.name);
+  });
 
   return (
     <Link
@@ -81,9 +85,9 @@ export function ProductCard({ product }: ProductCardProps) {
         <p className="text-sm font-semibold text-gray-400">
           {formatPriceRange(product.minPrice, product.maxPrice)}
         </p>
-        {product.colors.length > 0 && (
+        {displayColors.length > 0 && (
           <div className="flex items-center gap-1.5 pt-1.5">
-            {product.colors.slice(0, 7).map((c) => (
+            {displayColors.slice(0, 7).map((c) => (
               <span
                 key={c.name}
                 title={c.name}
@@ -91,9 +95,9 @@ export function ProductCard({ product }: ProductCardProps) {
                 style={{ backgroundColor: c.hex }}
               />
             ))}
-            {product.colors.length > 7 && (
+            {displayColors.length > 7 && (
               <span className="text-xs text-gray-400 font-semibold">
-                +{product.colors.length - 7}
+                +{displayColors.length - 7}
               </span>
             )}
           </div>
