@@ -12,7 +12,6 @@ interface VariantRow {
   manufacturingCost: string; // pounds, as typed
   delivery: string; // pounds, as typed
   salePrice: string; // pounds, as typed
-  available: boolean;
 }
 
 interface ImageRow {
@@ -30,7 +29,6 @@ function emptyVariant(): VariantRow {
     manufacturingCost: '',
     delivery: '2.99',
     salePrice: '24.99',
-    available: true,
   };
 }
 
@@ -209,7 +207,6 @@ export default function AdminProductCreatePage() {
         hex: v.hex,
         size: v.size.trim(),
         price: Math.round(parseMoney(v.salePrice) * 100),
-        available: v.available,
         manufacturingCost: Math.round(parseMoney(v.manufacturingCost) * 100),
         delivery: Math.round(parseMoney(v.delivery) * 100),
         salePrice: Math.round(parseMoney(v.salePrice) * 100),
@@ -388,18 +385,17 @@ export default function AdminProductCreatePage() {
         <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800">
           <table className="min-w-[1120px] w-full border-separate border-spacing-0 text-left">
             <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
-              <tr className="text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
-                <th className="px-3 py-3">Colour</th>
-                <th className="px-3 py-3">Hex</th>
-                <th className="px-3 py-3">Size</th>
-                <th className="px-3 py-3">Manufacturing</th>
-                <th className="px-3 py-3">Delivery</th>
-                <th className="px-3 py-3">Sale price</th>
-                <th className="px-3 py-3">Margin</th>
-                <th className="px-3 py-3">Available</th>
-                <th className="px-3 py-3">Actions</th>
-              </tr>
-            </thead>
+                <tr className="text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+                  <th className="px-3 py-3">Colour</th>
+                  <th className="px-3 py-3">Hex</th>
+                  <th className="px-3 py-3">Size</th>
+                  <th className="px-3 py-3">Manufacturing</th>
+                  <th className="px-3 py-3">Delivery</th>
+                  <th className="px-3 py-3">Sale price</th>
+                  <th className="px-3 py-3">Margin</th>
+                  <th className="px-3 py-3">Actions</th>
+                </tr>
+              </thead>
             <tbody>
               {variants.map((row, index) => {
                 const manufacturing = parseMoney(row.manufacturingCost);
@@ -481,16 +477,6 @@ export default function AdminProductCreatePage() {
                       <div className={`rounded-lg px-2 py-2 text-xs font-semibold ${margin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
                         {formatMoney(margin)}
                       </div>
-                    </td>
-                    <td className="px-3 py-2 align-middle">
-                      <label className="inline-flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-200">
-                        <input
-                          type="checkbox"
-                          checked={row.available}
-                          onChange={(e) => updateVariant(index, { available: e.target.checked })}
-                        />
-                        In stock
-                      </label>
                     </td>
                     <td className="px-3 py-2 align-middle">
                       <div className="flex items-center gap-2">

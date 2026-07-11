@@ -88,7 +88,7 @@ function buildProductCore(raw: PrintifyApiProduct): ProductCore {
       color,
       size,
       price:     v.price,
-      available: v.is_available,
+      available: true,
     };
   });
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Product } from '../../../types/index.js';
-import { adminCreateProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminReorderProductImages, adminSyncProducts, adminUpdateProduct, adminUpdateProductImage, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
+import { adminCreateProduct, adminDeleteProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminReorderProductImages, adminSyncProducts, adminUpdateProduct, adminUpdateProductImage, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -15,7 +15,6 @@ interface DraftVariantRow {
   manufacturingCost: string;
   delivery: string;
   salePrice: string;
-  available: boolean;
 }
 
 interface DraftImageRow {
@@ -33,7 +32,6 @@ function emptyDraftVariant(): DraftVariantRow {
     manufacturingCost: '',
     delivery: '2.99',
     salePrice: '24.99',
-    available: true,
   };
 }
 
@@ -148,6 +146,14 @@ function InlineDraftProductRow({
     }));
   }
 
+  function deleteVariant(key: string) {
+    setVariantRows((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }
+
   function handleFilesSelected(fileList: FileList | null) {
     if (!fileList) return;
     const newRows: DraftImageRow[] = Array.from(fileList).map((file, i) => ({
@@ -213,12 +219,11 @@ function InlineDraftProductRow({
       form.append('audience', category.trim() || catalog.audiences[0] || '');
       form.append('productType', productType.trim() || catalog.products[0] || '');
       form.append('garment', garmentType.trim() || catalog.garments[0] || '');
-      form.append('variants', JSON.stringify(validVariants.map((v) => ({
+                form.append('variants', JSON.stringify(validVariants.map((v) => ({
         color: v.color.trim(),
         hex: v.hex,
         size: v.size.trim(),
         price: Math.round(parseMoney(v.salePrice) * 100),
-        available: v.available,
         manufacturingCost: Math.round(parseMoney(v.manufacturingCost) * 100),
         delivery: Math.round(parseMoney(v.delivery) * 100),
         salePrice: Math.round(parseMoney(v.salePrice) * 100),
@@ -355,7 +360,7 @@ function InlineDraftProductRow({
                   <th className="px-3 py-3">Delivery</th>
                   <th className="px-3 py-3">Sale price</th>
                   <th className="px-3 py-3">Margin</th>
-                  <th className="px-3 py-3">Available</th>
+                  <th className="px-3 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -388,10 +393,13 @@ function InlineDraftProductRow({
                         </div>
                       </td>
                       <td className="px-3 py-2">
-                        <label className="inline-flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-200">
-                          <input type="checkbox" checked={row.available} onChange={(e) => updateVariant(key, { available: e.target.checked })} />
-                          In stock
-                        </label>
+                        <button
+                          type="button"
+                          onClick={() => deleteVariant(key)}
+                          className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Delete row
+                        </button>
                       </td>
                     </tr>
                   );
@@ -531,7 +539,17 @@ function matchPricingPresetBySelection(
   return preset ? normalizePricingMatrix(preset) : null;
 }
 
-function ProductRow({ product, token, catalog }: { product: Product; token: string; catalog: CatalogOptions }) {
+function ProductRow({
+  product,
+  token,
+  catalog,
+  onDeleted,
+}: {
+  product: Product;
+  token: string;
+  catalog: CatalogOptions;
+  onDeleted: (id: string) => void;
+}) {
   const img = product.images.find((i) => i.isDefault) ?? product.images[0];
   const [images, setImages] = useState(product.images);
   const [title, setTitle] = useState(product.title);
@@ -560,6 +578,7 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const pricingCustomRef = useRef(Boolean(product.pricingMatrix));
 
   useEffect(() => {
@@ -781,6 +800,22 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
     }
   }
 
+  async function handleDeleteProductRow() {
+    const confirmed = window.confirm(`Delete ${product.title}? This cannot be undone.`);
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setError(null);
+    try {
+      await adminDeleteProduct(token, product.printifyId);
+      onDeleted(product.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <>
       <tr className="border-b border-gray-100 bg-white transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50 align-top">
@@ -969,6 +1004,29 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
                 ))}
               </div>
             )}
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-950/60">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+                Customer site preview
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {product.colors.length > 0 ? (
+                  product.colors.map((color) => (
+                    <span
+                      key={`preview-${color.name}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                    >
+                      <span
+                        className="inline-block h-3 w-3 rounded-full border border-black/10"
+                        style={{ backgroundColor: color.hex }}
+                      />
+                      {color.name}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-[11px] text-gray-400 dark:text-gray-500">No client colors yet</span>
+                )}
+              </div>
+            </div>
           </div>
           <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             {visibleColors.length} visible, {hiddenCount} hidden
@@ -1034,6 +1092,14 @@ function ProductRow({ product, token, catalog }: { product: Product; token: stri
               className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
             >
               {saving ? 'Saving…' : 'Save row'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDeleteProductRow()}
+              disabled={saving || deleting}
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50"
+            >
+              {deleting ? 'Deleting…' : 'Delete row'}
             </button>
             {saved && <div className="text-xs text-green-600 dark:text-green-400">Saved</div>}
             {error && <div className="text-xs text-red-600 dark:text-red-400">{error}</div>}
@@ -1506,7 +1572,13 @@ export default function AdminProductsPage() {
               </thead>
               <tbody>
                 {products.map((product) => (
-                  <ProductRow key={product.id} product={product} token={token!} catalog={catalog} />
+                  <ProductRow
+                    key={product.id}
+                    product={product}
+                    token={token!}
+                    catalog={catalog}
+                    onDeleted={(id) => setProducts((current) => current.filter((item) => item.id !== id))}
+                  />
                 ))}
                 {draftOpen && (
                   <InlineDraftProductRow

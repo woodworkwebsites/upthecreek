@@ -131,6 +131,23 @@ export async function adminUpdateProduct(
   });
 }
 
+export async function adminDeleteProduct(
+  token: string,
+  printifyId: string,
+): Promise<void> {
+  const res = await fetch(`/api/admin/products/${printifyId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
+}
+
 export async function adminUploadSizeGuideImage(
   token: string,
   printifyId: string,

@@ -18,6 +18,7 @@ import {
 } from '../orders/repository.js';
 import {
   getAllProductsForAdmin,
+  deleteProductByPrintifyId,
   updateProductFields,
   updateHiddenColors,
   updateSizeGuideImage,
@@ -161,6 +162,25 @@ export async function handleListProducts(env: Env): Promise<Response> {
   return json({ products });
 }
 
+export async function handleDeleteProduct(
+  env: Env,
+  printifyId: string,
+): Promise<Response> {
+  const product = await getProductByPrintifyIdForAdmin(env.DB, printifyId);
+  if (!product) return json({ error: 'Product not found' }, 404);
+
+  await Promise.all(
+    product.images
+      .filter((image) => Boolean(image.storageKey))
+      .map((image) => deleteAsset(env.IMAGES, image.storageKey as string)),
+  );
+
+  const deleted = await deleteProductByPrintifyId(env.DB, printifyId);
+  if (!deleted) return json({ error: 'Product not found' }, 404);
+
+  return json({ success: true });
+}
+
 interface ManualVariantRow {
   color: string;
   hex: string;
@@ -285,7 +305,7 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
     color:     row.color?.trim() ?? '',
     size:      row.size?.trim() ?? '',
     price:     Math.round(row.price) || 0,
-    available: row.available !== false,
+    available: true,
   }));
 
   const colorHexByName = new Map(
@@ -683,7 +703,7 @@ export async function handleUpdateProductImage(
     return json({ error: `Unknown colour: ${nextColor}` }, 400);
   }
 
-  const images = product.images.map((entry) => ({ ...entry }));
+    const images = product.images.map((entry) => ({ ...entry }));
   const image = images[index];
   image.color = nextColor || undefined;
   image.variantIds = nextColor

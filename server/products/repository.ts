@@ -132,9 +132,13 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     : rawColors.filter((color) => !hiddenColorSet.has(color.name));
   const customColors = rawCustomColors.length > 0 ? rawCustomColors : (categoryMetadata.customColors ?? []);
 
-  const variants = view === 'admin'
+  const variants = (view === 'admin'
     ? rawVariants
-    : rawVariants.filter((variant) => !hiddenColorSet.has(variant.color));
+    : rawVariants.filter((variant) => !hiddenColorSet.has(variant.color))
+  ).map((variant) => ({
+    ...variant,
+    available: true,
+  }));
 
   const variantIds = new Set(variants.map((variant) => variant.id));
   const images = view === 'admin'
@@ -319,6 +323,17 @@ export async function updateProductImages(
   return (result.meta?.changes ?? 0) > 0;
 }
 
+export async function deleteProductByPrintifyId(
+  db: D1Database,
+  printifyId: string,
+): Promise<boolean> {
+  const result = await db
+    .prepare('DELETE FROM products WHERE printify_id = ?')
+    .bind(printifyId)
+    .run();
+  return (result.meta?.changes ?? 0) > 0;
+}
+
 export async function getProductByPrintifyIdForAdmin(
   db: D1Database,
   printifyId: string,
@@ -428,6 +443,7 @@ export async function updateProductFields(
       const unitPrice = Math.round(parsed * 100);
       const variants = parseJsonArray<PrintifyVariant>(current.variants).map((variant) => ({
         ...variant,
+        available: true,
         price: unitPrice,
       }));
       const { minPrice, maxPrice } = deriveProductAggregates(variants);
