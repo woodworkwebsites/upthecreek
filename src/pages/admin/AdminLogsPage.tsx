@@ -34,6 +34,12 @@ export default function AdminLogsPage() {
     }
   }, [token]);
 
+  function clearView() {
+    setSyncLogs([]);
+    setWebhookLogs([]);
+    setPrintifyLogs([]);
+  }
+
   useEffect(() => { void load(); }, [load]);
 
   const tabs: { id: TabId; label: string; count: number }[] = [
@@ -46,12 +52,20 @@ export default function AdminLogsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Logs</h1>
-        <button
-          onClick={load}
-          className="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={clearView}
+            className="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+          >
+            Clear view
+          </button>
+          <button
+            onClick={load}
+            className="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-1 border-b border-gray-200 dark:border-gray-800">
