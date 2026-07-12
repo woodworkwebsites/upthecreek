@@ -622,9 +622,9 @@ function ProductRow({
       <tr className="border-b border-gray-100 bg-white transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50 align-top">
         <td className="px-4 py-4 sm:px-6">
           <div className="flex max-w-[240px] flex-col gap-3">
-            <div className="mx-auto h-24 w-24 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+            <div className="mx-auto h-24 w-24 overflow-hidden rounded-xl bg-white p-1 ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700 flex-shrink-0">
               {img ? (
-                <img src={img.src} alt={product.title} className="h-full w-full object-cover" loading="lazy" />
+                <img src={img.src} alt={product.title} className="h-full w-full object-contain" loading="lazy" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">No img</div>
               )}
@@ -660,9 +660,6 @@ function ProductRow({
 
         <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
           <div className="space-y-2">
-            <p className="inline-flex items-center rounded-full bg-navy-50 px-2.5 py-1 text-sm font-semibold text-navy-800 dark:bg-navy-900/30 dark:text-navy-200">
-              {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
-            </p>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -709,8 +706,70 @@ function ProductRow({
                 {description ? 'Description set' : 'No description yet'}
               </span>
             </div>
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-950/70">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Pricing</p>
+          </div>
+        </td>
+
+        <td className="w-[230px] px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
+          <div className="space-y-2 max-w-[230px]">
+            <div className="flex flex-wrap gap-1.5 max-w-[240px]">
+              {sortedVisibleColors.map((color) => {
+                const isHidden = hiddenColors.includes(color.name);
+                return (
+                  <button
+                    key={color.name}
+                    type="button"
+                    onClick={() => toggleColor(color.name)}
+                    aria-pressed={!isHidden}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                      isHidden
+                        ? 'border-dashed border-gray-300 bg-gray-50 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500'
+                        : 'border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200'
+                    }`}
+                    title={isHidden ? `${color.name} hidden` : color.name}
+                  >
+                    <span
+                      className="inline-block h-3 w-3 rounded-full border border-black/10"
+                      style={{ backgroundColor: color.hex }}
+                    />
+                    <span>{color.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {sortedHiddenColors.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 max-w-[240px]">
+                {sortedHiddenColors.map((color) => (
+                  <button
+                    key={`hidden-${color.name}`}
+                    type="button"
+                    onClick={() => toggleColor(color.name)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500"
+                    title={`${color.name} hidden`}
+                  >
+                    <span
+                      className="inline-block h-3 w-3 rounded-full border border-black/10 opacity-60"
+                      style={{ backgroundColor: color.hex }}
+                    />
+                    <span>{color.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            {visibleColors.length} visible, {hiddenCount} hidden
+          </div>
+        </td>
+
+        <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
+          <div className="grid gap-3 lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)]">
+            <div className="rounded-xl border border-gray-200 bg-amber-50 p-2 dark:border-amber-900/40 dark:bg-amber-900/10">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
+                Pricing
+              </p>
+              <p className="mt-1 inline-flex items-center rounded-full border border-amber-200 bg-white px-2.5 py-1 text-sm font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950 dark:text-amber-200">
+                {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
+              </p>
               <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 <label className="space-y-1">
                   <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Surface</span>
@@ -758,73 +817,20 @@ function ProductRow({
                 </button>
               </div>
             </div>
-          </div>
-        </td>
-
-        <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-1.5">
-              {sortedVisibleColors.map((color) => {
-                const isHidden = hiddenColors.includes(color.name);
-                return (
-                  <button
-                    key={color.name}
-                    type="button"
-                    onClick={() => toggleColor(color.name)}
-                    aria-pressed={!isHidden}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-                      isHidden
-                        ? 'border-dashed border-gray-300 bg-gray-50 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500'
-                        : 'border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200'
-                    }`}
-                    title={isHidden ? `${color.name} hidden` : color.name}
-                  >
-                    <span
-                      className="inline-block h-3 w-3 rounded-full border border-black/10"
-                      style={{ backgroundColor: color.hex }}
-                    />
-                    <span>{color.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {sortedHiddenColors.length > 0 && (
+            <div className="space-y-2">
               <div className="flex flex-wrap gap-1.5">
-                {sortedHiddenColors.map((color) => (
-                  <button
-                    key={`hidden-${color.name}`}
-                    type="button"
-                    onClick={() => toggleColor(color.name)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500"
-                    title={`${color.name} hidden`}
+                {product.sizes.map((size) => (
+                  <span
+                    key={size}
+                    className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
                   >
-                    <span
-                      className="inline-block h-3 w-3 rounded-full border border-black/10 opacity-60"
-                      style={{ backgroundColor: color.hex }}
-                    />
-                    <span>{color.name}</span>
-                  </button>
+                    {size}
+                  </span>
                 ))}
               </div>
-            )}
+              <p className="text-xs text-gray-500 dark:text-gray-400">Design shell · static sizes</p>
+            </div>
           </div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            {visibleColors.length} visible, {hiddenCount} hidden
-          </div>
-        </td>
-
-        <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
-          <div className="flex flex-wrap gap-1.5">
-            {product.sizes.map((size) => (
-              <span
-                key={size}
-                className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
-              >
-                {size}
-              </span>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Design shell · static sizes</p>
         </td>
 
                       <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
