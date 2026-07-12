@@ -621,33 +621,35 @@ function ProductRow({
     <>
       <tr className="border-b border-gray-100 bg-white transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50 align-top">
         <td className="px-4 py-4 sm:px-6">
-          <div className="flex items-start gap-3">
-            <div className="h-16 w-12 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+          <div className="flex max-w-[240px] flex-col gap-3">
+            <div className="mx-auto h-24 w-24 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 flex-shrink-0">
               {img ? (
                 <img src={img.src} alt={product.title} className="h-full w-full object-cover" loading="lazy" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">No img</div>
               )}
             </div>
-            <div className="min-w-0 flex-1 space-y-2">
+            <div className="min-w-0 space-y-2">
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
               />
-              <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                  <span className={`h-4 w-4 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                </span>
-                <input
-                  type="checkbox"
-                  checked={isEnabled}
-                  onChange={(e) => setIsEnabled(e.target.checked)}
-                  className="sr-only"
-                />
-                Enabled
-              </label>
+              <div className="flex justify-center">
+                <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                  <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                    <span className={`h-4 w-4 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={isEnabled}
+                    onChange={(e) => setIsEnabled(e.target.checked)}
+                    className="sr-only"
+                  />
+                  Enabled
+                </label>
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {product.printifyId.startsWith('manual_') ? 'Manual product' : 'Synced'}
               </p>
@@ -658,7 +660,7 @@ function ProductRow({
 
         <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
           <div className="space-y-2">
-            <p className="font-medium text-gray-900 dark:text-gray-100">
+            <p className="inline-flex items-center rounded-full bg-navy-50 px-2.5 py-1 text-sm font-semibold text-navy-800 dark:bg-navy-900/30 dark:text-navy-200">
               {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
             </p>
             <select

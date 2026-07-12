@@ -267,19 +267,19 @@ export default function AdminCatalogPage() {
         </div>
 
         <div className="mt-4 overflow-x-auto">
-          <table className="min-w-[1320px] w-full border-separate border-spacing-0 text-left">
+          <table className="w-full table-fixed border-separate border-spacing-x-1 border-spacing-y-0 text-left">
             <thead className="bg-gray-50 dark:bg-gray-900">
               <tr className="text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
-                <th className="px-3 py-3">Audience</th>
-                <th className="px-3 py-3">Product</th>
-                <th className="px-3 py-3">Garment</th>
-                <th className="px-3 py-3">Print surface</th>
-                <th className="px-3 py-3">Manufacturing</th>
-                <th className="px-3 py-3">Sale cost</th>
-                <th className="px-3 py-3">Delivery</th>
-                <th className="px-3 py-3">Sale price</th>
-                <th className="px-3 py-3">Margin</th>
-                <th className="px-3 py-3">Actions</th>
+                <th className="px-2 py-2">Audience</th>
+                <th className="px-2 py-2">Product</th>
+                <th className="px-2 py-2">Garment</th>
+                <th className="px-2 py-2">Print surface</th>
+                <th className="px-2 py-2">Manufacturing</th>
+                <th className="px-2 py-2">Sale cost</th>
+                <th className="px-2 py-2">Delivery</th>
+                <th className="px-2 py-2">Sale price</th>
+                <th className="px-2 py-2">Margin</th>
+                <th className="px-2 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -287,40 +287,40 @@ export default function AdminCatalogPage() {
                   const margin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
                   return (
                   <tr key={index} className="border-t border-gray-100 dark:border-gray-800">
-                    <td className="px-3 py-2">
-                      <input value={row.audience} onChange={(e) => updatePricingRow(index, { audience: e.target.value })} className="w-32 rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                    <td className="px-2 py-1.5">
+                      <input value={row.audience} onChange={(e) => updatePricingRow(index, { audience: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                     </td>
-                    <td className="px-3 py-2">
-                      <input value={row.product} onChange={(e) => updatePricingRow(index, { product: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                    <td className="px-2 py-1.5">
+                      <input value={row.product} onChange={(e) => updatePricingRow(index, { product: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                     </td>
-                    <td className="px-3 py-2">
-                      <input value={row.garment} onChange={(e) => updatePricingRow(index, { garment: e.target.value })} className="w-44 rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                    <td className="px-2 py-1.5">
+                      <input value={row.garment} onChange={(e) => updatePricingRow(index, { garment: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                     </td>
-                    <td className="px-3 py-2">
-                      <input value={row.printSurface} onChange={(e) => updatePricingRow(index, { printSurface: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                    <td className="px-2 py-1.5">
+                      <input value={row.printSurface} onChange={(e) => updatePricingRow(index, { printSurface: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                     </td>
-                    <td className="px-3 py-2">
-                      <input value={row.manufacturingCost} onChange={(e) => updatePricingRow(index, { manufacturingCost: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                    <td className="px-2 py-1.5">
+                      <input value={row.manufacturingCost} onChange={(e) => updatePricingRow(index, { manufacturingCost: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                     </td>
-                    <td className="px-3 py-2">
-                      <input value={row.saleCost} onChange={(e) => updatePricingRow(index, { saleCost: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                    <td className="px-2 py-1.5">
+                      <input value={row.saleCost} onChange={(e) => updatePricingRow(index, { saleCost: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                     </td>
-                    <td className="px-3 py-2">
-                      <input value={row.delivery} onChange={(e) => updatePricingRow(index, { delivery: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                    <td className="px-2 py-1.5">
+                      <input value={row.delivery} onChange={(e) => updatePricingRow(index, { delivery: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                     </td>
-                    <td className="px-3 py-2">
-                      <input value={row.salePrice} onChange={(e) => updatePricingRow(index, { salePrice: e.target.value })} className="w-28 rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                    <td className="px-2 py-1.5">
+                      <input value={row.salePrice} onChange={(e) => updatePricingRow(index, { salePrice: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                     </td>
-                    <td className="px-3 py-2">
-                      <div className={`rounded-lg px-2 py-2 text-xs font-semibold ${margin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                    <td className="px-2 py-1.5">
+                      <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${margin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
                         £{margin.toFixed(2)}
                       </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-1.5">
                       <button
                         type="button"
                         onClick={() => removePricingRow(index)}
-                        className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-red-400"
+                        className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-red-400"
                       >
                         Remove
                       </button>
