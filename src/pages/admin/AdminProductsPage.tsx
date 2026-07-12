@@ -622,9 +622,9 @@ function ProductRow({
       <tr className="border-b border-gray-100 bg-white transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50 align-top">
         <td className="px-4 py-4 sm:px-6">
           <div className="flex max-w-[240px] flex-col gap-3">
-            <div className="mx-auto h-24 w-24 overflow-hidden rounded-xl bg-white p-1 ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700 flex-shrink-0">
+            <div className="mx-auto flex h-32 w-24 items-center justify-center overflow-hidden flex-shrink-0">
               {img ? (
-                <img src={img.src} alt={product.title} className="h-full w-full object-contain" loading="lazy" />
+                <img src={img.src} alt={product.title} className="h-full w-full object-contain object-center" loading="lazy" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">No img</div>
               )}
