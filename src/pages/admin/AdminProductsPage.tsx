@@ -762,21 +762,21 @@ function ProductRow({
         </td>
 
         <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
-          <div className="grid gap-3 lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)]">
+          <div className="grid gap-2 lg:grid-cols-[minmax(200px,220px)_minmax(0,1fr)]">
             <div className="rounded-xl border border-gray-200 bg-amber-50 p-2 dark:border-amber-900/40 dark:bg-amber-900/10">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
                 Pricing
               </p>
-              <p className="mt-1 inline-flex items-center rounded-full border border-amber-200 bg-white px-2.5 py-1 text-sm font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950 dark:text-amber-200">
+              <p className="mt-1 inline-flex items-center rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950 dark:text-amber-200">
                 {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
               </p>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-2 grid gap-1.5 sm:grid-cols-2 xl:grid-cols-4">
                 <label className="space-y-1">
                   <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Surface</span>
                   <input
                     value={pricingMatrix.printSurface}
                     onChange={(e) => updatePricingMatrix({ printSurface: e.target.value })}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </label>
                 <label className="space-y-1">
@@ -784,7 +784,7 @@ function ProductRow({
                   <input
                     value={pricingMatrix.manufacturingCost}
                     onChange={(e) => updatePricingMatrix({ manufacturingCost: e.target.value })}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </label>
                 <label className="space-y-1">
@@ -792,7 +792,7 @@ function ProductRow({
                   <input
                     value={pricingMatrix.saleCost}
                     onChange={(e) => updatePricingMatrix({ saleCost: e.target.value })}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </label>
                 <label className="space-y-1">
@@ -800,7 +800,7 @@ function ProductRow({
                   <input
                     value={pricingMatrix.salePrice}
                     onChange={(e) => updatePricingMatrix({ salePrice: e.target.value })}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </label>
               </div>
@@ -818,17 +818,17 @@ function ProductRow({
               </div>
             </div>
             <div className="space-y-2">
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1 max-w-[180px]">
                 {product.sizes.map((size) => (
                   <span
                     key={size}
-                    className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
+                    className="inline-flex items-center rounded-full border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
                   >
                     {size}
                   </span>
                 ))}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Design shell · static sizes</p>
+              <p className="max-w-[180px] text-xs text-gray-500 dark:text-gray-400">Design shell · static sizes</p>
             </div>
           </div>
         </td>
@@ -842,13 +842,16 @@ function ProductRow({
             >
               Manage images
             </button>
-            <input
-              type="url"
-              value={sizeGuideUrl}
-              onChange={(e) => setSizeGuideUrl(e.target.value)}
-              placeholder="Size guide URL"
-              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-            />
+            <label className="block space-y-1">
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Size guide URL</span>
+              <input
+                type="url"
+                value={sizeGuideUrl}
+                onChange={(e) => setSizeGuideUrl(e.target.value)}
+                placeholder="https://..."
+                className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+              />
+            </label>
             <div className="flex items-center gap-2">
               <input
                 type="file"
@@ -871,7 +874,7 @@ function ProductRow({
         </td>
 
         <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
-          <div className="space-y-2">
+          <div className="space-y-3">
               <button
                 onClick={() => void handleSaveRow()}
                 className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 transition-colors"
