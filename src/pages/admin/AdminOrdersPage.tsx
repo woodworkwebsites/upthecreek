@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { Order } from '../../../types/index.js';
-import { adminFetchOrders, adminFetchOrder, adminFulfillOrder, adminUpdateOrderStatus } from '../../lib/api.js';
+import { adminFetchOrders, adminFetchOrder, adminFulfillOrder, adminUpdateOrderStatus, adminDeleteOrder } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Badge } from '../../components/ui/Badge.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -36,7 +37,17 @@ const orderStatuses: Order['status'][] = [
   'failed',
 ];
 
-function OrderRow({ order, token, onFulfilled }: { order: Order; token: string; onFulfilled: (order: Order) => void }) {
+function OrderRow({
+  order,
+  token,
+  onFulfilled,
+  onDeleted,
+}: {
+  order: Order;
+  token: string;
+  onFulfilled: (order: Order) => void;
+  onDeleted: (orderId: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState<Order | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -46,6 +57,10 @@ function OrderRow({ order, token, onFulfilled }: { order: Order; token: string; 
   const [externalOrderRef, setExternalOrderRef] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [sessionModalOpen, setSessionModalOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     const shown = detail ?? order;
@@ -103,36 +118,57 @@ function OrderRow({ order, token, onFulfilled }: { order: Order; token: string; 
     }
   }
 
+  async function handleDeleteOrder() {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await adminDeleteOrder(token, order.id);
+      setDeleteConfirmOpen(false);
+      onDeleted(order.id);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete order');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const shown = detail ?? order;
 
   return (
     <>
       <tr
-        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        className="cursor-pointer align-middle hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
         onClick={() => void toggleExpanded()}
       >
-        <td className="py-3 pr-4 pl-4 sm:pl-6">
-          <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
-            {order.stripeSessionId.slice(0, 24)}…
-          </span>
+        <td className="py-2 pr-4 pl-4 sm:pl-6 align-middle">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSessionModalOpen(true);
+            }}
+            className="text-xs font-semibold text-navy-700 underline decoration-gray-300 underline-offset-2 hover:text-navy-900 dark:text-blue-300 dark:decoration-gray-600"
+          >
+            Session
+          </button>
         </td>
-        <td className="px-3 py-3">
+        <td className="px-3 py-2 align-middle">
           <span className="text-sm text-gray-900 dark:text-gray-100">
             {order.customerEmail}
           </span>
         </td>
-        <td className="px-3 py-3 text-sm text-gray-900 dark:text-gray-100">
+        <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100 align-middle">
           {formatPrice(order.amountTotal)}
         </td>
-        <td className="px-3 py-3">
-          <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-            <Badge variant={statusVariant[shown.status] ?? 'default'}>
+        <td className="px-3 py-2 align-middle">
+          <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap overflow-x-auto" onClick={(e) => e.stopPropagation()}>
+            <Badge variant={statusVariant[shown.status] ?? 'default'} className="shrink-0">
               {shown.status.replace(/_/g, ' ')}
             </Badge>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as Order['status'])}
-              className="block w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+              className="h-8 rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
             >
               {orderStatuses.map((value) => (
                 <option key={value} value={value}>{value.replace(/_/g, ' ')}</option>
@@ -142,33 +178,46 @@ function OrderRow({ order, token, onFulfilled }: { order: Order; token: string; 
               type="button"
               onClick={handleUpdateStatus}
               disabled={statusSaving || status === shown.status}
-              className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
+              className="h-8 rounded-lg bg-navy-800 px-3 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
             >
               {statusSaving ? 'Saving…' : 'Move status'}
             </button>
             {statusError && <div className="text-xs text-red-600 dark:text-red-400">{statusError}</div>}
           </div>
         </td>
-        <td className="px-3 py-3">
-          <Badge variant={providerVariant[order.fulfillmentProvider] ?? 'default'}>
+        <td className="px-3 py-2 align-middle">
+          <Badge variant={providerVariant[order.fulfillmentProvider] ?? 'default'} className="shrink-0">
             {order.fulfillmentProvider}
           </Badge>
         </td>
-        <td className="px-3 py-3">
-          <Badge variant={modeVariant[order.printifyMode] ?? 'default'}>
+        <td className="px-3 py-2 align-middle">
+          <Badge variant={modeVariant[order.printifyMode] ?? 'default'} className="shrink-0">
             {order.printifyMode.replace(/_/g, ' ')}
           </Badge>
         </td>
-        <td className="px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+        <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 align-middle">
           {order.printifyOrderId ?? shown.externalOrderRef ?? '—'}
         </td>
-        <td className="px-3 py-3 text-xs text-gray-400 dark:text-gray-500">
+        <td className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 align-middle">
           {formatDate(order.createdAt)}
+        </td>
+        <td className="px-3 py-2 text-right align-middle sm:pr-6">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteConfirmOpen(true);
+            }}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-sm font-semibold text-red-600 hover:bg-red-50 hover:border-red-200 dark:border-gray-700 dark:text-red-400 dark:hover:bg-red-900/20"
+            aria-label={`Delete order ${order.id}`}
+          >
+            X
+          </button>
         </td>
       </tr>
       {expanded && (
         <tr className="bg-gray-50 dark:bg-gray-900/50">
-          <td colSpan={8} className="px-4 py-4 sm:px-6">
+          <td colSpan={9} className="px-4 py-4 sm:px-6">
             {loadingDetail ? (
               <p className="text-xs text-gray-500 dark:text-gray-400">Loading order details…</p>
             ) : (
@@ -270,6 +319,82 @@ function OrderRow({ order, token, onFulfilled }: { order: Order; token: string; 
           </td>
         </tr>
       )}
+      {typeof document !== 'undefined' && createPortal(
+        <>
+          {sessionModalOpen && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6"
+              onClick={() => setSessionModalOpen(false)}
+            >
+              <div
+                className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-800 dark:bg-gray-950"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Session ID</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Full Stripe session ID for this order.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSessionModalOpen(false)}
+                    className="text-sm font-semibold text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                    aria-label="Close session details"
+                  >
+                    Close
+                  </button>
+                </div>
+                <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900">
+                  <code className="block break-all font-mono text-xs text-gray-900 dark:text-gray-100">
+                    {order.stripeSessionId}
+                  </code>
+                </div>
+              </div>
+            </div>
+          )}
+          {deleteConfirmOpen && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6"
+              onClick={() => !deleting && setDeleteConfirmOpen(false)}
+            >
+              <div
+                className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-800 dark:bg-gray-950"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Delete order?</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  This will remove the order and its items from D1. The action cannot be undone.
+                </p>
+                <p className="mt-3 rounded-xl bg-gray-50 p-3 font-mono text-xs break-all text-gray-700 dark:bg-gray-900 dark:text-gray-200">
+                  {order.stripeSessionId}
+                </p>
+                {deleteError && <p className="mt-3 text-xs text-red-600 dark:text-red-400">{deleteError}</p>}
+                <div className="mt-4 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirmOpen(false)}
+                    disabled={deleting}
+                    className="h-8 rounded-lg border border-gray-200 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-900"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteOrder()}
+                    disabled={deleting}
+                    className="h-8 rounded-lg bg-red-600 px-3 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-50"
+                  >
+                    {deleting ? 'Deleting…' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>,
+        document.body,
+      )}
     </>
   );
 }
@@ -343,6 +468,10 @@ export default function AdminOrdersPage() {
     setOrders((prev) => prev.map((o) => (o.id === updated.id ? { ...o, status: updated.status, externalOrderRef: updated.externalOrderRef } : o)));
   }
 
+  function handleDeleted(orderId: string) {
+    setOrders((prev) => prev.filter((order) => order.id !== orderId));
+  }
+
   return (
     <div className="space-y-6">
       <div className="fixed right-4 top-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3 pointer-events-none">
@@ -393,10 +522,10 @@ export default function AdminOrdersPage() {
             <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/50">
-                  {['Session', 'Customer', 'Amount', 'Status', 'Provider', 'Mode', 'Ref', 'Created'].map((h) => (
+                  {['Session', 'Customer', 'Amount', 'Status', 'Provider', 'Mode', 'Ref', 'Created', ''].map((h, index) => (
                     <th
-                      key={h}
-                      className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider first:pl-6"
+                      key={h || `col-${index}`}
+                      className={`px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${index === 0 ? 'pl-6' : ''} ${index === 8 ? 'text-right sm:pr-6' : ''}`}
                     >
                       {h}
                     </th>
@@ -405,7 +534,13 @@ export default function AdminOrdersPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-950">
                 {orders.map((order) => (
-                  <OrderRow key={order.id} order={order} token={token!} onFulfilled={handleFulfilled} />
+                  <OrderRow
+                    key={order.id}
+                    order={order}
+                    token={token!}
+                    onFulfilled={handleFulfilled}
+                    onDeleted={handleDeleted}
+                  />
                 ))}
               </tbody>
             </table>

@@ -11,6 +11,7 @@ import {
   getOrderWithItems,
   createOrder,
   createOrderItem,
+  deleteOrderById,
   updateOrderStatus,
   listSyncLogs,
   listWebhookLogs,
@@ -97,6 +98,12 @@ export async function handleGetOrder(env: Env, id: string): Promise<Response> {
   const order = await getOrderWithItems(env.DB, id);
   if (!order) return json({ error: 'Order not found' }, 404);
   return json({ order });
+}
+
+export async function handleDeleteOrder(env: Env, id: string): Promise<Response> {
+  const deleted = await deleteOrderById(env.DB, id);
+  if (!deleted) return json({ error: 'Order not found' }, 404);
+  return json({ success: true });
 }
 
 export async function handleFulfillOrder(

@@ -230,6 +230,18 @@ export async function listOrders(
   return (result.results ?? []).map(parseOrder);
 }
 
+export async function deleteOrderById(
+  db: D1Database,
+  id: string,
+): Promise<boolean> {
+  const result = await db.batch([
+    db.prepare('DELETE FROM order_items WHERE order_id = ?').bind(id),
+    db.prepare('DELETE FROM orders WHERE id = ?').bind(id),
+  ]);
+
+  return result[1]?.meta?.changes ? result[1].meta.changes > 0 : false;
+}
+
 export async function writeSyncLog(
   db: D1Database,
   status: 'success' | 'error',

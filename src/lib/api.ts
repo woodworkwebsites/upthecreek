@@ -123,6 +123,12 @@ export async function adminUpdateOrderStatus(
   });
 }
 
+export async function adminDeleteOrder(token: string, id: string): Promise<void> {
+  await adminFetch(`/api/admin/orders/${id}`, token, {
+    method: 'DELETE',
+  });
+}
+
 export async function adminFetchProducts(token: string): Promise<Product[]> {
   const data = await adminFetch<{ products: Product[] }>('/api/admin/products', token);
   return data.products;
