@@ -258,7 +258,7 @@ export function serializeCatalogSettings(options: CatalogOptions): Record<string
         saleCost: row.saleCost.trim(),
         delivery: row.delivery.trim(),
         salePrice: row.salePrice.trim(),
-      })).filter((row) => row.audience.length > 0 && row.product.length > 0 && row.garment.length > 0),
+      })),
     ),
   };
 }
@@ -292,8 +292,7 @@ function parsePricingRows(raw: string | null | undefined, fallback: PricingRowOp
         saleCost: value.saleCost.trim(),
         delivery: value.delivery.trim(),
         salePrice: value.salePrice.trim(),
-      }))
-      .filter((value) => value.audience.length > 0 && value.product.length > 0 && value.garment.length > 0);
+      }));
     return rows.length > 0 ? rows : fallback;
   } catch {
     return fallback;
