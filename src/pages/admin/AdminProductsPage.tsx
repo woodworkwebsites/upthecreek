@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect, type Ref } from 'react';
 import type { Product } from '../../../types/index.js';
-import { adminCreateProduct, adminDeleteProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminReorderProductImages, adminSyncProducts, adminUpdateProduct, adminUpdateProductImage, adminUploadProductImage } from '../../lib/api.js';
+import { adminCreateProduct, adminDeleteProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminReorderProductImages, adminSyncProducts, adminUpdateProduct, adminUpdateProductImage, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -353,11 +353,11 @@ function ProductRow({
   const [category, setCategory] = useState(product.audience || '');
   const [productType, setProductType] = useState(product.productType || '');
   const [garmentType, setGarmentType] = useState(product.garment || '');
-  const [sizeGuideUrl, setSizeGuideUrl] = useState(product.sizeGuideImage ?? '');
   const initialPricingMatrix = product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? emptyPricingMatrix();
   const [pricingMatrix, setPricingMatrix] = useState(initialPricingMatrix);
   const [hiddenColors, setHiddenColors] = useState<string[]>(product.hiddenColors ?? []);
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
+  const [sizeGuideUploadFile, setSizeGuideUploadFile] = useState<File | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [imageUploadFiles, setImageUploadFiles] = useState<File[]>([]);
   const [imageUploadPreviews, setImageUploadPreviews] = useState<Array<{ file: File; previewUrl: string }>>([]);
@@ -371,6 +371,8 @@ function ProductRow({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sizeGuideUploading, setSizeGuideUploading] = useState(false);
+  const [sizeGuideUploadError, setSizeGuideUploadError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const pricingCustomRef = useRef(Boolean(product.pricingMatrix));
   const titleRef = useRef<HTMLTextAreaElement | null>(null);
@@ -382,7 +384,6 @@ function ProductRow({
     setCategory(product.audience || '');
     setProductType(product.productType || '');
     setGarmentType(product.garment || '');
-    setSizeGuideUrl(product.sizeGuideImage ?? '');
     setPricingMatrix(product.pricingMatrix ?? nextPreset);
     pricingCustomRef.current = Boolean(product.pricingMatrix);
     setHiddenColors(product.hiddenColors ?? []);
@@ -445,6 +446,24 @@ function ProductRow({
         ? current.filter((value) => value !== colorName)
         : [...current, colorName],
     );
+  }
+
+  async function handleUploadSizeGuide() {
+    if (!sizeGuideUploadFile) {
+      setSizeGuideUploadError('Choose an image first');
+      return;
+    }
+
+    setSizeGuideUploading(true);
+    setSizeGuideUploadError(null);
+    try {
+      await adminUploadSizeGuideImage(token, product.printifyId, sizeGuideUploadFile);
+      setSizeGuideUploadFile(null);
+    } catch (err) {
+      setSizeGuideUploadError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setSizeGuideUploading(false);
+    }
   }
 
   async function handleUploadProductImage() {
@@ -544,7 +563,6 @@ function ProductRow({
     || category.trim() !== (product.audience || '').trim()
     || productType.trim() !== (product.productType || '').trim()
     || garmentType.trim() !== (product.garment || '').trim()
-    || sizeGuideUrl.trim() !== (product.sizeGuideImage ?? '').trim()
     || isEnabled !== product.isEnabled
     || currentPricingSignature !== originalPricingSignature
     || hiddenColors.length !== (product.hiddenColors ?? []).length
@@ -570,7 +588,6 @@ function ProductRow({
         garment: garmentType.trim(),
         pricingMatrix: normalizePricingMatrix(pricingMatrix),
         customColors: visibleColors,
-        sizeGuideImage: sizeGuideUrl.trim() || null,
         hiddenColors,
         isEnabled,
       });
@@ -818,19 +835,6 @@ function ProductRow({
                 </span>
               ))}
             </div>
-            <div className="space-y-1">
-              <label className="block space-y-1">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Size guide URL</span>
-                <input
-                  type="url"
-                  value={sizeGuideUrl}
-                  onChange={(e) => setSizeGuideUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Design shell · static sizes</p>
-            </div>
           </div>
         </td>
 
@@ -1024,6 +1028,36 @@ function ProductRow({
                       {imageSaving ? 'Uploading…' : 'Upload image'}
                     </button>
                     {imageError && <div className="text-xs text-red-600 dark:text-red-400">{imageError}</div>}
+
+                    <div className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 space-y-3">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Size guide</p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setSizeGuideUploadFile(e.target.files?.[0] ?? null)}
+                          className="block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700 dark:text-gray-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleUploadSizeGuide}
+                          disabled={sizeGuideUploading}
+                          className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
+                        >
+                          {sizeGuideUploading ? 'Uploading…' : 'Upload'}
+                        </button>
+                      </div>
+                      {sizeGuideUploadFile && (
+                        <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                          Selected: {sizeGuideUploadFile.name}
+                        </div>
+                      )}
+                      {sizeGuideUploadError && (
+                        <div className="text-xs text-red-600 dark:text-red-400">
+                          {sizeGuideUploadError}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-3 overflow-y-auto pr-1">
@@ -1366,7 +1400,7 @@ export default function AdminProductsPage() {
                   <th className="px-4 py-3">Classification</th>
                   <th className="px-4 py-3">Colours</th>
                   <th className="px-4 py-3">Pricing</th>
-                  <th className="px-4 py-3">Size guide</th>
+                  <th className="px-4 py-3">Sizes</th>
                   <th className="px-4 py-3">Visibility</th>
                   <th className="px-4 py-3">Inventory</th>
                 </tr>
