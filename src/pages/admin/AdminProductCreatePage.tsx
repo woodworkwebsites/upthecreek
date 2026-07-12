@@ -250,7 +250,7 @@ export default function AdminProductCreatePage() {
               <div key={index} className="rounded-xl border border-gray-100 dark:border-gray-800 p-2 space-y-2">
                 <img src={img.previewUrl} alt="" className="h-32 w-full rounded-lg object-cover" />
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">All colours</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">No colour selection</span>
                   <button
                     type="button"
                     onClick={() => removeImage(index)}

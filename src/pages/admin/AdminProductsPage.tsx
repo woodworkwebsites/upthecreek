@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect, type Ref } from 'react';
 import type { Product } from '../../../types/index.js';
-import { adminCreateProduct, adminDeleteProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminReorderProductImages, adminSyncProducts, adminUpdateProduct, adminUpdateProductImage, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
+import { adminCreateProduct, adminDeleteProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminReorderProductImages, adminSyncProducts, adminUpdateProduct, adminUpdateProductImage, adminUpdateSettings, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatPriceRange, formatDate } from '../../lib/utils.js';
-import { DEFAULT_CATALOG_OPTIONS, findPricingPresetRow, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
+import { DEFAULT_CATALOG_OPTIONS, findPricingPresetRow, parseCatalogSettings, serializeCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
 
 interface DraftImageRow {
   file: File;
@@ -217,7 +217,7 @@ function InlineDraftProductRow({
                   <div key={index} className="rounded-xl border border-gray-100 p-2 space-y-2 dark:border-gray-800">
                     <img src={img.previewUrl} alt="" className="h-32 w-full rounded-lg object-cover" />
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">All colours</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">No colour selection</span>
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
@@ -340,11 +340,13 @@ function ProductRow({
   product,
   token,
   catalog,
+  onCatalogRefreshed,
   onDeleted,
 }: {
   product: Product;
   token: string;
   catalog: CatalogOptions;
+  onCatalogRefreshed: () => Promise<void>;
   onDeleted: (id: string) => void;
 }) {
   const [images, setImages] = useState(product.images);
@@ -371,6 +373,9 @@ function ProductRow({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pricingRowSaving, setPricingRowSaving] = useState(false);
+  const [pricingRowSaved, setPricingRowSaved] = useState(false);
+  const [pricingRowError, setPricingRowError] = useState<string | null>(null);
   const [sizeGuideUploading, setSizeGuideUploading] = useState(false);
   const [sizeGuideUploadError, setSizeGuideUploadError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -438,6 +443,28 @@ function ProductRow({
     const preset = matchPricingPresetBySelection(category, productType, garmentType, catalog) ?? emptyPricingMatrix();
     pricingCustomRef.current = false;
     setPricingMatrix(preset);
+  }
+
+  async function addPricingRowToCatalog() {
+    if (pricingRowSaving) return;
+
+    setPricingRowSaving(true);
+    setPricingRowSaved(false);
+    setPricingRowError(null);
+    try {
+      const nextRows = [...catalog.pricingRows, normalizePricingMatrix(pricingMatrix)];
+      await adminUpdateSettings(token, serializeCatalogSettings({
+        ...catalog,
+        pricingRows: nextRows,
+      }));
+      await onCatalogRefreshed();
+      setPricingRowSaved(true);
+      setTimeout(() => setPricingRowSaved(false), 2000);
+    } catch (err) {
+      setPricingRowError(err instanceof Error ? err.message : 'Failed to add row');
+    } finally {
+      setPricingRowSaving(false);
+    }
   }
 
   function toggleColor(colorName: string) {
@@ -812,14 +839,34 @@ function ProductRow({
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
                 {pricingCustomRef.current ? 'Custom pricing' : 'Catalog pricing'}
               </p>
-              <button
-                type="button"
-                onClick={resetPricingToCatalog}
-                className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[10px] font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                Use catalog
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={addPricingRowToCatalog}
+                  disabled={pricingRowSaving}
+                  className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[10px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  {pricingRowSaving ? 'Adding…' : 'Add row'}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetPricingToCatalog}
+                  className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[10px] font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  Use catalog
+                </button>
+              </div>
             </div>
+            {pricingRowSaved && (
+              <p className="mt-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                Added to catalog
+              </p>
+            )}
+            {pricingRowError && (
+              <p className="mt-1 text-[10px] font-semibold text-red-600 dark:text-red-400">
+                {pricingRowError}
+              </p>
+            )}
           </div>
         </td>
 
@@ -987,7 +1034,7 @@ function ProductRow({
                       onChange={(e) => setImageUploadColor(e.target.value)}
                       className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                     >
-                      <option value="">Row colours</option>
+                      <option value="">No colour selection</option>
                       {visibleColors.map((color) => (
                         <option key={color.name} value={color.name}>{color.name}</option>
                       ))}
@@ -1163,7 +1210,7 @@ function ProductRow({
                                       : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800'
                                   }`}
                                 >
-                                  All colours
+                                  No colour selection
                                 </button>
                                 {visibleColors.map((color) => {
                                   const selected = image.color === color.name;
@@ -1208,7 +1255,7 @@ function ProductRow({
                                   Set default
                                 </button>
                               )}
-                              <span>{image.color || 'All colours'}</span>
+                              <span>{image.color || 'No colour selection'}</span>
                             </div>
                           </div>
                         </div>
@@ -1243,23 +1290,28 @@ export default function AdminProductsPage() {
     removedProducts: Array<{ printifyId: string; title: string }>;
   } | null>(null);
 
+  const refreshCatalog = useCallback(async () => {
+    if (!token) return;
+    const settings = await adminGetSettings(token);
+    setCatalog(parseCatalogSettings(settings));
+  }, [token]);
+
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     setError(null);
     try {
-      const [data, settings] = await Promise.all([
+      const [data] = await Promise.all([
         adminFetchProducts(token),
-        adminGetSettings(token),
+        refreshCatalog(),
       ]);
       setProducts(data);
-      setCatalog(parseCatalogSettings(settings));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load products');
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [refreshCatalog, token]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -1412,6 +1464,7 @@ export default function AdminProductsPage() {
                     product={product}
                     token={token!}
                     catalog={catalog}
+                    onCatalogRefreshed={refreshCatalog}
                     onDeleted={(id) => setProducts((current) => current.filter((item) => item.id !== id))}
                   />
                 ))}

@@ -4,6 +4,7 @@ import { useAdminToken } from '../../hooks/useAdmin.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import {
   DEFAULT_CATALOG_OPTIONS,
+  createEmptyPricingRow,
   parseCatalogSettings,
   serializeCatalogSettings,
   type CatalogColorOption,
@@ -53,6 +54,10 @@ export default function AdminCatalogPage() {
 
   function addListItem(setter: Dispatch<SetStateAction<string[]>>) {
     setter((current) => [...current, '']);
+  }
+
+  function addPricingRow(patch: Partial<PricingRowOption> = {}) {
+    setPricingRows((current) => [...current, createEmptyPricingRow(patch)]);
   }
 
   function removeListItem(setter: Dispatch<SetStateAction<string[]>>, index: number) {
@@ -170,7 +175,10 @@ export default function AdminCatalogPage() {
           hint="Tshirt / Hoody / Sweatshirt"
           items={products}
           onUpdate={(index, value) => updateListItem(setProducts, index, value)}
-          onAdd={() => addListItem(setProducts)}
+          onAdd={() => {
+            addListItem(setProducts);
+            addPricingRow({ product: '' });
+          }}
           onRemove={(index) => removeListItem(setProducts, index)}
         />
 
@@ -179,7 +187,10 @@ export default function AdminCatalogPage() {
           hint="Mens Heavyweight and related fits"
           items={garments}
           onUpdate={(index, value) => updateListItem(setGarments, index, value)}
-          onAdd={() => addListItem(setGarments)}
+          onAdd={() => {
+            addListItem(setGarments);
+            addPricingRow({ garment: '' });
+          }}
           onRemove={(index) => removeListItem(setGarments, index)}
         />
       </div>

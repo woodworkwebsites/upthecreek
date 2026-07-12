@@ -16,6 +16,20 @@ export interface PricingRowOption {
   salePrice: string;
 }
 
+export function createEmptyPricingRow(overrides: Partial<PricingRowOption> = {}): PricingRowOption {
+  return {
+    audience: '',
+    product: '',
+    garment: '',
+    printSurface: '',
+    manufacturingCost: '',
+    saleCost: '',
+    delivery: '',
+    salePrice: '',
+    ...overrides,
+  };
+}
+
 export interface CatalogOptions {
   audiences: string[];
   products: string[];
