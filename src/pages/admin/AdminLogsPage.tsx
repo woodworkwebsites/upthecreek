@@ -8,6 +8,22 @@ import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatDate } from '../../lib/utils.js';
 
 type TabId = 'webhooks' | 'sync' | 'printify';
+const LOG_ARCHIVE_KEY = 'admin.logs.archiveBefore';
+
+function readArchivedBefore(): number | null {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem(LOG_ARCHIVE_KEY);
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isVisibleAfterArchive(createdAt: string, archivedBefore: number | null): boolean {
+  if (archivedBefore === null) return true;
+  const createdAtMs = Date.parse(createdAt);
+  if (!Number.isFinite(createdAtMs)) return true;
+  return createdAtMs > archivedBefore;
+}
 
 export default function AdminLogsPage() {
   const { token } = useAdminToken();
@@ -17,6 +33,16 @@ export default function AdminLogsPage() {
   const [printifyLogs, setPrintifyLogs] = useState<PrintifyLogRow[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState<string | null>(null);
+  const [archivedBefore, setArchivedBefore] = useState<number | null>(() => readArchivedBefore());
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (archivedBefore === null) {
+      window.localStorage.removeItem(LOG_ARCHIVE_KEY);
+      return;
+    }
+    window.localStorage.setItem(LOG_ARCHIVE_KEY, String(archivedBefore));
+  }, [archivedBefore]);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -35,17 +61,19 @@ export default function AdminLogsPage() {
   }, [token]);
 
   function clearView() {
-    setSyncLogs([]);
-    setWebhookLogs([]);
-    setPrintifyLogs([]);
+    setArchivedBefore(Date.now());
   }
 
   useEffect(() => { void load(); }, [load]);
 
+  const visibleSyncLogs = syncLogs.filter((log) => isVisibleAfterArchive(log.created_at, archivedBefore));
+  const visibleWebhookLogs = webhookLogs.filter((log) => isVisibleAfterArchive(log.created_at, archivedBefore));
+  const visiblePrintifyLogs = printifyLogs.filter((log) => isVisibleAfterArchive(log.created_at, archivedBefore));
+
   const tabs: { id: TabId; label: string; count: number }[] = [
-    { id: 'webhooks', label: 'Webhooks', count: webhookLogs.length },
-    { id: 'sync',     label: 'Sync',     count: syncLogs.length },
-    { id: 'printify', label: 'Printify', count: printifyLogs.length },
+    { id: 'webhooks', label: 'Webhooks', count: visibleWebhookLogs.length },
+    { id: 'sync',     label: 'Sync',     count: visibleSyncLogs.length },
+    { id: 'printify', label: 'Printify', count: visiblePrintifyLogs.length },
   ];
 
   return (
@@ -96,7 +124,7 @@ export default function AdminLogsPage() {
           {activeTab === 'webhooks' && (
             <LogTable
               headers={['Event', 'Session', 'Status', 'Error', 'Created']}
-              rows={webhookLogs}
+              rows={visibleWebhookLogs}
               renderRow={(log: WebhookLogRow) => (
                 <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                   <td className="py-3 pl-4 pr-3 text-xs font-mono text-gray-700 dark:text-gray-300">{log.event_type}</td>
@@ -117,7 +145,7 @@ export default function AdminLogsPage() {
           {activeTab === 'sync' && (
             <LogTable
               headers={['Status', 'Products Synced', 'Message', 'Created']}
-              rows={syncLogs}
+              rows={visibleSyncLogs}
               renderRow={(log: SyncLogRow) => (
                 <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                   <td className="py-3 pl-4 pr-3">
@@ -135,7 +163,7 @@ export default function AdminLogsPage() {
           {activeTab === 'printify' && (
             <LogTable
               headers={['Order', 'Mode', 'Action', 'Status', 'Error', 'Created']}
-              rows={printifyLogs}
+              rows={visiblePrintifyLogs}
               renderRow={(log: PrintifyLogRow) => (
                 <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                   <td className="py-3 pl-4 pr-3 text-xs font-mono text-gray-500 dark:text-gray-400">{log.order_id?.slice(0, 16) ?? '—'}</td>
