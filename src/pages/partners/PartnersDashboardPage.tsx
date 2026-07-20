@@ -4,9 +4,12 @@ import { Badge } from '../../components/ui/Badge.js';
 import { Button } from '../../components/ui/Button.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner.js';
+import { ProductGrid } from '../../components/product/ProductGrid.js';
 import { partnerFetchDashboard } from '../../lib/api.js';
 import { formatDate, formatPrice } from '../../lib/utils.js';
 import { usePartnerSession } from '../../hooks/usePartner.js';
+import { useBasket } from '../../context/BasketContext.js';
+import { useProducts } from '../../hooks/useProducts.js';
 import type { PartnerDashboard, PartnerOrderSummary } from '../../../types/index.js';
 
 const statusVariant: Record<PartnerOrderSummary['status'], 'default' | 'success' | 'warning' | 'error' | 'info'> = {
@@ -52,9 +55,13 @@ function OrderCard({ order }: { order: PartnerOrderSummary }) {
           <div key={item.id} className="flex items-center justify-between gap-3 text-sm text-gray-700">
             <div>
               <p className="font-semibold text-navy-900">{item.title}</p>
-              <p className="text-xs text-gray-500">{item.color} / {item.size} × {item.quantity}</p>
+              <p className="text-xs text-gray-500">
+                {item.color} / {item.size} × {item.quantity}
+              </p>
             </div>
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{money(item.unitPrice * item.quantity)}</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+              {money(item.unitPrice * item.quantity)}
+            </span>
           </div>
         ))}
         {hiddenCount > 0 && (
@@ -87,6 +94,8 @@ function OrderCard({ order }: { order: PartnerOrderSummary }) {
 export default function PartnersDashboardPage() {
   const navigate = useNavigate();
   const { session, clearSession } = usePartnerSession();
+  const { itemCount } = useBasket();
+  const { products, loading: productsLoading, error: productsError } = useProducts();
   const [dashboard, setDashboard] = useState<PartnerDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -143,6 +152,8 @@ export default function PartnersDashboardPage() {
       { label: 'Net sales', value: money(summary.netSales) },
     ];
   }, [dashboard]);
+
+  const featuredProducts = products.slice(0, 4);
 
   if (!session) return null;
 
@@ -206,10 +217,12 @@ export default function PartnersDashboardPage() {
                   Club slug: <span className="font-semibold text-navy-900">{dashboard.partner.slug}</span>
                   {dashboard.partner.discountCode ? (
                     <>
-                      {' '}| code <span className="font-semibold text-navy-900">{dashboard.partner.discountCode}</span>
+                      {' '}
+                      | code <span className="font-semibold text-navy-900">{dashboard.partner.discountCode}</span>
                     </>
                   ) : null}
-                  {' '}| commission <span className="font-semibold text-navy-900">{dashboard.partner.commissionRate}%</span>
+                  {' '}
+                  | commission <span className="font-semibold text-navy-900">{dashboard.partner.commissionRate}%</span>
                 </p>
                 {dashboard.partner.description && (
                   <p className="mt-4 rounded-2xl bg-gray-50 p-4 text-sm leading-7 text-gray-600">
@@ -235,6 +248,52 @@ export default function PartnersDashboardPage() {
                   <span>•</span>
                   <span>Discounts {money(dashboard.summary.discountTotal)}</span>
                 </div>
+              </div>
+            </section>
+
+            <section className="mt-8 rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
+              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p className="label">Stock ordering</p>
+                  <h3 className="mt-2 text-2xl font-black tracking-tight">Order club stock from the same UTC range</h3>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button variant="secondary" onClick={() => navigate('/#collection')}>
+                    Browse collection
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/checkout')}
+                    disabled={itemCount === 0}
+                    className="bg-navy-900 text-white hover:bg-navy-800"
+                  >
+                    Go to checkout{itemCount > 0 ? ` (${itemCount})` : ''}
+                  </Button>
+                </div>
+              </div>
+
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-500">
+                Open any product to choose colour, size and quantity, then send it through the normal basket flow. This keeps stock orders in the same checkout
+                path as customer orders.
+              </p>
+
+              <div className="mt-8">
+                {productsLoading ? (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <div key={index} className="aspect-[3/4] animate-pulse rounded-2xl bg-gray-100" />
+                    ))}
+                  </div>
+                ) : productsError ? (
+                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-sm text-gray-500">
+                    {productsError}
+                  </div>
+                ) : featuredProducts.length > 0 ? (
+                  <ProductGrid products={featuredProducts} />
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-sm text-gray-500">
+                    No products available for ordering.
+                  </div>
+                )}
               </div>
             </section>
 
