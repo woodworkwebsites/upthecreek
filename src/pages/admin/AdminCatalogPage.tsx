@@ -254,7 +254,8 @@ export default function AdminCatalogPage() {
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Pricing Matrix Presets</p>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Default row templates for the matrix in the product creator. Partner price is what shows on the partner order page.
+              Default row templates for the matrix in the product creator. Partner price is your income per garment on the partner
+              order page; partner margin is Sale price (RRP) minus partner price — what you're giving up versus a retail sale.
             </p>
           </div>
           <button
@@ -279,15 +280,15 @@ export default function AdminCatalogPage() {
                 <th className="px-2 py-2">Delivery</th>
                 <th className="px-2 py-2">Sale price</th>
                 <th className="px-2 py-2">Margin</th>
-                <th className="px-2 py-2 text-amber-700 dark:text-amber-400">Partner price</th>
-                <th className="px-2 py-2 text-amber-700 dark:text-amber-400">Partner margin</th>
+                <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
+                <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Sale price (RRP) minus partner price">Partner margin</th>
                 <th className="px-2 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
                 {pricingRows.map((row, index) => {
                   const margin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
-                  const partnerMargin = Number.parseFloat(row.partnerPrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
+                  const partnerMargin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.partnerPrice || '0');
                   return (
                   <tr key={index} className="border-t border-gray-100 dark:border-gray-800">
                     <td className="px-2 py-1.5">
