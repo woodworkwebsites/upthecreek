@@ -73,22 +73,40 @@ function normalizeColorName(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function normalizeColors(colors: PrintifyColor[]): PrintifyColor[] {
-  const seen = new Set<string>();
-  return colors.filter((color) => {
-    const key = normalizeColorName(color.name);
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+function normalizeColor(value: unknown): PrintifyColor | null {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as { name?: unknown; hex?: unknown };
+  if (typeof candidate.name !== 'string') return null;
+  const name = candidate.name.trim();
+  if (!name) return null;
+  const hex = typeof candidate.hex === 'string' && candidate.hex.trim().length > 0
+    ? candidate.hex.trim()
+    : '#111827';
+  return { name, hex };
 }
 
-function mergeColors(...groups: PrintifyColor[][]): PrintifyColor[] {
+function normalizeColors(colors: unknown[]): PrintifyColor[] {
+  const seen = new Set<string>();
+  const normalized: PrintifyColor[] = [];
+  for (const value of colors) {
+    const color = normalizeColor(value);
+    if (!color) continue;
+    const key = normalizeColorName(color.name);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    normalized.push(color);
+  }
+  return normalized;
+}
+
+function mergeColors(...groups: unknown[][]): PrintifyColor[] {
   const merged: PrintifyColor[] = [];
   const seen = new Set<string>();
 
   for (const group of groups) {
-    for (const color of group) {
+    for (const value of group) {
+      const color = normalizeColor(value);
+      if (!color) continue;
       const key = normalizeColorName(color.name);
       if (!key || seen.has(key)) continue;
       seen.add(key);
@@ -160,7 +178,7 @@ interface ProductMetadata {
   productType?: string;
   garment?: string;
   pricingMatrix?: PricingMatrixRow | null;
-  customColors?: PrintifyColor[];
+  colors?: PrintifyColor[];
 }
 
 function parseProductMetadata(rawCategory: string | null | undefined): ProductMetadata {
@@ -184,22 +202,11 @@ function parseProductMetadata(rawCategory: string | null | undefined): ProductMe
             ? JSON.stringify(metadata.pricingMatrix)
             : null,
       ),
-      customColors: Array.isArray(metadata.customColors)
-        ? metadata.customColors
-            .filter((value): value is PrintifyColor => (
-              Boolean(
-                value &&
-                typeof value === 'object' &&
-                typeof value.name === 'string' &&
-                typeof value.hex === 'string',
-              )
-            ))
-            .map((value) => ({
-              name: value.name.trim(),
-              hex: value.hex.trim() || '#111827',
-            }))
-            .filter((value) => value.name.length > 0)
-        : undefined,
+      colors: Array.isArray(metadata.colors)
+        ? normalizeColors(metadata.colors)
+        : Array.isArray(metadata.customColors)
+          ? normalizeColors(metadata.customColors)
+          : undefined,
     };
   } catch {
     return {};
@@ -214,7 +221,7 @@ function serializeProductMetadata(metadata: ProductMetadata): string {
   if (metadata.productType !== undefined) payload.productType = metadata.productType;
   if (metadata.garment !== undefined) payload.garment = metadata.garment;
   if (metadata.pricingMatrix !== undefined) payload.pricingMatrix = metadata.pricingMatrix;
-  if (metadata.customColors !== undefined) payload.customColors = metadata.customColors;
+  if (metadata.colors !== undefined) payload.colors = metadata.colors;
 
   return JSON.stringify(payload);
 }
@@ -227,7 +234,7 @@ function mergeProductMetadata(existingCategory: string | null | undefined, field
     productType: fields.productType ?? current.productType,
     garment: fields.garment ?? current.garment,
     pricingMatrix: fields.pricingMatrix !== undefined ? fields.pricingMatrix : current.pricingMatrix,
-    customColors: fields.customColors !== undefined ? fields.customColors : current.customColors,
+    colors: fields.customColors !== undefined ? fields.customColors : current.colors,
   });
 }
 
@@ -243,11 +250,13 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const categoryMetadata = parseProductMetadata(row.category);
   const effectivePricingMatrix = isEmptyObject(pricingMatrix) ? (categoryMetadata.pricingMatrix ?? null) : pricingMatrix;
 
-  const adminCustomColors = rawCustomColors.length > 0 ? rawCustomColors : (categoryMetadata.customColors ?? []);
   const adminColorSource = mergeColors(
     rawColors,
-    adminCustomColors,
-    rawColors.length === 0 && adminCustomColors.length === 0 ? DEFAULT_FALLBACK_COLORS : [],
+    rawCustomColors,
+    categoryMetadata.colors ?? categoryMetadata.customColors ?? [],
+    rawColors.length === 0 && rawCustomColors.length === 0 && !(categoryMetadata.colors?.length ?? categoryMetadata.customColors?.length ?? 0)
+      ? DEFAULT_FALLBACK_COLORS
+      : [],
   );
   const adminColors = normalizeColors(adminColorSource);
   const visibleColors = view === 'admin'
@@ -259,7 +268,7 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const missingColorVariants = syntheticVariants.filter((variant) => !rawVariantColorSet.has(normalizeColorName(variant.color)));
   const colors = view === 'admin'
     ? adminColors
-    : filterVisibleColors(adminColors, hiddenColorSet);
+    : visibleColors;
 
   const allVariants = view === 'admin'
     ? (rawVariants.length > 0 ? [...rawVariants, ...missingColorVariants] : syntheticVariants)
@@ -312,7 +321,7 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     images,
     variants,
     colors,
-    customColors,
+    customColors: view === 'admin' ? adminColors : visibleColors,
     hiddenColors,
     sizes:          rawSizes,
     minPrice:       aggregates.minPrice,
@@ -539,8 +548,8 @@ export async function updateProductFields(
     ? currentColors
     : currentCustomColors.length > 0
       ? currentCustomColors
-      : categoryMetadata.customColors?.length
-        ? categoryMetadata.customColors
+      : categoryMetadata.colors?.length
+        ? categoryMetadata.colors
         : DEFAULT_FALLBACK_COLORS;
   const normalizedColors = normalizeColors(colorSource);
 
@@ -560,7 +569,7 @@ export async function updateProductFields(
         productType: fields.productType,
         garment: fields.garment,
         pricingMatrix: fields.pricingMatrix,
-        customColors: fields.customColors,
+        colors: fields.customColors,
       })
     : undefined;
 
@@ -653,7 +662,7 @@ export async function upsertProduct(
     productType: data.productType,
     garment: data.garment,
     pricingMatrix: data.pricingMatrix ?? undefined,
-    customColors: nextCustomColors,
+    colors: nextCustomColors,
   });
 
   await db
