@@ -153,7 +153,7 @@ export default function PartnersDashboardPage() {
     ];
   }, [dashboard]);
 
-  const featuredProducts = products.slice(0, 4);
+  const publishedProducts = products.filter((product) => product.isEnabled);
 
   if (!session) return null;
 
@@ -255,11 +255,11 @@ export default function PartnersDashboardPage() {
               <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <p className="label">Stock ordering</p>
-                  <h3 className="mt-2 text-2xl font-black tracking-tight">Order club stock from the same UTC range</h3>
+                  <h3 className="mt-2 text-2xl font-black tracking-tight">Order anything from the published range</h3>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <Button variant="secondary" onClick={() => navigate('/#collection')}>
-                    Browse collection
+                    Browse full range
                   </Button>
                   <Button
                     onClick={() => navigate('/checkout')}
@@ -272,8 +272,8 @@ export default function PartnersDashboardPage() {
               </div>
 
               <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-500">
-                Open any product to choose colour, size and quantity, then send it through the normal basket flow. This keeps stock orders in the same checkout
-                path as customer orders.
+                Open any published product to choose colour, size and quantity, then send it through the normal basket flow. The club can order whatever is
+                live in the UTC range and check out the same way as customer orders.
               </p>
 
               <div className="mt-8">
@@ -287,8 +287,8 @@ export default function PartnersDashboardPage() {
                   <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-sm text-gray-500">
                     {productsError}
                   </div>
-                ) : featuredProducts.length > 0 ? (
-                  <ProductGrid products={featuredProducts} />
+                ) : publishedProducts.length > 0 ? (
+                  <ProductGrid products={publishedProducts} />
                 ) : (
                   <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-sm text-gray-500">
                     No products available for ordering.
