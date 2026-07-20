@@ -308,6 +308,7 @@ function pricingMatrixSignature(matrix: {
   saleCost: string;
   delivery: string;
   salePrice: string;
+  partnerPrice: string;
 } | null): string {
   return JSON.stringify(matrix ?? null);
 }
@@ -321,6 +322,7 @@ function normalizePricingMatrix(matrix: {
   saleCost: string;
   delivery: string;
   salePrice: string;
+  partnerPrice: string;
 }) {
   return {
     audience: matrix.audience.trim(),
@@ -331,6 +333,7 @@ function normalizePricingMatrix(matrix: {
     saleCost: matrix.saleCost.trim(),
     delivery: matrix.delivery.trim(),
     salePrice: matrix.salePrice.trim(),
+    partnerPrice: matrix.partnerPrice.trim(),
   };
 }
 
@@ -344,6 +347,7 @@ function emptyPricingMatrix() {
     saleCost: '',
     delivery: '',
     salePrice: '',
+    partnerPrice: '',
   };
 }
 
@@ -359,6 +363,7 @@ function matchPricingPreset(
   saleCost: string;
   delivery: string;
   salePrice: string;
+  partnerPrice: string;
 } | null {
   const preset = findPricingPresetRow(catalog.pricingRows, product.audience, product.productType, product.garment)
     ?? catalog.pricingRows[0];
@@ -380,6 +385,7 @@ function matchPricingPresetBySelection(
   saleCost: string;
   delivery: string;
   salePrice: string;
+  partnerPrice: string;
 } | null {
   const preset = findPricingPresetRow(catalog.pricingRows, audience, productType, garment);
   return preset ? normalizePricingMatrix(preset) : null;
@@ -404,7 +410,10 @@ function ProductRow({
   const [category, setCategory] = useState(product.audience || '');
   const [productType, setProductType] = useState(product.productType || '');
   const [garmentType, setGarmentType] = useState(product.garment || '');
-  const initialPricingMatrix = product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? emptyPricingMatrix();
+  const initialPricingMatrix = {
+    ...emptyPricingMatrix(),
+    ...(product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? {}),
+  };
   const [pricingMatrix, setPricingMatrix] = useState(initialPricingMatrix);
   const [hiddenColors, setHiddenColors] = useState<string[]>(product.hiddenColors ?? []);
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
@@ -637,7 +646,10 @@ function ProductRow({
     (a, b) => (colorOrder.get(a.name) ?? Number.MAX_SAFE_INTEGER) - (colorOrder.get(b.name) ?? Number.MAX_SAFE_INTEGER),
   );
   const currentPricingSignature = pricingMatrixSignature(pricingMatrix);
-  const originalPricingSignature = pricingMatrixSignature(product.pricingMatrix ?? matchPricingPreset(product, catalog));
+  const originalPricingSignature = pricingMatrixSignature({
+    ...emptyPricingMatrix(),
+    ...(product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? {}),
+  });
   const hasChanges = title.trim() !== product.title
     || description.trim() !== (product.description ?? '').trim()
     || category.trim() !== (product.audience || '').trim()
@@ -868,7 +880,7 @@ function ProductRow({
             <p className="mt-1 inline-flex items-center rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950 dark:text-amber-200">
               {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
             </p>
-            <div className="mt-2 grid gap-1.5 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-2 grid gap-1.5 sm:grid-cols-2 xl:grid-cols-5">
               <label className="space-y-1">
                 <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Surface</span>
                 <input
@@ -899,6 +911,14 @@ function ProductRow({
                   value={pricingMatrix.salePrice}
                   onChange={(e) => updatePricingMatrix({ salePrice: e.target.value })}
                   className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-600 dark:text-amber-400">Partner</span>
+                <input
+                  value={pricingMatrix.partnerPrice}
+                  onChange={(e) => updatePricingMatrix({ partnerPrice: e.target.value })}
+                  className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-amber-900/40 dark:bg-gray-900 dark:text-gray-100"
                 />
               </label>
             </div>

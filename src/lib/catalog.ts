@@ -14,6 +14,7 @@ export interface PricingRowOption {
   saleCost: string;
   delivery: string;
   salePrice: string;
+  partnerPrice: string;
 }
 
 export function createEmptyPricingRow(overrides: Partial<PricingRowOption> = {}): PricingRowOption {
@@ -26,6 +27,7 @@ export function createEmptyPricingRow(overrides: Partial<PricingRowOption> = {})
     saleCost: '',
     delivery: '',
     salePrice: '',
+    partnerPrice: '',
     ...overrides,
   };
 }
@@ -71,6 +73,7 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       saleCost: '22.00',
       delivery: '2.99',
       salePrice: '24.99',
+      partnerPrice: '11.29',
     },
     {
       audience: 'Ladies',
@@ -81,6 +84,7 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       saleCost: '22.00',
       delivery: '2.99',
       salePrice: '24.99',
+      partnerPrice: '11.10',
     },
     {
       audience: 'Kids',
@@ -91,6 +95,7 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       saleCost: '12.00',
       delivery: '2.99',
       salePrice: '14.99',
+      partnerPrice: '9.17',
     },
     {
       audience: 'Ladies',
@@ -101,6 +106,7 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       saleCost: '27.00',
       delivery: '2.99',
       salePrice: '29.99',
+      partnerPrice: '15.64',
     },
     {
       audience: 'Mens/Unisex',
@@ -111,6 +117,7 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       saleCost: '27.00',
       delivery: '2.99',
       salePrice: '29.99',
+      partnerPrice: '15.64',
     },
     {
       audience: 'Mens/Unisex',
@@ -121,6 +128,7 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       saleCost: '29.00',
       delivery: '2.99',
       salePrice: '31.99',
+      partnerPrice: '15.68',
     },
     {
       audience: 'Mens/Unisex',
@@ -131,6 +139,7 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       saleCost: '30.00',
       delivery: '2.99',
       salePrice: '33.99',
+      partnerPrice: '18.98',
     },
   ],
 };
@@ -272,6 +281,7 @@ export function serializeCatalogSettings(options: CatalogOptions): Record<string
         saleCost: row.saleCost.trim(),
         delivery: row.delivery.trim(),
         salePrice: row.salePrice.trim(),
+        partnerPrice: row.partnerPrice.trim(),
       })),
     ),
   };
@@ -306,6 +316,7 @@ function parsePricingRows(raw: string | null | undefined, fallback: PricingRowOp
         saleCost: value.saleCost.trim(),
         delivery: value.delivery.trim(),
         salePrice: value.salePrice.trim(),
+        partnerPrice: typeof value.partnerPrice === 'string' ? value.partnerPrice.trim() : '',
       }));
     return rows.length > 0 ? rows : fallback;
   } catch {

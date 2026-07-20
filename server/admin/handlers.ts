@@ -189,6 +189,7 @@ interface ManualPricingMatrix {
   saleCost: string;
   delivery: string;
   salePrice: string;
+  partnerPrice: string;
 }
 
 function normalizeHiddenColors(hiddenColors: unknown): string[] {
@@ -308,6 +309,7 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
           saleCost: parsed.saleCost?.trim() ?? '',
           delivery: parsed.delivery?.trim() ?? '',
           salePrice: parsed.salePrice?.trim() ?? '',
+          partnerPrice: parsed.partnerPrice?.trim() ?? '',
         };
       }
     } catch {
@@ -467,6 +469,7 @@ export async function handleUpdateProduct(
       saleCost?: string;
       delivery?: string;
       salePrice?: string;
+      partnerPrice?: string;
     } | null;
     isEnabled?: boolean;
     sizeGuideImage?: string | null;
@@ -539,6 +542,7 @@ export async function handleUpdateProduct(
           saleCost: body.pricingMatrix.saleCost?.trim() || '',
           delivery: body.pricingMatrix.delivery?.trim() || '',
           salePrice: body.pricingMatrix.salePrice?.trim() || '',
+          partnerPrice: body.pricingMatrix.partnerPrice?.trim() || '',
         }
       : undefined;
   const colors = body.colors !== undefined

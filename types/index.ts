@@ -36,6 +36,7 @@ export interface PricingMatrixRow {
   saleCost: string;
   delivery: string;
   salePrice: string;
+  partnerPrice: string;
 }
 
 // ─── D1 Row types (snake_case matching column names) ─────────────────────────

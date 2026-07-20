@@ -80,19 +80,6 @@ export default function AdminCatalogPage() {
     setPricingRows((current) => current.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   }
 
-  function addPricingRow() {
-    setPricingRows((current) => [...current, {
-      audience: '',
-      product: '',
-      garment: '',
-      printSurface: '',
-      manufacturingCost: '',
-      saleCost: '',
-      delivery: '',
-      salePrice: '',
-    }]);
-  }
-
   function removePricingRow(index: number) {
     setPricingRows((current) => current.filter((_, i) => i !== index));
   }
@@ -266,11 +253,13 @@ export default function AdminCatalogPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Pricing Matrix Presets</p>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Default row templates for the matrix in the product creator.</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Default row templates for the matrix in the product creator. Partner price is what shows on the partner order page.
+            </p>
           </div>
           <button
             type="button"
-            onClick={addPricingRow}
+            onClick={() => addPricingRow()}
             className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white"
           >
             Add row
@@ -290,12 +279,15 @@ export default function AdminCatalogPage() {
                 <th className="px-2 py-2">Delivery</th>
                 <th className="px-2 py-2">Sale price</th>
                 <th className="px-2 py-2">Margin</th>
+                <th className="px-2 py-2 text-amber-700 dark:text-amber-400">Partner price</th>
+                <th className="px-2 py-2 text-amber-700 dark:text-amber-400">Partner margin</th>
                 <th className="px-2 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
                 {pricingRows.map((row, index) => {
                   const margin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
+                  const partnerMargin = Number.parseFloat(row.partnerPrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
                   return (
                   <tr key={index} className="border-t border-gray-100 dark:border-gray-800">
                     <td className="px-2 py-1.5">
@@ -325,6 +317,14 @@ export default function AdminCatalogPage() {
                     <td className="px-2 py-1.5">
                       <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${margin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
                         £{margin.toFixed(2)}
+                      </div>
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <input value={row.partnerPrice} onChange={(e) => updatePricingRow(index, { partnerPrice: e.target.value })} placeholder="e.g. 11.29" className="w-full min-w-0 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-gray-100" />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerMargin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                        £{partnerMargin.toFixed(2)}
                       </div>
                     </td>
                     <td className="px-2 py-1.5">

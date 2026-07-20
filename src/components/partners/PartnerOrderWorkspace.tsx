@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type DragEvent } from 'react';
 import type { PrintifyColor, PrintifyVariant, Product } from '../../../types/index.js';
 import { Badge } from '../ui/Badge.js';
-import { cn, formatPrice, formatPriceRange } from '../../lib/utils.js';
+import { cn, formatPrice } from '../../lib/utils.js';
 import { DEFAULT_SIZE_OPTIONS } from '../../../types/catalog.js';
 
 type BasketSizeEntry = {
@@ -66,11 +66,19 @@ function getColorVariants(product: Product, color: string): PrintifyVariant[] {
     .sort((left, right) => getProductSizes(product).indexOf(left.size) - getProductSizes(product).indexOf(right.size));
 }
 
+function getPartnerUnitPrice(product: Product, fallback: number): number {
+  const raw = product.pricingMatrix?.partnerPrice?.trim();
+  if (!raw) return fallback;
+  const parsed = parseFloat(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) : fallback;
+}
+
 function buildSizeEntries(product: Product, color: string): BasketSizeEntry[] {
   const sizes = getProductSizes(product);
   const variants = getColorVariants(product, color);
   const variantBySize = new Map(variants.map((variant) => [variant.size, variant]));
   const fallbackPrice = product.minPrice > 0 ? product.minPrice : product.maxPrice > 0 ? product.maxPrice : 0;
+  const unitPrice = getPartnerUnitPrice(product, fallbackPrice);
 
   return sizes.map((size) => {
     const variant = variantBySize.get(size) ?? null;
@@ -78,7 +86,7 @@ function buildSizeEntries(product: Product, color: string): BasketSizeEntry[] {
       size,
       variantId: variant?.id ?? null,
       available: true,
-      unitPrice: variant?.price ?? fallbackPrice,
+      unitPrice: variant ? getPartnerUnitPrice(product, variant.price) : unitPrice,
       quantity: 0,
     };
   });
@@ -333,7 +341,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Badge variant="info">{colors.length} colours</Badge>
                       <Badge variant="default">{getProductSizes(product).length} sizes</Badge>
-                      <Badge variant="success">{formatPriceRange(product.minPrice, product.maxPrice)}</Badge>
+                      <Badge variant="success">{formatPrice(getPartnerUnitPrice(product, product.minPrice))} partner</Badge>
                     </div>
                   </div>
 

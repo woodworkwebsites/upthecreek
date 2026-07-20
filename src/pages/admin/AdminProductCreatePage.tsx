@@ -139,6 +139,7 @@ export default function AdminProductCreatePage() {
         saleCost: pricingPreset.saleCost.trim(),
         delivery: pricingPreset.delivery.trim(),
         salePrice: pricingPreset.salePrice.trim(),
+        partnerPrice: pricingPreset.partnerPrice.trim(),
       } : {
         audience: '',
         product: '',
@@ -148,6 +149,7 @@ export default function AdminProductCreatePage() {
         saleCost: '',
         delivery: '',
         salePrice,
+        partnerPrice: '',
       }));
       form.append('isEnabled', String(isEnabled));
       form.append('variants', JSON.stringify(
