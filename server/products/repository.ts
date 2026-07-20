@@ -8,8 +8,9 @@ import type {
   PricingMatrixRow,
 } from '../../types/index.js';
 import { DEFAULT_SIZE_OPTIONS } from '../../types/catalog.js';
-import { DEFAULT_CATALOG_OPTIONS } from '../../src/lib/catalog.js';
+import { DEFAULT_CATALOG_OPTIONS, findPricingPresetRow, parseCatalogSettings } from '../../src/lib/catalog.js';
 import { deriveProductAggregates } from './aggregates.js';
+import { getAllSettings } from '../settings/repository.js';
 
 const DEFAULT_FALLBACK_COLORS: PrintifyColor[] = [
   { name: 'Black', hex: '#111827' },
@@ -332,11 +333,41 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   };
 }
 
+function applyEffectivePartnerPrice(product: Product, pricingRows: ReturnType<typeof parseCatalogSettings>['pricingRows']): Product {
+  if (product.pricingMatrix?.partnerPrice?.trim()) return product;
+
+  const preset = findPricingPresetRow(pricingRows, product.audience, product.productType, product.garment);
+  if (!preset?.partnerPrice?.trim()) return product;
+
+  return {
+    ...product,
+    pricingMatrix: {
+      audience: '',
+      product: '',
+      garment: '',
+      printSurface: '',
+      manufacturingCost: '',
+      saleCost: '',
+      delivery: '',
+      salePrice: '',
+      ...product.pricingMatrix,
+      partnerPrice: preset.partnerPrice,
+    },
+  };
+}
+
+async function withEffectivePartnerPricing(db: D1Database, products: Product[]): Promise<Product[]> {
+  const settings = await getAllSettings(db);
+  const { pricingRows } = parseCatalogSettings(settings);
+  return products.map((product) => applyEffectivePartnerPrice(product, pricingRows));
+}
+
 export async function getAllProducts(db: D1Database): Promise<Product[]> {
   const result = await db
     .prepare('SELECT * FROM products WHERE is_enabled = 1 ORDER BY title')
     .all<ProductRow>();
-  return (result.results ?? []).map((row) => parseProduct(row, 'public'));
+  const products = (result.results ?? []).map((row) => parseProduct(row, 'public'));
+  return withEffectivePartnerPricing(db, products);
 }
 
 export async function getProductById(db: D1Database, id: string): Promise<Product | null> {
@@ -344,7 +375,9 @@ export async function getProductById(db: D1Database, id: string): Promise<Produc
     .prepare('SELECT * FROM products WHERE id = ? AND is_enabled = 1')
     .bind(id)
     .first<ProductRow>();
-  return row ? parseProduct(row, 'public') : null;
+  if (!row) return null;
+  const [product] = await withEffectivePartnerPricing(db, [parseProduct(row, 'public')]);
+  return product;
 }
 
 export async function getProductByPrintifyId(
@@ -355,14 +388,17 @@ export async function getProductByPrintifyId(
     .prepare('SELECT * FROM products WHERE printify_id = ?')
     .bind(printifyId)
     .first<ProductRow>();
-  return row ? parseProduct(row, 'public') : null;
+  if (!row) return null;
+  const [product] = await withEffectivePartnerPricing(db, [parseProduct(row, 'public')]);
+  return product;
 }
 
 export async function getAllProductsForAdmin(db: D1Database): Promise<Product[]> {
   const result = await db
     .prepare('SELECT * FROM products ORDER BY title')
     .all<ProductRow>();
-  return (result.results ?? []).map((row) => parseProduct(row, 'admin'));
+  const products = (result.results ?? []).map((row) => parseProduct(row, 'admin'));
+  return withEffectivePartnerPricing(db, products);
 }
 
 export async function listProductPrintifyIds(db: D1Database): Promise<string[]> {
@@ -490,7 +526,9 @@ export async function getProductByPrintifyIdForAdmin(
     .prepare('SELECT * FROM products WHERE printify_id = ?')
     .bind(printifyId)
     .first<ProductRow>();
-  return row ? parseProduct(row, 'admin') : null;
+  if (!row) return null;
+  const [product] = await withEffectivePartnerPricing(db, [parseProduct(row, 'admin')]);
+  return product;
 }
 
 export async function updateHiddenColors(
