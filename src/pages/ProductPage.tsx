@@ -78,6 +78,22 @@ export default function ProductPage() {
     return product.variants.filter((v) => v.color === selectedColor).map((v) => v.id);
   }, [product, selectedColor]);
 
+  useEffect(() => {
+    if (!product) return;
+
+    const colorIsValid = selectedColor && displayColors.some((color) => color.name === selectedColor);
+    const sizeIsValid = selectedSize && product.sizes.includes(selectedSize);
+
+    if (displayColors.length > 0 && !colorIsValid) {
+      setSelectedColor(displayColors[0].name);
+      return;
+    }
+
+    if (product.sizes.length > 0 && !sizeIsValid) {
+      setSelectedSize(product.sizes[0]);
+    }
+  }, [product, displayColors, selectedColor, selectedSize]);
+
   // Sticky mini-preview — shown on mobile once the main image has scrolled past.
   // Depends on `product` so the effect re-runs after the loading state resolves
   // and ImageGallery (which holds the sentinel ref) is actually in the DOM.
