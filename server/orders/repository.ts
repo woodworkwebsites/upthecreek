@@ -242,6 +242,7 @@ export async function deleteOrderById(
   id: string,
 ): Promise<boolean> {
   const result = await db.batch([
+    db.prepare('DELETE FROM partner_commissions WHERE order_id = ?').bind(id),
     db.prepare('DELETE FROM printify_logs WHERE order_id = ?').bind(id),
     db.prepare('DELETE FROM order_items WHERE order_id = ?').bind(id),
     db.prepare('DELETE FROM orders WHERE id = ?').bind(id),

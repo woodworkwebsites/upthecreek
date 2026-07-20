@@ -1,5 +1,5 @@
 import type { Env } from '../../types/env.js';
-import { getPartnerBySlug, getPartnerBySlugAndToken, listPartnerOrders, summarisePartnerDashboard } from './repository.js';
+import { getPartnerBySlug, getPartnerBySlugAndToken, listPartnerOrderSummaries, summarisePartnerDashboard } from './repository.js';
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -49,8 +49,8 @@ export async function handlePartnerDashboard(env: Env, request: Request, slug: s
     return json({ error: 'Unauthorized' }, 401);
   }
 
-  const orders = await listPartnerOrders(env.DB, partner);
-  const dashboard = summarisePartnerDashboard(partner, orders);
+  const recentOrders = await listPartnerOrderSummaries(env.DB, partner);
+  const dashboard = summarisePartnerDashboard(partner, recentOrders);
 
   return json(dashboard);
 }

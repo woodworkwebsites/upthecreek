@@ -264,6 +264,36 @@ export interface PartnerAdmin extends Partner {
   accessToken: string;
 }
 
+export type PartnerCommissionStatus = 'pending' | 'paid' | 'void';
+
+export interface PartnerCommissionRow {
+  id: string;
+  partner_id: string;
+  order_id: string;
+  order_status: OrderStatus;
+  gross_sales: number;
+  discount_amount: number;
+  commission_rate: number;
+  commission_amount: number;
+  status: PartnerCommissionStatus;
+  payout_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PartnerPayoutRow {
+  id: string;
+  partner_id: string;
+  period_start: string | null;
+  period_end: string | null;
+  amount: number;
+  reference: string | null;
+  notes: string | null;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PartnerInput {
   slug: string;
   name: string;
@@ -276,7 +306,9 @@ export interface PartnerInput {
 
 export interface PartnerOrderSummary {
   id: string;
+  orderId: string;
   status: OrderStatus;
+  commissionStatus: PartnerCommissionStatus;
   customerEmail: string;
   customerName: string | null;
   amountTotal: number;
@@ -284,6 +316,7 @@ export interface PartnerOrderSummary {
   discountCode: string | null;
   discountAmount: number;
   commissionAmount: number;
+  payoutId: string | null;
   fulfillmentProvider: FulfillmentProvider;
   externalOrderRef: string | null;
   itemCount: number;

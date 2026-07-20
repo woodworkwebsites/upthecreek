@@ -46,6 +46,7 @@ import {
   updatePartner,
   deletePartner,
   getPartnerById,
+  syncPartnerCommissionStatusByOrderId,
 } from '../partners/repository.js';
 import { logger } from '../logging.js';
 import { deleteAsset, storeAssetData } from '../assets/storage.js';
@@ -131,6 +132,7 @@ export async function handleFulfillOrder(
   await updateOrderStatus(env.DB, id, 'fulfilled', {
     externalOrderRef: body.externalOrderRef?.trim() || undefined,
   });
+  await syncPartnerCommissionStatusByOrderId(env.DB, id, 'fulfilled');
 
   return json({ success: true });
 }
@@ -167,6 +169,7 @@ export async function handleUpdateOrderStatus(
   await updateOrderStatus(env.DB, id, status as OrderStatus, {
     externalOrderRef: body.externalOrderRef?.trim() || undefined,
   });
+  await syncPartnerCommissionStatusByOrderId(env.DB, id, status as OrderStatus);
 
   return json({ success: true, status });
 }

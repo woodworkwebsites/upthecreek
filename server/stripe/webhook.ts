@@ -5,6 +5,7 @@ import {
   getOrderBySessionId,
   createOrder,
   createOrderItem,
+  getOrderWithItems,
   updateOrderStatus,
   writeWebhookLog,
 } from '../orders/repository.js';
@@ -15,6 +16,11 @@ import { getSetting } from '../settings/repository.js';
 import { sendOrderNotificationEmail } from '../notifications/email.js';
 import { sendPushoverNotification } from '../notifications/pushover.js';
 import { logger } from '../logging.js';
+import {
+  createPartnerCommissionFromOrder,
+  getPartnerByDiscountCode,
+  syncPartnerCommissionStatusByOrderId,
+} from '../partners/repository.js';
 
 export async function handleStripeWebhook(
   request: Request,
@@ -199,6 +205,25 @@ async function processCompletedSession(
     });
   }
 
+  const partnerDiscountCode = session.metadata?.discount_code ?? null;
+  if (partnerDiscountCode) {
+    const partner = await getPartnerByDiscountCode(env.DB, partnerDiscountCode);
+    const order = await getOrderWithItems(env.DB, orderId);
+    if (partner && order) {
+      try {
+        await createPartnerCommissionFromOrder(env.DB, partner, order);
+        await syncPartnerCommissionStatusByOrderId(env.DB, orderId, order.status);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.error('Failed to persist partner commission', {
+          orderId,
+          partnerId: partner.id,
+          error: message,
+        });
+      }
+    }
+  }
+
   const itemSummary = lineItems.length > 0
     ? lineItems.map((item) => `${item.quantity}x ${item.printifyId} (variant ${item.variantId})`).join(', ')
     : 'No items';
@@ -217,6 +242,7 @@ async function processCompletedSession(
 
   if (fulfillmentProvider === 'manual') {
     await updateOrderStatus(env.DB, orderId, 'awaiting_fulfillment');
+    await syncPartnerCommissionStatusByOrderId(env.DB, orderId, 'awaiting_fulfillment');
     logger.info('Order awaiting manual fulfillment', { orderId });
 
     return;
@@ -239,11 +265,13 @@ async function processCompletedSession(
       printifyPayload:  result.payload,
       printifyResponse: result.response,
     });
+    await syncPartnerCommissionStatusByOrderId(env.DB, orderId, 'fulfilled');
 
     logger.info('Order fulfilled', { orderId, printifyOrderId: result.printifyOrderId, mode });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await updateOrderStatus(env.DB, orderId, 'failed', { error: message });
+    await syncPartnerCommissionStatusByOrderId(env.DB, orderId, 'failed');
     throw err;
   }
 }
