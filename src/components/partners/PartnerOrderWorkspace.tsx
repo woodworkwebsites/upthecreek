@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type DragEvent } from 'react';
 import type { PrintifyColor, PrintifyVariant, Product } from '../../../types/index.js';
 import { Badge } from '../ui/Badge.js';
 import { cn, formatPrice, formatPriceRange } from '../../lib/utils.js';
+import { DEFAULT_SIZE_OPTIONS } from '../../../types/catalog.js';
 
 type BasketSizeEntry = {
   size: string;
@@ -146,6 +147,7 @@ function sizeTotals(basket: BasketLineItem[]): Record<string, number> {
   const totals: Record<string, number> = {};
   for (const line of basket) {
     for (const entry of line.sizes) {
+      if (entry.quantity <= 0) continue;
       totals[entry.size] = (totals[entry.size] ?? 0) + entry.quantity;
     }
   }
@@ -193,6 +195,10 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
   }, [products, query]);
 
   const totals = useMemo(() => sizeTotals(basket), [basket]);
+  const orderedSizes = useMemo(
+    () => DEFAULT_SIZE_OPTIONS.filter((size) => (totals[size] ?? 0) > 0),
+    [totals],
+  );
   const pieceCount = useMemo(() => basketCount(basket), [basket]);
   const value = useMemo(() => basketTotal(basket), [basket]);
 
@@ -417,16 +423,6 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
             </div>
           </div>
 
-          {Object.keys(totals).length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {Object.entries(totals).map(([size, quantity]) => (
-                <Badge key={size} variant="default" className="bg-gray-100 text-gray-700">
-                  {size} {quantity}
-                </Badge>
-              ))}
-            </div>
-          )}
-
           <div className="mt-5 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4">
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Drop zone</p>
             <p className="mt-2 text-sm leading-7 text-gray-500">
@@ -434,109 +430,98 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
             </p>
           </div>
 
-          <div className="mt-5 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+          <div className="mt-5 min-h-0 flex-1 overflow-auto pr-1">
             {basket.length === 0 ? (
               <div className="rounded-[1.5rem] border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">
                 Basket is empty.
               </div>
             ) : (
-              basket.map((item) => (
-                <article key={item.id} className="rounded-[1.35rem] border border-gray-200 bg-white p-3.5 shadow-[0_12px_34px_rgba(5,13,31,0.05)]">
-                  <div className="flex items-start gap-3">
-                    <img
-                      src={item.imageSrc}
-                      alt={`${item.title} ${item.color}`}
-                      className="h-16 w-14 flex-shrink-0 rounded-xl bg-gray-50 object-cover object-top"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-black tracking-tight text-navy-900">{item.title}</p>
-                          <p className="mt-1 text-xs text-gray-500">{item.garment}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeLine(item.id)}
-                          className="rounded-full border border-gray-200 px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <div className="flex items-center gap-2 rounded-full bg-gray-50 px-2.5 py-1">
-                          <span className="h-3.5 w-3.5 rounded-full border border-black/10" style={{ backgroundColor: item.colorHex }} aria-hidden />
-                          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-600">{item.color}</span>
-                        </div>
-                        <Badge variant="info" className="text-[11px]">{lineCount(item)} pcs</Badge>
-                        <Badge variant="success" className="text-[11px]">{formatPrice(lineTotal(item))}</Badge>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Size quantities</p>
-                    <button
-                      type="button"
-                      onClick={() => clearLine(item.id)}
-                      className="text-xs font-semibold text-gray-500 underline decoration-gray-300 underline-offset-2 hover:text-navy-900"
-                    >
-                      Clear sizes
-                    </button>
-                  </div>
-
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    {item.sizes.map((entry) => (
-                      <div
-                        key={entry.size}
-                        className={cn(
-                          'rounded-2xl border p-2.5',
-                          entry.available ? 'border-gray-200 bg-gray-50' : 'border-dashed border-gray-200 bg-gray-50/80 opacity-70',
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="text-xs font-black text-navy-900">{entry.size}</p>
-                            <p className="text-[10px] text-gray-500">{entry.available ? formatPrice(entry.unitPrice) : 'Unavailable'}</p>
-                          </div>
-                          <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-500 ring-1 ring-gray-200">
-                            {entry.quantity}
-                          </span>
-                        </div>
-                        <div className="mt-2.5 flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            disabled={!entry.available || entry.quantity === 0}
-                            onClick={() => updateQuantity(item.id, entry.size, entry.quantity - 1)}
-                            className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-sm font-black text-gray-500 transition-colors hover:text-navy-900 disabled:cursor-not-allowed disabled:opacity-30"
-                            aria-label={`Decrease ${entry.size}`}
-                          >
-                            −
-                          </button>
-                          <input
-                            type="number"
-                            min="0"
-                            max="99"
-                            step="1"
-                            value={entry.quantity}
-                            disabled={!entry.available}
-                            onChange={(event) => updateQuantity(item.id, entry.size, Number(event.target.value))}
-                            className="h-7 w-full rounded-xl border border-gray-200 bg-white px-2 text-center text-xs font-semibold text-navy-900 outline-none transition-colors focus:border-navy-800 disabled:bg-gray-100"
-                          />
-                          <button
-                            type="button"
-                            disabled={!entry.available}
-                            onClick={() => updateQuantity(item.id, entry.size, entry.quantity + 1)}
-                            className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-sm font-black text-gray-500 transition-colors hover:text-navy-900 disabled:cursor-not-allowed disabled:opacity-30"
-                            aria-label={`Increase ${entry.size}`}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
+              <table className="w-full min-w-[420px] border-separate border-spacing-y-2 text-sm">
+                <thead>
+                  <tr className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                    <th className="px-2 py-1 text-left">Garment / Colour</th>
+                    {orderedSizes.map((size) => (
+                      <th key={size} className="px-1 py-1 text-center">{size}</th>
                     ))}
-                  </div>
-                </article>
-              ))
+                    <th className="px-2 py-1 text-right">Pcs</th>
+                    <th className="px-2 py-1 text-right">Value</th>
+                    <th className="px-2 py-1" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {basket.map((item) => (
+                    <tr key={item.id}>
+                      <td className="rounded-l-xl border-y border-l border-gray-200 bg-white px-2.5 py-2">
+                        <div className="flex items-center gap-2.5">
+                          <img
+                            src={item.imageSrc}
+                            alt={`${item.title} ${item.color}`}
+                            className="h-11 w-9 flex-shrink-0 rounded-lg bg-gray-50 object-cover object-top"
+                          />
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-black tracking-tight text-navy-900">{item.title}</p>
+                            <p className="mt-0.5 truncate text-[10px] text-gray-500">{item.garment}</p>
+                            <div className="mt-1 flex items-center gap-1.5">
+                              <span
+                                className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-black/10"
+                                style={{ backgroundColor: item.colorHex }}
+                                aria-hidden
+                              />
+                              <span className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                                {item.color}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      {orderedSizes.map((size) => {
+                        const entry = item.sizes.find((candidate) => candidate.size === size);
+                        return (
+                          <td key={size} className="border-y border-gray-200 bg-white px-1 py-2 text-center">
+                            {entry?.available ? (
+                              <input
+                                type="number"
+                                min="0"
+                                max="99"
+                                step="1"
+                                value={entry.quantity}
+                                onChange={(event) => updateQuantity(item.id, size, Number(event.target.value))}
+                                className="h-8 w-12 rounded-lg border border-gray-200 bg-gray-50 text-center text-xs font-semibold text-navy-900 outline-none transition-colors focus:border-navy-800"
+                              />
+                            ) : (
+                              <span className="text-gray-300">–</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td className="border-y border-gray-200 bg-white px-2.5 py-2 text-right text-xs font-black text-navy-900">
+                        {lineCount(item)}
+                      </td>
+                      <td className="border-y border-gray-200 bg-white px-2.5 py-2 text-right text-xs font-black text-navy-900">
+                        {formatPrice(lineTotal(item))}
+                      </td>
+                      <td className="rounded-r-xl border-y border-r border-gray-200 bg-white px-2.5 py-2">
+                        <div className="flex flex-col items-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => removeLine(item.id)}
+                            className="rounded-full border border-gray-200 px-2 py-0.5 text-[10px] font-semibold text-red-600 hover:bg-red-50"
+                          >
+                            Remove
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => clearLine(item.id)}
+                            className="text-[10px] font-semibold text-gray-400 underline decoration-gray-300 underline-offset-2 hover:text-navy-900"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </div>
