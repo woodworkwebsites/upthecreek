@@ -10,6 +10,18 @@ import type {
 import { DEFAULT_SIZE_OPTIONS } from '../../types/catalog.js';
 import { deriveProductAggregates } from './aggregates.js';
 
+const DEFAULT_FALLBACK_COLORS: PrintifyColor[] = [
+  { name: 'Black', hex: '#111827' },
+  { name: 'Dark Grey', hex: '#374151' },
+  { name: 'Navy', hex: '#1e3a8a' },
+  { name: 'White', hex: '#f9fafb' },
+  { name: 'Natural', hex: '#f5f1e8' },
+  { name: 'True Royal', hex: '#1d4ed8' },
+  { name: 'Military Green', hex: '#4b5d43' },
+  { name: 'Mauve', hex: '#d48a8a' },
+  { name: 'Sage', hex: '#b6c0a8' },
+];
+
 function parseJsonArray<T>(value: string | null | undefined): T[] {
   if (!value) return [];
   try {
@@ -184,16 +196,20 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const effectivePricingMatrix = isEmptyObject(pricingMatrix) ? (categoryMetadata.pricingMatrix ?? null) : pricingMatrix;
 
   const customColors = rawCustomColors.length > 0 ? rawCustomColors : (categoryMetadata.customColors ?? []);
-  const syntheticVariants = rawVariants.length > 0
-    ? rawVariants
-    : buildSyntheticVariants(normalizeColors(customColors), effectivePricingMatrix);
+  const colorSource = rawColors.length > 0
+    ? rawColors
+    : customColors.length > 0
+      ? customColors
+      : DEFAULT_FALLBACK_COLORS;
+  const normalizedColors = normalizeColors(colorSource);
+  const syntheticVariants = buildSyntheticVariants(normalizedColors, effectivePricingMatrix);
   const colors = view === 'admin'
-    ? normalizeColors(rawColors)
-    : filterVisibleColors(normalizeColors(customColors), hiddenColorSet);
+    ? normalizedColors
+    : filterVisibleColors(normalizedColors, hiddenColorSet);
 
   const variants = (view === 'admin'
-    ? syntheticVariants
-    : rawVariants.filter((variant) => !hiddenColorSet.has(variant.color))
+    ? (rawVariants.length > 0 ? rawVariants : syntheticVariants)
+    : (rawVariants.length > 0 ? rawVariants.filter((variant) => !hiddenColorSet.has(variant.color)) : syntheticVariants.filter((variant) => !hiddenColorSet.has(variant.color)))
   ).map((variant) => ({
     ...variant,
     available: true,
