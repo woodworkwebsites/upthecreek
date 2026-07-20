@@ -7,7 +7,7 @@ import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatDate } from '../../lib/utils.js';
 
-type TabId = 'webhooks' | 'sync' | 'printify';
+type TabId = 'webhooks' | 'sync' | 'imports';
 const LOG_ARCHIVE_KEY = 'admin.logs.archiveBefore';
 
 function readArchivedBefore(): number | null {
@@ -73,7 +73,7 @@ export default function AdminLogsPage() {
   const tabs: { id: TabId; label: string; count: number }[] = [
     { id: 'webhooks', label: 'Webhooks', count: visibleWebhookLogs.length },
     { id: 'sync',     label: 'Sync',     count: visibleSyncLogs.length },
-    { id: 'printify', label: 'Supplier', count: visiblePrintifyLogs.length },
+    { id: 'imports', label: 'Imports', count: visiblePrintifyLogs.length },
   ];
 
   return (
@@ -160,7 +160,7 @@ export default function AdminLogsPage() {
             />
           )}
 
-          {activeTab === 'printify' && (
+          {activeTab === 'imports' && (
             <LogTable
               headers={['Order', 'Mode', 'Action', 'Status', 'Error', 'Created']}
               rows={visiblePrintifyLogs}
