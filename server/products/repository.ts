@@ -8,6 +8,7 @@ import type {
   PricingMatrixRow,
 } from '../../types/index.js';
 import { DEFAULT_SIZE_OPTIONS } from '../../types/catalog.js';
+import { DEFAULT_CATALOG_OPTIONS } from '../../src/lib/catalog.js';
 import { deriveProductAggregates } from './aggregates.js';
 
 const DEFAULT_FALLBACK_COLORS: PrintifyColor[] = [
@@ -83,7 +84,8 @@ function sortDefaultImageFirst(images: PrintifyProductImage[]): PrintifyProductI
 }
 
 function parseSalePriceToPence(pricingMatrix: PricingMatrixRow | null): number {
-  const parsed = parseFloat(pricingMatrix?.salePrice?.trim() ?? '');
+  const fallbackSalePrice = DEFAULT_CATALOG_OPTIONS.pricingRows[0]?.salePrice?.trim() || '24.99';
+  const parsed = parseFloat(pricingMatrix?.salePrice?.trim() || fallbackSalePrice);
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
 }
 

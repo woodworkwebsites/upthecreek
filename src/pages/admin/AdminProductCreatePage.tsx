@@ -108,7 +108,9 @@ export default function AdminProductCreatePage() {
       form.append('audience', category.trim() || catalog.audiences[0] || '');
       form.append('productType', productType.trim() || catalog.products[0] || '');
       form.append('garment', garmentType.trim() || catalog.garments[0] || '');
-      const pricingPreset = findPricingPresetRow(catalog.pricingRows, category, productType, garmentType);
+      const pricingPreset = findPricingPresetRow(catalog.pricingRows, category, productType, garmentType)
+        ?? catalog.pricingRows[0]
+        ?? null;
       form.append('pricingMatrix', JSON.stringify(pricingPreset ? {
         audience: pricingPreset.audience.trim(),
         product: pricingPreset.product.trim(),
@@ -126,7 +128,7 @@ export default function AdminProductCreatePage() {
         manufacturingCost: '',
         saleCost: '',
         delivery: '',
-        salePrice: '',
+        salePrice: catalog.pricingRows[0]?.salePrice?.trim() || '24.99',
       }));
       form.append('isEnabled', String(isEnabled));
       form.append('variants', JSON.stringify([]));

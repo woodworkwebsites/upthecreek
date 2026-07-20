@@ -96,7 +96,9 @@ function InlineDraftProductRow({
       form.append('audience', category.trim() || catalog.audiences[0] || '');
       form.append('productType', productType.trim() || catalog.products[0] || '');
       form.append('garment', garmentType.trim() || catalog.garments[0] || '');
-      const pricingPreset = matchPricingPresetBySelection(category, productType, garmentType, catalog);
+      const pricingPreset = matchPricingPresetBySelection(category, productType, garmentType, catalog)
+        ?? catalog.pricingRows[0]
+        ?? null;
       form.append('pricingMatrix', JSON.stringify(pricingPreset ?? {
         audience: '',
         product: '',
@@ -105,7 +107,7 @@ function InlineDraftProductRow({
         manufacturingCost: '',
         saleCost: '',
         delivery: '',
-        salePrice: '',
+        salePrice: catalog.pricingRows[0]?.salePrice?.trim() || '24.99',
       }));
       form.append('isEnabled', String(isEnabled));
       form.append('variants', JSON.stringify([]));
@@ -424,10 +426,12 @@ function ProductRow({
   }, [imageUploadFiles]);
 
   useEffect(() => {
-    const preset = matchPricingPresetBySelection(category, productType, garmentType, catalog);
-    if (!preset) {
-      return;
-    }
+      const preset = matchPricingPresetBySelection(category, productType, garmentType, catalog)
+        ?? catalog.pricingRows[0]
+        ?? null;
+      if (!preset) {
+        return;
+      }
 
     setPricingMatrix((current) => (
       pricingMatrixSignature(current) === pricingMatrixSignature(preset) ? current : preset
@@ -441,7 +445,9 @@ function ProductRow({
   }
 
   function resetPricingToCatalog() {
-    const preset = matchPricingPresetBySelection(category, productType, garmentType, catalog) ?? emptyPricingMatrix();
+    const preset = matchPricingPresetBySelection(category, productType, garmentType, catalog)
+      ?? catalog.pricingRows[0]
+      ?? emptyPricingMatrix();
     pricingCustomRef.current = false;
     setPricingMatrix(preset);
   }

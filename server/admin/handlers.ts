@@ -344,6 +344,10 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
     }
   }
 
+  if (pricingMatrix && pricingMatrix.salePrice.trim().length === 0) {
+    pricingMatrix.salePrice = '24.99';
+  }
+
   const imageFiles = form.getAll('images').filter((v): v is File => v instanceof File);
 
   const id = crypto.randomUUID();
