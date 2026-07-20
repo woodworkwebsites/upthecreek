@@ -15,6 +15,14 @@ interface DraftImageRow {
   isDefault: boolean;
 }
 
+function findColorImage<T extends { color?: string | null; src: string }>(
+  images: T[],
+  colorName: string,
+): T | undefined {
+  const key = colorName.trim().toLowerCase();
+  return images.find((image) => (image.color ?? '').trim().toLowerCase() === key);
+}
+
 function InlineDraftProductRow({
   token,
   catalog,
@@ -789,6 +797,7 @@ function ProductRow({
             <div className="flex flex-wrap gap-1.5 max-w-[240px]">
               {sortedVisibleColors.map((color) => {
                 const isHidden = hiddenColors.includes(color.name);
+                const colorImage = findColorImage(images, color.name);
                 return (
                   <button
                     key={color.name}
@@ -802,10 +811,16 @@ function ProductRow({
                     }`}
                     title={isHidden ? `${color.name} hidden` : color.name}
                   >
-                    <span
-                      className="inline-block h-3 w-3 rounded-full border border-black/10"
-                      style={{ backgroundColor: color.hex }}
-                    />
+                    {colorImage ? (
+                      <span className="inline-block h-4 w-4 overflow-hidden rounded-full border border-black/10 bg-white">
+                        <img src={colorImage.src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-block h-3 w-3 rounded-full border border-black/10"
+                        style={{ backgroundColor: color.hex }}
+                      />
+                    )}
                     <span>{color.name}</span>
                   </button>
                 );
@@ -813,7 +828,9 @@ function ProductRow({
             </div>
             {sortedHiddenColors.length > 0 && (
               <div className="flex flex-wrap gap-1.5 max-w-[200px]">
-                {sortedHiddenColors.map((color) => (
+                {sortedHiddenColors.map((color) => {
+                  const colorImage = findColorImage(images, color.name);
+                  return (
                   <button
                     key={`hidden-${color.name}`}
                     type="button"
@@ -821,13 +838,20 @@ function ProductRow({
                     className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500"
                     title={`${color.name} hidden`}
                   >
-                    <span
-                      className="inline-block h-3 w-3 rounded-full border border-black/10 opacity-60"
-                      style={{ backgroundColor: color.hex }}
-                    />
+                    {colorImage ? (
+                      <span className="inline-block h-4 w-4 overflow-hidden rounded-full border border-black/10 bg-white opacity-60">
+                        <img src={colorImage.src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-block h-3 w-3 rounded-full border border-black/10 opacity-60"
+                        style={{ backgroundColor: color.hex }}
+                      />
+                    )}
                     <span>{color.name}</span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
