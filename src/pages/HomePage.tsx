@@ -83,13 +83,6 @@ export default function HomePage() {
                 />
                 <span className="block">Collection</span>
               </h2>
-
-              <Link
-                to="/partners"
-                className="inline-flex items-center justify-center rounded-full border-2 border-navy-800 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white"
-              >
-                Interested in stocking UTC Apparel?
-              </Link>
             </div>
           </div>
 
@@ -100,6 +93,15 @@ export default function HomePage() {
           ) : (
             <ProductGrid products={products} />
           )}
+
+          <div className="mt-12 flex justify-center">
+            <Link
+              to="/partners"
+              className="inline-flex items-center justify-center rounded-full border-2 border-navy-800 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white"
+            >
+              Interested in stocking UTC Apparel?
+            </Link>
+          </div>
         </div>
       </section>
 
