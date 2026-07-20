@@ -161,7 +161,6 @@ export interface Product {
   images: PrintifyProductImage[];
   variants: PrintifyVariant[];
   colors: PrintifyColor[];
-  customColors: PrintifyColor[];
   hiddenColors: string[];
   sizes: string[];
   minPrice: number;

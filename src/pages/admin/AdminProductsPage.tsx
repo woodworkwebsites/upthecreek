@@ -659,7 +659,7 @@ function ProductRow({
         productType: productType.trim(),
         garment: garmentType.trim(),
         pricingMatrix: normalizePricingMatrix(pricingMatrix),
-        customColors: visibleColors,
+        colors: visibleColors,
         hiddenColors,
         isEnabled,
       });

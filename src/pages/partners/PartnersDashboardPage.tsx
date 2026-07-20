@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
 import { Badge } from '../../components/ui/Badge.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
@@ -101,16 +101,10 @@ export default function PartnersDashboardPage() {
           <div className="absolute right-0 top-16 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
         </div>
         <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-6 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center">
+          <div className="flex items-center">
             <img src="/UTC_WordMark_White_Trans_BG.png" alt="Up the Creek Padel" className="h-10 w-auto" />
-          </Link>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Link
-              to="/"
-              className="rounded-full border border-white/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              Shop range
-            </Link>
             <button
               onClick={() => {
                 clearSession();
@@ -133,7 +127,7 @@ export default function PartnersDashboardPage() {
                 {partner.name}
               </h1>
               <p className="mt-2 text-sm text-gray-600">
-                Club code: <span className="font-semibold text-navy-900">{partner.slug}</span> · private ordering and commission tracking
+                Club code: <span className="font-semibold text-navy-900">{partner.slug}</span> · ordering and commission tracking
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -185,7 +179,7 @@ export default function PartnersDashboardPage() {
                 </div>
               ) : (
                 <div className="p-6 text-sm leading-7 text-gray-500">
-                  No attributed orders yet. Once club members buy through the UTC range, they will appear here.
+                  No attributed orders yet. Once orders are placed through the club code, they will appear here.
                 </div>
               )}
             </div>
@@ -197,7 +191,7 @@ export default function PartnersDashboardPage() {
                 <p className="label">Club range</p>
                 <h2 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Ordering workspace</h2>
                 <p className="mt-2 text-sm leading-7 text-gray-600">
-                  This private console shows a compact design-and-colour matrix. Click a colour to open the size and quantity modal, then add it to the basket.
+                  This workspace shows the full product matrix. Click a colour to set sizes and quantities, then add it to the basket.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">

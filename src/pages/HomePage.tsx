@@ -48,7 +48,7 @@ export default function HomePage() {
           <img
             src="/UTC-Apparel-White.png"
             alt="Up the Creek Padel"
-            className="w-full h-auto"
+            className="w-[min(88vw,820px)] max-h-[32vh] h-auto object-contain"
           />
           <p className="mt-[50px] text-sm sm:text-base text-white/85 tracking-wide leading-relaxed max-w-md px-4">
             Original T-shirts for life inside and outside the glass.
@@ -79,7 +79,7 @@ export default function HomePage() {
                 <img
                   src="/Up The Creek_Wordmark.png"
                   alt="Up the Creek"
-                  className="h-24 w-auto object-contain sm:h-32"
+                  className="h-16 w-auto object-contain sm:h-20 lg:h-24"
                 />
                 <span className="block">Collection</span>
               </h2>
@@ -113,7 +113,7 @@ export default function HomePage() {
             <img
               src="/UTC-Apparel-White.png"
               alt="Up the Creek Padel"
-              className="h-40 w-auto opacity-70"
+              className="h-28 w-auto opacity-70 sm:h-32"
             />
             </div>
             <p className="text-sm text-white/40 max-w-sm leading-relaxed">

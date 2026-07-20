@@ -50,6 +50,12 @@ function visibleColors(product: Product): PrintifyColor[] {
   });
 }
 
+function getProductLabel(product: Product): string {
+  const parts = [product.audience, product.productType].map((value) => value?.trim()).filter(Boolean);
+  if (parts.length > 0) return parts.join(' / ');
+  return product.garment || product.title;
+}
+
 function getProductSizes(product: Product): string[] {
   return uniqueStrings(product.sizes);
 }
@@ -609,7 +615,7 @@ export default function AdminPartnerBasketPage() {
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                       <div>
                         <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-brand-500">
-                          {product.category || product.audience}
+                          {getProductLabel(product)}
                         </p>
                         <h2 className="mt-2 text-2xl font-black tracking-tight text-navy-900">{product.title}</h2>
                         <p className="mt-1 text-sm text-gray-500">{product.garment}</p>

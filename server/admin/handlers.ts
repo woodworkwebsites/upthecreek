@@ -246,10 +246,10 @@ function parseCatalogColors(settings: Record<string, string>): Array<{ name: str
   }
 }
 
-async function getAllowedImageColors(env: Env, product: { colors: Array<{ name: string; hex: string }>; customColors?: Array<{ name: string; hex: string }> }) {
+async function getAllowedImageColors(env: Env, product: { colors: Array<{ name: string; hex: string }> }) {
   const settings = await getAllSettings(env.DB);
   const catalogColors = parseCatalogColors(settings);
-  const combined = [...catalogColors, ...product.colors, ...(product.customColors ?? [])];
+  const combined = [...catalogColors, ...product.colors];
   const seen = new Set<string>();
   return combined.filter((color) => {
     const key = normalizeColorName(color.name);
@@ -471,7 +471,7 @@ export async function handleUpdateProduct(
     isEnabled?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: unknown;
-    customColors?: Array<{ name?: string; hex?: string }>;
+    colors?: Array<{ name?: string; hex?: string }>;
   };
   try {
     body = await request.json() as {
@@ -494,7 +494,7 @@ export async function handleUpdateProduct(
       isEnabled?: boolean;
       sizeGuideImage?: string | null;
       hiddenColors?: unknown;
-      customColors?: Array<{ name?: string; hex?: string }>;
+      colors?: Array<{ name?: string; hex?: string }>;
     };
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
@@ -511,7 +511,7 @@ export async function handleUpdateProduct(
     !('isEnabled' in body) &&
     !('sizeGuideImage' in body) &&
     !('hiddenColors' in body) &&
-    !('customColors' in body)
+    !('colors' in body)
   ) {
     return json({ error: 'No recognised fields to update' }, 400);
   }
@@ -541,8 +541,8 @@ export async function handleUpdateProduct(
           salePrice: body.pricingMatrix.salePrice?.trim() || '',
         }
       : undefined;
-  const customColors = body.customColors !== undefined
-    ? body.customColors
+  const colors = body.colors !== undefined
+    ? body.colors
         .filter((color): color is { name: string; hex: string } => typeof color?.name === 'string')
         .map((color) => ({
           name: color.name.trim(),
@@ -559,7 +559,7 @@ export async function handleUpdateProduct(
     productType,
     garment,
     pricingMatrix,
-    customColors,
+    colors,
     isEnabled: body.isEnabled,
     sizeGuideImage,
     hiddenColors: body.hiddenColors !== undefined ? normalizeHiddenColors(body.hiddenColors) : undefined,

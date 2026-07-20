@@ -4,16 +4,16 @@ import { ProductGrid } from '../../components/product/ProductGrid.js';
 import { useProducts } from '../../hooks/useProducts.js';
 
 const facts = [
-  { label: 'Member discount', value: '10%' },
+  { label: 'Club code discount', value: '10%' },
   { label: 'Referral commission', value: '10%' },
   { label: 'Delivery', value: 'Free' },
   { label: 'Display kit', value: 'Included' },
 ];
 
 const process = [
-  'Brand the club with a small opening range and display kit.',
-  'Members use the club code online for the full UTC range.',
-  'The partner portal tracks orders, sales and commission due.',
+  'Set up the club with a small opening range and display kit.',
+  'Players use the club code online across the full UTC range.',
+  'The portal tracks attributed orders, sales and commission in one place.',
 ];
 
 const faqs = [
@@ -22,12 +22,12 @@ const faqs = [
     a: 'Commission is calculated on attributed online orders and shown in the partner dashboard alongside paid and pending totals.',
   },
   {
-    q: 'Can the club order stock directly?',
-    a: 'Yes. The partner portal gives clubs a path into the UTC collection so they can order shelf stock when they need it.',
+    q: 'Can clubs order stock directly?',
+    a: 'Yes. The partner portal lets clubs place stock orders when they need to replenish the range.',
   },
   {
-    q: 'Is the member discount available on the full range?',
-    a: 'Yes. The club code applies to the UTC collection rather than a tiny restricted subset.',
+    q: 'Does the club code work on the full range?',
+    a: 'Yes. The club code applies to the UTC collection, not a limited subset.',
   },
 ];
 
@@ -45,11 +45,16 @@ export default function PartnersFunnelPage() {
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-8 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between gap-4">
-            <img src="/UTC_WordMark_White_Trans_BG.png" alt="Up the Creek Padel" className="h-16 w-auto sm:h-20" />
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+            <div aria-hidden className="hidden sm:block" />
+            <img
+              src="/UTC_WordMark_White_Trans_BG.png"
+              alt="Up the Creek Padel"
+              className="h-16 w-auto justify-self-center sm:h-20"
+            />
             <NavLink
               to="/partners/login"
-              className="text-xs font-semibold uppercase tracking-[0.28em] text-white/70 transition-colors hover:text-white"
+              className="justify-self-end text-xs font-semibold uppercase tracking-[0.28em] text-white/70 transition-colors hover:text-white"
             >
               Partner login
             </NavLink>
@@ -58,11 +63,11 @@ export default function PartnersFunnelPage() {
           <div className="mx-auto max-w-4xl pt-14 text-center animate-fade-up">
             <p className="label text-white/60">Partner programme</p>
             <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl lg:text-7xl">
-              Club apparel that sells in-club and pays back online.
+              Club apparel with stock ordering and tracked commission.
             </h1>
             <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-white/78 sm:text-lg">
-              UTC gives padel clubs a simple retail format: a small stock range for the clubhouse, a member discount code online,
-              and a portal that shows exactly what the club has earned.
+              UTC gives clubs a stock range for the clubhouse, a code for players to use online, and a portal that shows
+              orders, sales and commission clearly.
             </p>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -73,34 +78,34 @@ export default function PartnersFunnelPage() {
                 href="mailto:partners@upthecreekpadel.club?subject=UTC%20Partner%20Programme"
                 className="inline-flex items-center justify-center rounded-full border border-white/20 px-7 py-3 text-sm font-bold tracking-wider text-white transition-colors hover:bg-white/10"
               >
-                Apply to partner
+                Request access
               </a>
             </div>
           </div>
 
           <div className="mx-auto mt-12 grid max-w-5xl gap-3 text-center sm:grid-cols-2 xl:grid-cols-4">
             {facts.map((item) => (
-              <div key={item.label} className="rounded-2xl border border-white/10 bg-white/8 p-4 backdrop-blur">
+              <div key={item.label} className="rounded-2xl border border-white/10 bg-navy-950/55 p-4 backdrop-blur-md">
                 <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/45">{item.label}</p>
                 <p className="mt-2 text-xl font-black text-white">{item.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="mx-auto mt-12 max-w-6xl rounded-[2rem] border border-white/10 bg-white/8 p-5 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-6">
+          <div className="mx-auto mt-12 max-w-6xl rounded-[2rem] border border-white/10 bg-navy-950/50 p-5 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-4 px-1 pb-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-white/50">Featured products</p>
                 <h2 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
-                  A few product shots from the collection
+                  A few products from the range
                 </h2>
               </div>
               <p className="max-w-xl text-sm leading-7 text-white/70">
-                Open the full range below. Product cards show the actual imagery and live collection pricing.
+                Open the full range below. Product cards show the actual imagery and live pricing.
               </p>
             </div>
 
-            <div className="rounded-[1.5rem] bg-white p-4 sm:p-6">
+            <div className="rounded-[1.5rem] border border-gray-200 bg-[linear-gradient(180deg,_#f7f3eb_0%,_#efe7db_100%)] p-4 sm:p-6">
               {loading ? (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {Array.from({ length: 4 }).map((_, index) => (
@@ -127,7 +132,7 @@ export default function PartnersFunnelPage() {
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
           <article className="rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
             <p className="label">How it works</p>
-            <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Simple by design</h3>
+            <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Set up, sell, track</h3>
             <div className="mt-6 space-y-5">
               {process.map((item, index) => (
                 <div key={item} className="flex gap-4">
@@ -142,13 +147,37 @@ export default function PartnersFunnelPage() {
 
           <article className="rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
             <p className="label">Partner access</p>
-            <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Private dashboard</h3>
+            <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">What the portal shows</h3>
             <div className="mt-6 space-y-4 text-sm leading-7 text-gray-700">
               <p>Orders are attributed to the club code automatically.</p>
-              <p>Commission due, paid and pending are tracked in one place.</p>
-              <p>The same portal also opens the live UTC range for stock ordering.</p>
+              <p>Commission due, paid and pending are shown separately.</p>
+              <p>The same portal is used for stock orders.</p>
             </div>
           </article>
+        </div>
+
+        <div className="mt-10 rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
+          <p className="label">Collaboration drop</p>
+          <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">One-off club x UTC collection</h3>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
+            If a club wants something beyond the core range, UTC can produce a limited edition design that combines the club
+            identity with UTC branding. It can be run as a one-time drop, a short seasonal release, or a small exclusive
+            collection for club players.
+          </p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">Use case</p>
+              <p className="mt-2 text-sm font-semibold text-navy-900">Launch event or seasonal drop</p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">Scope</p>
+              <p className="mt-2 text-sm font-semibold text-navy-900">One design, club specific</p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">Run</p>
+              <p className="mt-2 text-sm font-semibold text-navy-900">Limited and time boxed</p>
+            </div>
+          </div>
         </div>
 
         <div className="mt-10 rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
@@ -170,7 +199,7 @@ export default function PartnersFunnelPage() {
           <div className="max-w-2xl">
             <p className="label">Apply</p>
             <h3 className="mt-3 text-3xl font-black tracking-tight text-navy-900">
-              Ready to put UTC on your club floor?
+              Ready to set up a partner account?
             </h3>
             <p className="mt-3 text-sm leading-7 text-gray-600">
               Send the club name and contact details and we’ll set up the partner record, pricing, access and stock ordering.

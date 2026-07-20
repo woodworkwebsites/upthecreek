@@ -6,8 +6,8 @@ import { usePartnerSession } from '../../hooks/usePartner.js';
 
 const loginBenefits = [
   'View attributed orders and commission due.',
-  'Open the live product range and move into checkout.',
-  'Keep the club code and access token in one private portal.',
+  'Open the full product matrix and move into checkout.',
+  'Keep the club code and access token in one place.',
 ];
 
 export default function PartnersLoginPage() {
@@ -52,14 +52,14 @@ export default function PartnersLoginPage() {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(76,111,191,0.16),_transparent_30%),linear-gradient(180deg,_#06122c_0%,_#0b1437_34%,_#f8f7f3_34%,_#f8f7f3_100%)] px-4 py-10 text-white">
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center">
         <div className="grid w-full gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-stretch">
-          <section className="rounded-[2.25rem] border border-white/10 bg-white/8 p-8 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-10">
+          <section className="rounded-[2.25rem] border border-white/10 bg-navy-950/55 p-8 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-10">
             <img src="/UTC_WordMark_White_Trans_BG.png" alt="Up the Creek Padel" className="h-12 w-auto" />
             <p className="label mt-8 text-white/60">Partner access</p>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
-              Sign in to your club portal.
+              Sign in to the partner portal.
             </h1>
             <p className="mt-4 max-w-lg text-sm leading-7 text-white/75 sm:text-base">
-              Use the club code and access token issued for your partner record. Once inside, you can check sales, commission and live stock.
+              Use the club code and access token issued for your partner record. Once inside, you can check sales, commission and stock orders.
             </p>
 
             <div className="mt-8 grid gap-3">
@@ -77,7 +77,7 @@ export default function PartnersLoginPage() {
                 <img src="/UTC_Logo.png" alt="Up the Creek Padel" className="h-11 w-11 rounded-2xl object-contain" />
                 <div>
                   <p className="label">Partner portal</p>
-                  <p className="mt-1 text-lg font-black tracking-tight text-navy-900">Club dashboard login</p>
+                  <p className="mt-1 text-lg font-black tracking-tight text-navy-900">Partner dashboard login</p>
                 </div>
               </div>
               <p className="max-w-xl text-sm leading-7 text-gray-600">

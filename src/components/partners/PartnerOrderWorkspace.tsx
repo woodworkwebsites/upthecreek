@@ -49,6 +49,12 @@ function visibleColors(product: Product): PrintifyColor[] {
   });
 }
 
+function getProductLabel(product: Product): string {
+  const parts = [product.audience, product.productType].map((value) => value?.trim()).filter(Boolean);
+  if (parts.length > 0) return parts.join(' / ');
+  return product.garment || product.title;
+}
+
 function getProductSizes(product: Product): string[] {
   return uniqueStrings(product.sizes);
 }
@@ -287,9 +293,9 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
         <div className="rounded-[1.75rem] border border-gray-200 bg-white p-5 shadow-[0_18px_50px_rgba(5,13,31,0.06)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Matrix</p>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Product matrix</p>
               <p className="mt-2 text-sm leading-7 text-gray-500">
-                Pick a design, then click a colour cell to open the size and quantity modal.
+                Choose a product, then click a colour to set sizes and quantities.
               </p>
             </div>
             <input
@@ -312,7 +318,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                 <div className="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)]">
                   <div className="border-b border-gray-100 px-5 py-4 lg:border-b-0 lg:border-r">
                     <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-brand-500">
-                      {product.category || product.audience}
+                      {getProductLabel(product)}
                     </p>
                     <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
                       <h2 className="text-xl font-black tracking-tight text-navy-900">{product.title}</h2>
@@ -347,7 +353,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                           <span className="min-w-0">
                             <span className="block truncate text-sm font-semibold text-navy-900">{color.name}</span>
                             <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
-                              Click to add
+                              Add colour
                             </span>
                           </span>
                         </button>
@@ -380,7 +386,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Order pile</p>
               <h2 className="mt-2 text-2xl font-black tracking-tight text-navy-900">Basket</h2>
               <p className="mt-1 text-sm text-gray-500">
-                Build the club order here. This is a working stock basket, not a storefront basket.
+                Build the club order here. This basket is for stock orders, not public checkout.
               </p>
             </div>
             <button
