@@ -609,6 +609,8 @@ export async function updateProductFields(
     values.push(JSON.stringify(fields.pricingMatrix ?? {}));
   }
 
+  const effectiveColors = fields.colors !== undefined ? normalizeColors(fields.colors) : normalizedColors;
+
   const nextSalePrice = (fields.pricingMatrix?.salePrice?.trim() || currentPricingMatrix?.salePrice?.trim() || '');
   if (nextSalePrice) {
     const parsed = parseFloat(nextSalePrice);
@@ -620,12 +622,12 @@ export async function updateProductFields(
             available: true,
             price: unitPrice,
           }))
-        : buildVariantMatrix(normalizedColors.length > 0 ? normalizedColors : DEFAULT_FALLBACK_COLORS, unitPrice);
-      const colorHexByName = new Map((normalizedColors.length > 0 ? normalizedColors : DEFAULT_FALLBACK_COLORS).map((color) => [color.name, color.hex] as const));
+        : buildVariantMatrix(effectiveColors.length > 0 ? effectiveColors : DEFAULT_FALLBACK_COLORS, unitPrice);
+      const colorHexByName = new Map((effectiveColors.length > 0 ? effectiveColors : DEFAULT_FALLBACK_COLORS).map((color) => [color.name, color.hex] as const));
       const { minPrice, maxPrice } = deriveProductAggregates(variants, colorHexByName, unitPrice);
 
-      sets.push('variants = ?', 'colors = ?', 'sizes = ?', 'min_price = ?', 'max_price = ?');
-      values.push(JSON.stringify(variants), JSON.stringify(normalizedColors.length > 0 ? normalizedColors : DEFAULT_FALLBACK_COLORS), JSON.stringify(DEFAULT_SIZE_OPTIONS), minPrice, maxPrice);
+      sets.push('variants = ?', 'sizes = ?', 'min_price = ?', 'max_price = ?');
+      values.push(JSON.stringify(variants), JSON.stringify(DEFAULT_SIZE_OPTIONS), minPrice, maxPrice);
     }
   }
 
@@ -663,7 +665,7 @@ export async function upsertProduct(
       INSERT INTO products
         (id, printify_id, title, description, category, images, variants, colors, pricing_matrix, hidden_colors, sizes,
          min_price, max_price, is_enabled, size_guide_image, synced_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, datetime('now'), datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, datetime('now'), datetime('now'), datetime('now'))
       ON CONFLICT(printify_id) DO UPDATE SET
         is_enabled     = excluded.is_enabled,
         title          = excluded.title,
@@ -688,7 +690,6 @@ export async function upsertProduct(
       category,
       JSON.stringify(data.images),
       JSON.stringify(data.variants),
-      JSON.stringify(nextColors),
       JSON.stringify(nextColors),
       JSON.stringify(data.pricingMatrix ?? {}),
       JSON.stringify(normalizeHiddenColors(data.hiddenColors ?? [])),
