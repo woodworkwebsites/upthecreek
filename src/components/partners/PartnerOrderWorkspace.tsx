@@ -346,7 +346,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                   </div>
 
                   <div className="px-5 py-4">
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
                       {colors.map((color) => (
                         <button
                           key={`${product.id}:${color.name}`}
@@ -355,20 +355,25 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                           onDragStart={(event) => handleDragStart(product, color.name, event)}
                           onClick={() => openDraft(product, color.name)}
                           className={cn(
-                            'group flex items-center gap-3 rounded-2xl border bg-gray-50 px-3 py-2 text-left transition-all duration-200',
-                            'border-gray-200 hover:-translate-y-0.5 hover:border-navy-300 hover:bg-white hover:shadow-[0_12px_30px_rgba(5,13,31,0.08)]',
+                            'group flex flex-col overflow-hidden rounded-2xl border bg-white text-left transition-all duration-200',
+                            'border-gray-200 hover:-translate-y-0.5 hover:border-navy-300 hover:shadow-[0_12px_30px_rgba(5,13,31,0.08)]',
                           )}
                         >
-                          <span
-                            className="h-8 w-8 flex-shrink-0 rounded-full border border-black/10"
-                            style={{ backgroundColor: color.hex }}
-                            aria-hidden
-                          />
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-semibold text-navy-900">{color.name}</span>
-                            <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
-                              Add colour
-                            </span>
+                          <span className="aspect-square w-full overflow-hidden bg-gray-50">
+                            <img
+                              src={getImageForColor(product, color.name)}
+                              alt={`${product.title} ${color.name}`}
+                              className="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-105"
+                              loading="lazy"
+                            />
+                          </span>
+                          <span className="flex items-center gap-1.5 px-2.5 py-2">
+                            <span
+                              className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-black/10"
+                              style={{ backgroundColor: color.hex }}
+                              aria-hidden
+                            />
+                            <span className="min-w-0 flex-1 truncate text-xs font-semibold text-navy-900">{color.name}</span>
                           </span>
                         </button>
                       ))}
