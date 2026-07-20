@@ -4,10 +4,26 @@ import { ProductGrid } from '../../components/product/ProductGrid.js';
 import { useProducts } from '../../hooks/useProducts.js';
 
 const facts = [
-  { label: 'Club code discount', value: '10%' },
-  { label: 'Referral commission', value: '10%' },
-  { label: 'Delivery', value: 'Free' },
-  { label: 'Display kit', value: 'Included' },
+  {
+    label: 'In-club stock',
+    value: 'Club-run range',
+    detail: 'Stock for the clubhouse, receptions and events.',
+  },
+  {
+    label: 'Online sales',
+    value: 'Player orders',
+    detail: 'Club code sales tracked separately in the portal.',
+  },
+  {
+    label: 'Commission',
+    value: '10%',
+    detail: 'Earn on attributed online orders.',
+  },
+  {
+    label: 'Delivery',
+    value: 'Free',
+    detail: 'Display kit and setup included.',
+  },
 ];
 
 const process = [
@@ -50,7 +66,7 @@ export default function PartnersFunnelPage() {
             <img
               src="/UTC_WordMark_White_Trans_BG.png"
               alt="Up the Creek Padel"
-              className="h-16 w-auto justify-self-center sm:h-20"
+              className="h-12 w-auto justify-self-center sm:h-14 lg:h-16"
             />
             <NavLink
               to="/partners/login"
@@ -71,7 +87,7 @@ export default function PartnersFunnelPage() {
             </p>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Button className="bg-white text-navy-900 hover:bg-white/90" onClick={() => navigate('/partners/login')}>
+              <Button onClick={() => navigate('/partners/login')}>
                 Open partner portal
               </Button>
               <a
@@ -85,9 +101,10 @@ export default function PartnersFunnelPage() {
 
           <div className="mx-auto mt-12 grid max-w-5xl gap-3 text-center sm:grid-cols-2 xl:grid-cols-4">
             {facts.map((item) => (
-              <div key={item.label} className="rounded-2xl border border-white/10 bg-navy-950/55 p-4 backdrop-blur-md">
+              <div key={item.label} className="rounded-2xl border border-white/10 bg-navy-950/55 p-4 text-left backdrop-blur-md">
                 <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/45">{item.label}</p>
                 <p className="mt-2 text-xl font-black text-white">{item.value}</p>
+                <p className="mt-2 text-sm leading-6 text-white/70">{item.detail}</p>
               </div>
             ))}
           </div>
