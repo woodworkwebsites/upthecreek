@@ -937,30 +937,32 @@ function ProductRow({
             >
               Manage images
             </button>
-            <div className="grid grid-cols-3 gap-2">
-              {(images.length > 0 ? images : []).slice(0, 6).map((image, index) => (
-                <button
-                  key={`${image.src}-${index}`}
-                  type="button"
-                  onClick={() => setImageModalOpen(true)}
-                  className="group relative overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-950"
-                  title="Open image manager"
-                >
-                  <div className="aspect-square">
-                    <img src={image.src} alt={product.title} className="h-full w-full object-cover" loading="lazy" />
+            <div className="max-h-72 overflow-y-auto pr-1">
+              <div className="grid grid-cols-3 gap-2">
+                {(images.length > 0 ? images : []).map((image, index) => (
+                  <button
+                    key={`${image.src}-${index}`}
+                    type="button"
+                    onClick={() => setImageModalOpen(true)}
+                    className="group relative overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-950"
+                    title="Open image manager"
+                  >
+                    <div className="aspect-square">
+                      <img src={image.src} alt={product.title} className="h-full w-full object-cover" loading="lazy" />
+                    </div>
+                    {image.isDefault && (
+                      <span className="absolute left-1 top-1 rounded-full bg-navy-800 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                        Main
+                      </span>
+                    )}
+                  </button>
+                ))}
+                {images.length === 0 && (
+                  <div className="col-span-3 rounded-lg border border-dashed border-gray-200 px-3 py-4 text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
+                    No images uploaded
                   </div>
-                  {image.isDefault && (
-                    <span className="absolute left-1 top-1 rounded-full bg-navy-800 px-1.5 py-0.5 text-[9px] font-semibold text-white">
-                      Main
-                    </span>
-                  )}
-                </button>
-              ))}
-              {images.length === 0 && (
-                <div className="col-span-3 rounded-lg border border-dashed border-gray-200 px-3 py-4 text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
-                  No images uploaded
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </td>
