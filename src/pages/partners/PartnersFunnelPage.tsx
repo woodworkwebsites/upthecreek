@@ -1,5 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Button } from '../../components/ui/Button.js';
+import { NavLink } from 'react-router-dom';
 import { ProductGrid } from '../../components/product/ProductGrid.js';
 import { useProducts } from '../../hooks/useProducts.js';
 
@@ -48,7 +47,6 @@ const faqs = [
 ];
 
 export default function PartnersFunnelPage() {
-  const navigate = useNavigate();
   const { products, loading, error } = useProducts();
   const featuredProducts = products.slice(0, 4);
 
@@ -85,18 +83,6 @@ export default function PartnersFunnelPage() {
               UTC gives clubs a stock range for the clubhouse, a code for players to use online, and a portal that shows
               orders, sales and commission clearly.
             </p>
-
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Button onClick={() => navigate('/partners/login')}>
-                Open partner portal
-              </Button>
-              <a
-                href="mailto:partners@upthecreekpadel.club?subject=UTC%20Partner%20Programme"
-                className="inline-flex items-center justify-center rounded-full border border-white/20 px-7 py-3 text-sm font-bold tracking-wider text-white transition-colors hover:bg-white/10"
-              >
-                Request access
-              </a>
-            </div>
           </div>
 
           <div className="mx-auto mt-12 grid max-w-5xl gap-3 text-center sm:grid-cols-2 xl:grid-cols-4">
