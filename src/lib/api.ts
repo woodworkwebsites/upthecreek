@@ -5,6 +5,10 @@ import type {
   CheckoutItem,
   CheckoutResponse,
   DiscountCodePreview,
+  Partner,
+  PartnerAdmin,
+  PartnerDashboard,
+  PartnerLoginResponse,
   SyncLogRow,
   WebhookLogRow,
   PrintifyLogRow,
@@ -375,6 +379,56 @@ export async function adminDeleteDiscountCode(token: string, id: string): Promis
   });
 }
 
+export async function adminFetchPartners(token: string): Promise<PartnerAdmin[]> {
+  const data = await adminFetch<{ partners: PartnerAdmin[] }>('/api/admin/partners', token);
+  return data.partners;
+}
+
+export async function adminCreatePartner(
+  token: string,
+  data: {
+    slug: string;
+    name: string;
+    discountCode?: string | null;
+    accessToken: string;
+    commissionRate: number;
+    description?: string | null;
+    active?: boolean;
+  },
+): Promise<PartnerAdmin> {
+  const response = await adminFetch<{ partner: PartnerAdmin }>('/api/admin/partners', token, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return response.partner;
+}
+
+export async function adminUpdatePartner(
+  token: string,
+  id: string,
+  data: {
+    slug?: string;
+    name?: string;
+    discountCode?: string | null;
+    accessToken?: string;
+    commissionRate?: number;
+    description?: string | null;
+    active?: boolean;
+  },
+): Promise<PartnerAdmin> {
+  const response = await adminFetch<{ partner: PartnerAdmin }>(`/api/admin/partners/${id}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  return response.partner;
+}
+
+export async function adminDeletePartner(token: string, id: string): Promise<void> {
+  await adminFetch(`/api/admin/partners/${id}`, token, {
+    method: 'DELETE',
+  });
+}
+
 export async function adminTestPayload(
   token: string,
   body: TestPayloadRequest,
@@ -393,4 +447,40 @@ export async function adminTestOrderHandoff(
     method: 'POST',
     body: JSON.stringify(body),
   });
+}
+
+// ─── Partner API ─────────────────────────────────────────────────────────────
+
+function partnerFetch<T>(path: string, token: string, options?: RequestInit): Promise<T> {
+  return apiFetch<T>(path, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...options?.headers,
+    },
+  });
+}
+
+export async function partnerAuthenticate(
+  slug: string,
+  accessToken: string,
+): Promise<PartnerLoginResponse> {
+  return apiFetch<PartnerLoginResponse>('/api/partners/auth', {
+    method: 'POST',
+    body: JSON.stringify({
+      slug,
+      accessToken,
+    }),
+  });
+}
+
+export async function partnerFetchDashboard(
+  slug: string,
+  accessToken: string,
+): Promise<PartnerDashboard> {
+  return partnerFetch<PartnerDashboard>(`/api/partners/${encodeURIComponent(slug)}`, accessToken);
+}
+
+export async function partnerFetchProfile(slug: string): Promise<{ partner: Partner }> {
+  return apiFetch<{ partner: Partner }>(`/api/partners/${encodeURIComponent(slug)}`);
 }

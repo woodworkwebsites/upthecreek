@@ -87,6 +87,8 @@ async function processCompletedSession(
     throw new Error(`No items metadata on session ${sessionId}`);
   }
 
+  const discountAmount = Number(session.metadata?.discount_amount ?? '0') || 0;
+
   const compactItems = JSON.parse(itemsMeta) as Array<{
     pid: string;
     vid: number;
@@ -143,6 +145,8 @@ async function processCompletedSession(
     currency:            session.currency ?? 'gbp',
     printifyMode:        mode,
     fulfillmentProvider,
+    discountCode:        session.metadata?.discount_code ?? null,
+    discountAmount,
     shipping: {
       name:     fullName,
       phone:    address.phone,

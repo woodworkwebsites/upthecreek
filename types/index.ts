@@ -81,6 +81,8 @@ export interface OrderRow {
   error: string | null;
   fulfillment_provider: FulfillmentProvider;
   external_order_ref: string | null;
+  discount_code: string | null;
+  discount_amount: number;
   shipping_name: string;
   shipping_phone: string;
   shipping_address1: string;
@@ -203,6 +205,8 @@ export interface Order {
   error: string | null;
   fulfillmentProvider: FulfillmentProvider;
   externalOrderRef: string | null;
+  discountCode: string | null;
+  discountAmount: number;
   shippingName: string;
   shippingPhone: string;
   shippingAddress1: string;
@@ -242,6 +246,68 @@ export interface DiscountCode {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Partner {
+  id: string;
+  slug: string;
+  name: string;
+  discountCode: string | null;
+  commissionRate: number;
+  description: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PartnerAdmin extends Partner {
+  accessToken: string;
+}
+
+export interface PartnerInput {
+  slug: string;
+  name: string;
+  discountCode?: string | null;
+  accessToken: string;
+  commissionRate: number;
+  description?: string | null;
+  active?: boolean;
+}
+
+export interface PartnerOrderSummary {
+  id: string;
+  status: OrderStatus;
+  customerEmail: string;
+  customerName: string | null;
+  amountTotal: number;
+  currency: string;
+  discountCode: string | null;
+  discountAmount: number;
+  commissionAmount: number;
+  fulfillmentProvider: FulfillmentProvider;
+  externalOrderRef: string | null;
+  itemCount: number;
+  createdAt: string;
+  updatedAt: string;
+  items: OrderItem[];
+}
+
+export interface PartnerDashboard {
+  partner: Partner;
+  summary: {
+    totalOrders: number;
+    grossSales: number;
+    netSales: number;
+    discountTotal: number;
+    commissionDue: number;
+    commissionPaid: number;
+    commissionPending: number;
+  };
+  recentOrders: PartnerOrderSummary[];
+}
+
+export interface PartnerLoginResponse {
+  partner: Partner;
 }
 
 // ─── API request/response shapes ─────────────────────────────────────────────

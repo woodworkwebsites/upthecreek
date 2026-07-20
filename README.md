@@ -329,3 +329,20 @@ No code changes required. Redeploy (or trigger a re-deploy without code changes)
 | GET    | `/api/admin/logs`                     | Get all logs                     |
 | POST   | `/api/admin/test-printify-payload`    | Generate Printify payload only   |
 | POST   | `/api/admin/test-order-handoff`       | Fake paid order through pipeline |
+
+### Partners
+
+| Method | Path                         | Description                             |
+|--------|------------------------------|-----------------------------------------|
+| POST   | `/api/partners/auth`         | Verify a club slug and access token     |
+| GET    | `/api/partners/:slug`        | Fetch the authenticated partner portal  |
+
+Frontend routes:
+
+| Path                    | Description                                  |
+|-------------------------|----------------------------------------------|
+| `/partners`             | Public partner funnel and request-access page |
+| `/partners/login`       | Club login page                               |
+| `/partners/dashboard`   | Authenticated partner portal                  |
+
+Commission tracking is driven by discount-code attribution. For a club to see orders in the portal, its partner record must use the same `discount_code` that the checkout flow stores on the order.

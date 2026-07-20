@@ -29,6 +29,8 @@ function parseOrder(row: OrderRow): Order {
     error:                 row.error,
     fulfillmentProvider:   row.fulfillment_provider,
     externalOrderRef:      row.external_order_ref,
+    discountCode:          row.discount_code,
+    discountAmount:        row.discount_amount,
     shippingName:          row.shipping_name,
     shippingPhone:         row.shipping_phone,
     shippingAddress1:      row.shipping_address1,
@@ -78,6 +80,8 @@ export interface CreateOrderData {
   currency: string;
   printifyMode: PrintifyMode;
   fulfillmentProvider: FulfillmentProvider;
+  discountCode?: string | null;
+  discountAmount?: number;
   shipping: {
     name: string;
     phone: string;
@@ -99,10 +103,11 @@ export async function createOrder(
       INSERT INTO orders
         (id, stripe_session_id, stripe_payment_intent, customer_email, customer_name,
          amount_total, currency, status, printify_mode, fulfillment_provider,
+         discount_code, discount_amount,
          shipping_name, shipping_phone, shipping_address1, shipping_address2,
          shipping_city, shipping_region, shipping_zip, shipping_country,
          created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `)
     .bind(
       data.id,
@@ -114,6 +119,8 @@ export async function createOrder(
       data.currency,
       data.printifyMode,
       data.fulfillmentProvider,
+      data.discountCode ?? null,
+      data.discountAmount ?? 0,
       data.shipping.name,
       data.shipping.phone,
       data.shipping.address1,

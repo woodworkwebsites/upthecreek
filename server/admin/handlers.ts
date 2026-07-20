@@ -40,6 +40,13 @@ import {
   deleteDiscountCode,
   getDiscountCodeById,
 } from '../discount-codes/repository.js';
+import {
+  listPartners,
+  createPartner,
+  updatePartner,
+  deletePartner,
+  getPartnerById,
+} from '../partners/repository.js';
 import { logger } from '../logging.js';
 import { deleteAsset, storeAssetData } from '../assets/storage.js';
 
@@ -1072,6 +1079,116 @@ export async function handleDeleteDiscountCode(env: Env, id: string): Promise<Re
   if (!existing) return json({ error: 'Discount code not found' }, 404);
 
   await deleteDiscountCode(env.DB, id);
+  return json({ success: true });
+}
+
+export async function handleListPartners(env: Env): Promise<Response> {
+  const partners = await listPartners(env.DB);
+  return json({ partners });
+}
+
+export async function handleCreatePartner(env: Env, request: Request): Promise<Response> {
+  let body: {
+    slug?: string;
+    name?: string;
+    discountCode?: string | null;
+    accessToken?: string;
+    commissionRate?: number | string;
+    description?: string | null;
+    active?: boolean;
+  };
+
+  try {
+    body = await request.json().catch(() => ({})) as typeof body;
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const slug = body.slug?.trim();
+  const name = body.name?.trim();
+  const accessToken = body.accessToken?.trim();
+  const commissionRate = typeof body.commissionRate === 'string' ? Number(body.commissionRate) : body.commissionRate;
+
+  if (!slug) return json({ error: 'Slug is required' }, 400);
+  if (!name) return json({ error: 'Name is required' }, 400);
+  if (!accessToken) return json({ error: 'Access token is required' }, 400);
+  if (typeof commissionRate !== 'number' || !Number.isFinite(commissionRate) || commissionRate < 0) {
+    return json({ error: 'Commission rate must be a non-negative number' }, 400);
+  }
+
+  try {
+    const partner = await createPartner(env.DB, {
+      slug,
+      name,
+      discountCode: body.discountCode?.trim() || null,
+      accessToken,
+      commissionRate,
+      description: body.description?.trim() || null,
+      active: body.active !== false,
+    });
+    return json({ partner }, 201);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ error: message }, 400);
+  }
+}
+
+export async function handleUpdatePartner(env: Env, id: string, request: Request): Promise<Response> {
+  let body: {
+    slug?: string;
+    name?: string;
+    discountCode?: string | null;
+    accessToken?: string;
+    commissionRate?: number | string;
+    description?: string | null;
+    active?: boolean;
+  };
+
+  try {
+    body = await request.json().catch(() => ({})) as typeof body;
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const existing = await getPartnerById(env.DB, id);
+  if (!existing) return json({ error: 'Partner not found' }, 404);
+
+  const slug = body.slug?.trim() ?? existing.slug;
+  const name = body.name?.trim() ?? existing.name;
+  const accessToken = body.accessToken?.trim() ?? existing.accessToken;
+  const commissionRate = typeof body.commissionRate === 'string' ? Number(body.commissionRate) : (body.commissionRate ?? existing.commissionRate);
+
+  if (!slug) return json({ error: 'Slug is required' }, 400);
+  if (!name) return json({ error: 'Name is required' }, 400);
+  if (!accessToken) return json({ error: 'Access token is required' }, 400);
+  if (!Number.isFinite(commissionRate) || commissionRate < 0) {
+    return json({ error: 'Commission rate must be a non-negative number' }, 400);
+  }
+
+  try {
+    const partner = await updatePartner(env.DB, id, {
+      slug,
+      name,
+      discountCode: body.discountCode?.trim() || null,
+      accessToken,
+      commissionRate,
+      description: body.description?.trim() || null,
+      active: body.active ?? existing.active,
+    });
+
+    if (!partner) return json({ error: 'Partner not found' }, 404);
+    return json({ partner });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ error: message }, 400);
+  }
+}
+
+export async function handleDeletePartner(env: Env, id: string): Promise<Response> {
+  const existing = await getPartnerById(env.DB, id);
+  if (!existing) return json({ error: 'Partner not found' }, 404);
+
+  await deletePartner(env.DB, id);
   return json({ success: true });
 }
 
