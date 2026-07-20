@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
+import { Badge } from '../../components/ui/Badge.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { formatDate, formatPrice } from '../../lib/utils.js';
 import { partnerFetchDashboard } from '../../lib/api.js';
 import { useProducts } from '../../hooks/useProducts.js';
-import { ProductGrid } from '../../components/product/ProductGrid.js';
+import { PartnerOrderWorkspace } from '../../components/partners/PartnerOrderWorkspace.js';
 import { usePartnerSession } from '../../hooks/usePartner.js';
 import type { PartnerDashboard } from '../../../types/index.js';
 
@@ -194,9 +195,9 @@ export default function PartnersDashboardPage() {
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="label">Club range</p>
-                <h2 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Everything currently available</h2>
+                <h2 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Ordering workspace</h2>
                 <p className="mt-2 text-sm leading-7 text-gray-600">
-                  This private console shows the full catalog directly. It is built for club staff, not public browsing.
+                  This private console shows the full catalog directly. Drag a garment colour into the basket, then set size quantities on the right.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -215,7 +216,7 @@ export default function PartnersDashboardPage() {
               ) : productsError ? (
                 <p className="text-sm text-red-600">{productsError}</p>
               ) : (
-                <ProductGrid products={products} />
+                <PartnerOrderWorkspace products={products} />
               )}
             </div>
           </article>

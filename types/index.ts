@@ -74,10 +74,6 @@ export interface OrderRow {
   amount_total: number;
   currency: string;
   status: OrderStatus;
-  printify_mode: PrintifyMode;
-  printify_order_id: string | null;
-  printify_payload: string | null;   // JSON
-  printify_response: string | null;  // JSON
   error: string | null;
   fulfillment_provider: FulfillmentProvider;
   external_order_ref: string | null;
@@ -186,10 +182,6 @@ export interface Order {
   amountTotal: number;
   currency: string;
   status: OrderStatus;
-  printifyMode: PrintifyMode;
-  printifyOrderId: string | null;
-  printifyPayload: unknown | null;
-  printifyResponse: unknown | null;
   error: string | null;
   fulfillmentProvider: FulfillmentProvider;
   externalOrderRef: string | null;

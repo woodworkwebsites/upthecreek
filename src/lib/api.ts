@@ -130,6 +130,33 @@ export async function adminDeleteOrder(token: string, id: string): Promise<void>
   });
 }
 
+export async function adminDownloadOrderReceipt(token: string, id: string): Promise<{ blob: Blob; filename: string }> {
+  const res = await fetch(`/api/admin/orders/${id}/receipt`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    let message = res.statusText;
+    try {
+      const parsed = JSON.parse(body) as { error?: string };
+      message = parsed.error ?? message;
+    } catch {
+      if (body) message = body;
+    }
+    throw new Error(message || `HTTP ${res.status}`);
+  }
+
+  const disposition = res.headers.get('Content-Disposition') ?? '';
+  const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+  const filename = match?.[1] ?? `order-${id}-receipt.html`;
+  const blob = await res.blob();
+  return { blob, filename };
+}
+
 export async function adminFetchProducts(token: string): Promise<Product[]> {
   const data = await adminFetch<{ products: Product[] }>('/api/admin/products', token);
   return data.products;

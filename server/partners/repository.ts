@@ -11,7 +11,7 @@ import type {
   PartnerOrderSummary,
   PartnerPayoutRow,
 } from '../../types/index.js';
-import { getOrderWithItems } from '../orders/repository.js';
+import { ensureOrderSchema, getOrderWithItems } from '../orders/repository.js';
 
 type PartnerRow = {
   id: string;
@@ -493,6 +493,8 @@ async function loadPartnerOrdersFromDiscountCode(
   partner: Partner,
   limit = 12,
 ): Promise<Order[]> {
+  await ensureOrderSchema(db);
+
   if (!partner.discountCode) return [];
 
   const rows = await db

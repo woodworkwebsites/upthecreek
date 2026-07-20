@@ -11,7 +11,6 @@ import {
 } from '../orders/repository.js';
 import { getProductByPrintifyId } from '../products/repository.js';
 import { getStripeKeys } from '../env.js';
-import { getSetting } from '../settings/repository.js';
 import { sendOrderNotificationEmail } from '../notifications/email.js';
 import { sendPushoverNotification } from '../notifications/pushover.js';
 import { logger } from '../logging.js';
@@ -33,8 +32,7 @@ export async function handleStripeWebhook(
 
   const rawBody = await request.text();
 
-  const stripeTestMode = (await getSetting(env.DB, 'stripe_test_mode')) === 'true';
-  const { secretKey, webhookSecret } = getStripeKeys(request, env, stripeTestMode);
+  const { secretKey, webhookSecret } = getStripeKeys(request, env);
   const stripe = createStripeClient(secretKey);
 
   let event: Stripe.Event;
@@ -100,8 +98,6 @@ export async function processCompletedSession(
     qty: number;
   }>;
 
-  const liveEnabled = (await getSetting(env.DB, 'live_orders_enabled')) === 'true';
-  const mode = liveEnabled ? 'live' : 'draft';
   const fulfillmentProvider: 'manual' = 'manual';
   const orderId = crypto.randomUUID();
 
@@ -148,7 +144,6 @@ export async function processCompletedSession(
     customerName,
     amountTotal:         session.amount_total ?? 0,
     currency:            session.currency ?? 'gbp',
-    printifyMode:        mode,
     fulfillmentProvider,
     discountCode:        session.metadata?.discount_code ?? null,
     discountAmount,
@@ -228,18 +223,18 @@ export async function processCompletedSession(
     : 'No items';
 
   await sendPushoverNotification(env, {
-    title:   fulfillmentProvider === 'manual' ? 'New order — action needed' : 'New paid order',
+    title: 'New order — action needed',
     message: `${customerEmail} · ${((session.amount_total ?? 0) / 100).toFixed(2)} ${(session.currency ?? 'gbp').toUpperCase()}\n${itemSummary}\nShip to: ${fullName}, ${address.address1}, ${address.city}, ${address.zip}, ${address.country}`,
     url:     new URL('/admin/orders', new URL(request.url).origin).toString(),
     urlTitle: 'Open Admin Orders',
   });
 
   await sendOrderNotificationEmail(env, {
-    subject: fulfillmentProvider === 'manual' ? `New order awaiting action: ${customerEmail}` : `New paid order: ${customerEmail}`,
+    subject: `New order awaiting action: ${customerEmail}`,
     text: `${customerEmail} · ${((session.amount_total ?? 0) / 100).toFixed(2)} ${(session.currency ?? 'gbp').toUpperCase()}\n${itemSummary}\nShip to: ${fullName}, ${address.address1}, ${address.city}, ${address.zip}, ${address.country}`,
   });
 
   await updateOrderStatus(env.DB, orderId, 'awaiting_fulfillment');
   await syncPartnerCommissionStatusByOrderId(env.DB, orderId, 'awaiting_fulfillment');
-  logger.info('Order awaiting manual fulfillment', { orderId, mode });
+  logger.info('Order awaiting manual fulfillment', { orderId });
 }

@@ -15,6 +15,10 @@ import {
   listWebhookLogs,
 } from '../orders/repository.js';
 import {
+  buildOrderReceiptFilename,
+  buildOrderReceiptHtml,
+} from '../orders/receipt.js';
+import {
   getAllProductsForAdmin,
   deleteProductByPrintifyId,
   updateProductFields,
@@ -56,6 +60,21 @@ export async function handleGetOrder(env: Env, id: string): Promise<Response> {
   const order = await getOrderWithItems(env.DB, id);
   if (!order) return json({ error: 'Order not found' }, 404);
   return json({ order });
+}
+
+export async function handleGetOrderReceipt(env: Env, id: string): Promise<Response> {
+  const order = await getOrderWithItems(env.DB, id);
+  if (!order) return json({ error: 'Order not found' }, 404);
+
+  const html = buildOrderReceiptHtml(order);
+  return new Response(html, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${buildOrderReceiptFilename(order)}"`,
+      'Cache-Control': 'no-store',
+    },
+  });
 }
 
 export async function handleDeleteOrder(env: Env, id: string): Promise<Response> {

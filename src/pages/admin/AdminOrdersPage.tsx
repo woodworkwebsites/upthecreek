@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Order } from '../../../types/index.js';
-import { adminFetchOrders, adminFetchOrder, adminFulfillOrder, adminUpdateOrderStatus, adminDeleteOrder } from '../../lib/api.js';
+import { adminFetchOrders, adminFetchOrder, adminFulfillOrder, adminUpdateOrderStatus, adminDeleteOrder, adminDownloadOrderReceipt } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Badge } from '../../components/ui/Badge.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -15,12 +15,6 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'error' 
   awaiting_fulfillment: 'warning',
   fulfilled:            'success',
   failed:               'error',
-};
-
-const modeVariant: Record<string, 'default' | 'warning' | 'info'> = {
-  dry_run: 'warning',
-  draft:   'info',
-  live:    'default',
 };
 
 const providerVariant: Record<string, 'default' | 'info'> = {
@@ -57,6 +51,8 @@ function OrderRow({
   const [externalOrderRef, setExternalOrderRef] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [receiptDownloading, setReceiptDownloading] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -132,6 +128,26 @@ function OrderRow({
     }
   }
 
+  async function handleDownloadReceipt() {
+    setReceiptDownloading(true);
+    setReceiptError(null);
+    try {
+      const { blob, filename } = await adminDownloadOrderReceipt(token, order.id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setReceiptError(err instanceof Error ? err.message : 'Failed to download receipt');
+    } finally {
+      setReceiptDownloading(false);
+    }
+  }
+
   const shown = detail ?? order;
 
   return (
@@ -190,13 +206,8 @@ function OrderRow({
             {order.fulfillmentProvider}
           </Badge>
         </td>
-        <td className="px-3 py-2 align-middle">
-          <Badge variant={modeVariant[order.printifyMode] ?? 'default'} className="shrink-0">
-            {order.printifyMode.replace(/_/g, ' ')}
-          </Badge>
-        </td>
         <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 align-middle">
-          {order.printifyOrderId ?? shown.externalOrderRef ?? '—'}
+          {shown.externalOrderRef ?? '—'}
         </td>
         <td className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 align-middle">
           {formatDate(order.createdAt)}
@@ -217,7 +228,7 @@ function OrderRow({
       </tr>
       {expanded && (
         <tr className="bg-gray-50 dark:bg-gray-900/50">
-          <td colSpan={9} className="px-4 py-4 sm:px-6">
+          <td colSpan={8} className="px-4 py-4 sm:px-6">
             {loadingDetail ? (
               <p className="text-xs text-gray-500 dark:text-gray-400">Loading order details…</p>
             ) : (
@@ -261,6 +272,18 @@ function OrderRow({
                   </div>
                 </div>
 
+                <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={handleDownloadReceipt}
+                    disabled={receiptDownloading}
+                    className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
+                  >
+                    {receiptDownloading ? 'Preparing receipt…' : 'Download receipt'}
+                  </button>
+                  {receiptError && <span className="text-xs text-red-600 dark:text-red-400">{receiptError}</span>}
+                </div>
+
                 {shown.fulfillmentProvider === 'manual' && (
                   <div className="rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
                     <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -287,29 +310,6 @@ function OrderRow({
                           {submitting ? 'Saving…' : 'Mark as fulfilled'}
                         </button>
                         {submitError && <span className="text-xs text-red-600 dark:text-red-400">{submitError}</span>}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {shown.printifyPayload !== null && (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                      <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Fulfilment Payload
-                      </p>
-                      <pre className="max-h-64 overflow-auto rounded-lg bg-gray-900 p-3 text-xs text-green-400 dark:bg-black">
-                        {JSON.stringify(shown.printifyPayload, null, 2)}
-                      </pre>
-                    </div>
-                    {shown.printifyResponse !== null && (
-                      <div>
-                        <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Fulfilment Response
-                        </p>
-                        <pre className="max-h-64 overflow-auto rounded-lg bg-gray-900 p-3 text-xs text-blue-400 dark:bg-black">
-                          {JSON.stringify(shown.printifyResponse, null, 2)}
-                        </pre>
                       </div>
                     )}
                   </div>
@@ -522,10 +522,10 @@ export default function AdminOrdersPage() {
             <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/50">
-                  {['Session', 'Customer', 'Amount', 'Status', 'Provider', 'Mode', 'Ref', 'Created', ''].map((h, index) => (
+                  {['Session', 'Customer', 'Amount', 'Status', 'Provider', 'Ref', 'Created', ''].map((h, index) => (
                     <th
                       key={h || `col-${index}`}
-                      className={`px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${index === 0 ? 'pl-6' : ''} ${index === 8 ? 'text-right sm:pr-6' : ''}`}
+                      className={`px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${index === 0 ? 'pl-6' : ''} ${index === 7 ? 'text-right sm:pr-6' : ''}`}
                     >
                       {h}
                     </th>

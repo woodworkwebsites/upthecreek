@@ -5,11 +5,20 @@ import type {
   OrderItem,
   OrderItemRow,
   OrderStatus,
-  PrintifyMode,
   FulfillmentProvider,
   SyncLogRow,
   WebhookLogRow,
 } from '../../types/index.js';
+
+let orderSchemaReady: Promise<void> | null = null;
+
+async function readOrderColumns(db: D1Database): Promise<Set<string>> {
+  const result = await db
+    .prepare("SELECT name FROM pragma_table_info('orders')")
+    .all<{ name: string }>();
+
+  return new Set((result.results ?? []).map((row) => row.name));
+}
 
 function parseOrder(row: OrderRow): Order {
   return {
@@ -21,10 +30,6 @@ function parseOrder(row: OrderRow): Order {
     amountTotal:           row.amount_total,
     currency:              row.currency,
     status:                row.status,
-    printifyMode:          row.printify_mode,
-    printifyOrderId:       row.printify_order_id,
-    printifyPayload:       row.printify_payload ? JSON.parse(row.printify_payload) : null,
-    printifyResponse:      row.printify_response ? JSON.parse(row.printify_response) : null,
     error:                 row.error,
     fulfillmentProvider:   row.fulfillment_provider,
     externalOrderRef:      row.external_order_ref,
@@ -41,6 +46,84 @@ function parseOrder(row: OrderRow): Order {
     createdAt:             row.created_at,
     updatedAt:             row.updated_at,
   };
+}
+
+export async function ensureOrderSchema(db: D1Database): Promise<void> {
+  if (!orderSchemaReady) {
+    orderSchemaReady = (async () => {
+      await db.prepare(`
+        CREATE TABLE IF NOT EXISTS orders (
+          id                    TEXT PRIMARY KEY,
+          stripe_session_id     TEXT UNIQUE NOT NULL,
+          stripe_payment_intent TEXT,
+          customer_email        TEXT NOT NULL,
+          customer_name         TEXT,
+          amount_total          INTEGER NOT NULL,
+          currency              TEXT NOT NULL DEFAULT 'gbp',
+          status                TEXT NOT NULL DEFAULT 'pending',
+          error                 TEXT,
+          created_at            TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at            TEXT NOT NULL DEFAULT (datetime('now')),
+          fulfillment_provider  TEXT NOT NULL DEFAULT 'manual',
+          external_order_ref    TEXT,
+          shipping_name         TEXT NOT NULL DEFAULT '',
+          shipping_phone        TEXT NOT NULL DEFAULT '',
+          shipping_address1     TEXT NOT NULL DEFAULT '',
+          shipping_address2     TEXT NOT NULL DEFAULT '',
+          shipping_city         TEXT NOT NULL DEFAULT '',
+          shipping_region       TEXT NOT NULL DEFAULT '',
+          shipping_zip          TEXT NOT NULL DEFAULT '',
+          shipping_country      TEXT NOT NULL DEFAULT '',
+          discount_code         TEXT,
+          discount_amount       INTEGER NOT NULL DEFAULT 0
+        )
+      `).run();
+
+      await db.prepare(`
+        CREATE TABLE IF NOT EXISTS order_items (
+          id              TEXT PRIMARY KEY,
+          order_id        TEXT NOT NULL REFERENCES orders(id),
+          printify_id     TEXT NOT NULL,
+          variant_id      INTEGER NOT NULL,
+          title           TEXT NOT NULL,
+          color           TEXT NOT NULL DEFAULT '',
+          size            TEXT NOT NULL DEFAULT '',
+          quantity        INTEGER NOT NULL DEFAULT 1,
+          unit_price      INTEGER NOT NULL,
+          created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `).run();
+
+      const existingColumns = await readOrderColumns(db);
+      const additions: Array<[string, string]> = [
+        ['fulfillment_provider', "ALTER TABLE orders ADD COLUMN fulfillment_provider TEXT NOT NULL DEFAULT 'manual'"],
+        ['external_order_ref', 'ALTER TABLE orders ADD COLUMN external_order_ref TEXT'],
+        ['shipping_name', "ALTER TABLE orders ADD COLUMN shipping_name TEXT NOT NULL DEFAULT ''"],
+        ['shipping_phone', "ALTER TABLE orders ADD COLUMN shipping_phone TEXT NOT NULL DEFAULT ''"],
+        ['shipping_address1', "ALTER TABLE orders ADD COLUMN shipping_address1 TEXT NOT NULL DEFAULT ''"],
+        ['shipping_address2', "ALTER TABLE orders ADD COLUMN shipping_address2 TEXT NOT NULL DEFAULT ''"],
+        ['shipping_city', "ALTER TABLE orders ADD COLUMN shipping_city TEXT NOT NULL DEFAULT ''"],
+        ['shipping_region', "ALTER TABLE orders ADD COLUMN shipping_region TEXT NOT NULL DEFAULT ''"],
+        ['shipping_zip', "ALTER TABLE orders ADD COLUMN shipping_zip TEXT NOT NULL DEFAULT ''"],
+        ['shipping_country', "ALTER TABLE orders ADD COLUMN shipping_country TEXT NOT NULL DEFAULT ''"],
+        ['discount_code', 'ALTER TABLE orders ADD COLUMN discount_code TEXT'],
+        ['discount_amount', 'ALTER TABLE orders ADD COLUMN discount_amount INTEGER NOT NULL DEFAULT 0'],
+      ];
+
+      for (const [column, sql] of additions) {
+        if (!existingColumns.has(column)) {
+          await db.prepare(sql).run();
+        }
+      }
+
+      await db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_stripe_session ON orders(stripe_session_id)').run();
+      await db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)').run();
+      await db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_discount_code ON orders(discount_code)').run();
+      await db.prepare('CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)').run();
+    })();
+  }
+
+  await orderSchemaReady;
 }
 
 function parseOrderItem(row: OrderItemRow): OrderItem {
@@ -62,6 +145,8 @@ export async function getOrderBySessionId(
   db: D1Database,
   stripeSessionId: string,
 ): Promise<Order | null> {
+  await ensureOrderSchema(db);
+
   const row = await db
     .prepare('SELECT * FROM orders WHERE stripe_session_id = ?')
     .bind(stripeSessionId)
@@ -77,7 +162,6 @@ export interface CreateOrderData {
   customerName: string | null;
   amountTotal: number;
   currency: string;
-  printifyMode: PrintifyMode;
   fulfillmentProvider: FulfillmentProvider;
   discountCode?: string | null;
   discountAmount?: number;
@@ -97,16 +181,18 @@ export async function createOrder(
   db: D1Database,
   data: CreateOrderData,
 ): Promise<void> {
+  await ensureOrderSchema(db);
+
   await db
     .prepare(`
       INSERT INTO orders
         (id, stripe_session_id, stripe_payment_intent, customer_email, customer_name,
-         amount_total, currency, status, printify_mode, fulfillment_provider,
+         amount_total, currency, status, fulfillment_provider,
          discount_code, discount_amount,
          shipping_name, shipping_phone, shipping_address1, shipping_address2,
          shipping_city, shipping_region, shipping_zip, shipping_country,
          created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `)
     .bind(
       data.id,
@@ -116,7 +202,6 @@ export async function createOrder(
       data.customerName,
       data.amountTotal,
       data.currency,
-      data.printifyMode,
       data.fulfillmentProvider,
       data.discountCode ?? null,
       data.discountAmount ?? 0,
@@ -148,6 +233,8 @@ export async function createOrderItem(
   db: D1Database,
   data: CreateOrderItemData,
 ): Promise<void> {
+  await ensureOrderSchema(db);
+
   await db
     .prepare(`
       INSERT INTO order_items
@@ -173,20 +260,16 @@ export async function updateOrderStatus(
   id: string,
   status: OrderStatus,
   extra?: {
-    printifyOrderId?: string;
-    printifyPayload?: unknown;
-    printifyResponse?: unknown;
     error?: string;
     externalOrderRef?: string;
   },
 ): Promise<void> {
+  await ensureOrderSchema(db);
+
   await db
     .prepare(`
       UPDATE orders
       SET status             = ?,
-          printify_order_id  = COALESCE(?, printify_order_id),
-          printify_payload   = COALESCE(?, printify_payload),
-          printify_response  = COALESCE(?, printify_response),
           error              = COALESCE(?, error),
           external_order_ref = COALESCE(?, external_order_ref),
           updated_at         = datetime('now')
@@ -194,9 +277,6 @@ export async function updateOrderStatus(
     `)
     .bind(
       status,
-      extra?.printifyOrderId ?? null,
-      extra?.printifyPayload !== undefined ? JSON.stringify(extra.printifyPayload) : null,
-      extra?.printifyResponse !== undefined ? JSON.stringify(extra.printifyResponse) : null,
       extra?.error ?? null,
       extra?.externalOrderRef ?? null,
       id,
@@ -208,6 +288,8 @@ export async function getOrderWithItems(
   db: D1Database,
   id: string,
 ): Promise<Order | null> {
+  await ensureOrderSchema(db);
+
   const row = await db
     .prepare('SELECT * FROM orders WHERE id = ?')
     .bind(id)
@@ -229,6 +311,8 @@ export async function listOrders(
   limit = 50,
   offset = 0,
 ): Promise<Order[]> {
+  await ensureOrderSchema(db);
+
   const result = await db
     .prepare('SELECT * FROM orders ORDER BY created_at DESC LIMIT ? OFFSET ?')
     .bind(limit, offset)
@@ -240,9 +324,10 @@ export async function deleteOrderById(
   db: D1Database,
   id: string,
 ): Promise<boolean> {
+  await ensureOrderSchema(db);
+
   const result = await db.batch([
     db.prepare('DELETE FROM partner_commissions WHERE order_id = ?').bind(id),
-    db.prepare('DELETE FROM printify_logs WHERE order_id = ?').bind(id),
     db.prepare('DELETE FROM order_items WHERE order_id = ?').bind(id),
     db.prepare('DELETE FROM orders WHERE id = ?').bind(id),
   ]);
@@ -283,34 +368,6 @@ export async function writeWebhookLog(
       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
     `)
     .bind(crypto.randomUUID(), eventType, stripeSessionId, status, payloadStr, error)
-    .run();
-}
-
-export async function writePrintifyLog(
-  db: D1Database,
-  orderId: string | null,
-  mode: PrintifyMode,
-  action: string,
-  status: 'success' | 'error',
-  payload: unknown | null,
-  response: unknown | null,
-  error: string | null,
-): Promise<void> {
-  await db
-    .prepare(`
-      INSERT INTO printify_logs (id, order_id, mode, action, status, payload, response, error, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    `)
-    .bind(
-      crypto.randomUUID(),
-      orderId,
-      mode,
-      action,
-      status,
-      payload ? JSON.stringify(payload) : null,
-      response ? JSON.stringify(response) : null,
-      error,
-    )
     .run();
 }
 
