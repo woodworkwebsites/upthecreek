@@ -296,7 +296,7 @@ function OrderRow({
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
                       <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Printify Payload
+                        Fulfilment Payload
                       </p>
                       <pre className="max-h-64 overflow-auto rounded-lg bg-gray-900 p-3 text-xs text-green-400 dark:bg-black">
                         {JSON.stringify(shown.printifyPayload, null, 2)}
@@ -305,7 +305,7 @@ function OrderRow({
                     {shown.printifyResponse !== null && (
                       <div>
                         <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Printify Response
+                          Fulfilment Response
                         </p>
                         <pre className="max-h-64 overflow-auto rounded-lg bg-gray-900 p-3 text-xs text-blue-400 dark:bg-black">
                           {JSON.stringify(shown.printifyResponse, null, 2)}

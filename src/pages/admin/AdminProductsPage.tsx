@@ -684,7 +684,7 @@ function ProductRow({
                 </label>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">Shop product</p>
-              <p className="font-mono text-[11px] text-gray-400 dark:text-gray-500 truncate">{product.printifyId}</p>
+              <p className="font-mono text-[11px] text-gray-400 dark:text-gray-500 truncate">{product.id}</p>
             </div>
           </div>
         </td>
@@ -1404,7 +1404,7 @@ export default function AdminProductsPage() {
             loading={syncing}
             onClick={handlePreviewSync}
           >
-            Sync from Printify
+            Refresh catalog
           </Button>
         </div>
       </div>
@@ -1489,7 +1489,7 @@ export default function AdminProductsPage() {
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Approve sync changes</h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Printify returned {previewData.productsFound} products. Import the delta into R2 and D1?
+                Supplier import returned {previewData.productsFound} products. Import the delta into R2 and D1?
               </p>
             </div>
 

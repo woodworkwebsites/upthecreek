@@ -56,7 +56,7 @@ export default function AdminSettingsPage() {
         <div>
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Fulfillment</p>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Orders are recorded for manual fulfilment only. Printify is no longer part of the live chain.
+            Orders are recorded for manual fulfilment only. The supplier import path is no longer part of the live chain.
           </p>
         </div>
       </div>

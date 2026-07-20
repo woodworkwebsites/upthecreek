@@ -347,7 +347,7 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
   const imageFiles = form.getAll('images').filter((v): v is File => v instanceof File);
 
   const id = crypto.randomUUID();
-  const printifyId = `manual_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+  const printifyId = crypto.randomUUID();
 
   const variants: PrintifyVariant[] = variantRows.map((row, index) => ({
     id:        index + 1,

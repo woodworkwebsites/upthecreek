@@ -73,7 +73,7 @@ export default function AdminLogsPage() {
   const tabs: { id: TabId; label: string; count: number }[] = [
     { id: 'webhooks', label: 'Webhooks', count: visibleWebhookLogs.length },
     { id: 'sync',     label: 'Sync',     count: visibleSyncLogs.length },
-    { id: 'printify', label: 'Printify', count: visiblePrintifyLogs.length },
+    { id: 'printify', label: 'Supplier', count: visiblePrintifyLogs.length },
   ];
 
   return (
@@ -180,7 +180,7 @@ export default function AdminLogsPage() {
                   <td className="px-3 py-3 text-xs text-gray-400 dark:text-gray-500">{formatDate(log.created_at)}</td>
                 </tr>
               )}
-              emptyMessage="No Printify logs yet."
+              emptyMessage="No supplier logs yet."
             />
           )}
         </>
