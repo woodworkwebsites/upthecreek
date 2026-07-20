@@ -313,7 +313,7 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     printifyId:     row.printify_id,
     title:          row.title,
     description:    row.description,
-    category:       row.category,
+    category:       categoryMetadata.baseCategory || row.category || '',
     audience:       row.audience || categoryMetadata.audience || '',
     productType:    row.product_type || categoryMetadata.productType || '',
     garment:        row.garment || categoryMetadata.garment || '',

@@ -289,7 +289,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Matrix</p>
               <p className="mt-2 text-sm leading-7 text-gray-500">
-                Drag a garment colour into the order pile, or click to add it. The right-hand basket is where quantities are edited.
+                Pick a design, then click a colour cell to open the size and quantity modal.
               </p>
             </div>
             <input
@@ -301,73 +301,59 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-3">
           {filteredProducts.map((product) => {
             const colors = visibleColors(product);
             return (
-              <article key={product.id} className="rounded-[1.75rem] border border-gray-200 bg-white p-5 shadow-[0_18px_50px_rgba(5,13,31,0.05)]">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-brand-500">
+              <article
+                key={product.id}
+                className="overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_40px_rgba(5,13,31,0.05)]"
+              >
+                <div className="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)]">
+                  <div className="border-b border-gray-100 px-5 py-4 lg:border-b-0 lg:border-r">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-brand-500">
                       {product.category || product.audience}
                     </p>
-                    <h2 className="mt-2 text-2xl font-black tracking-tight text-navy-900">{product.title}</h2>
-                    <p className="mt-1 text-sm text-gray-500">{product.garment}</p>
+                    <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
+                      <h2 className="text-xl font-black tracking-tight text-navy-900">{product.title}</h2>
+                      <span className="text-sm font-semibold text-gray-500">{product.garment}</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge variant="info">{colors.length} colours</Badge>
+                      <Badge variant="default">{getProductSizes(product).length} sizes</Badge>
+                      <Badge variant="success">{formatPriceRange(product.minPrice, product.maxPrice)}</Badge>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="info">{colors.length} colours</Badge>
-                    <Badge variant="default">{getProductSizes(product).length} sizes</Badge>
-                    <Badge variant="success">{formatPriceRange(product.minPrice, product.maxPrice)}</Badge>
-                  </div>
-                </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {colors.map((color) => (
-                    <button
-                      key={`${product.id}:${color.name}`}
-                      type="button"
-                      draggable
-                      onDragStart={(event) => handleDragStart(product, color.name, event)}
-                    onClick={() => openDraft(product, color.name)}
-                      className={cn(
-                        'group relative overflow-hidden rounded-[1.5rem] border bg-white text-left transition-all duration-300',
-                        'shadow-[0_12px_34px_rgba(5,13,31,0.05)] hover:-translate-y-1 hover:shadow-[0_20px_42px_rgba(5,13,31,0.09)] border-gray-200',
-                      )}
-                    >
-                      <div className="aspect-[4/5] overflow-hidden bg-gray-50">
-                        <img
-                          src={getImageForColor(product, color.name)}
-                          alt={`${product.title} ${color.name}`}
-                          className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
-                          loading="lazy"
-                        />
-                      </div>
-                      <div className="space-y-3 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-black tracking-tight text-navy-900">{product.title}</p>
-                            <p className="mt-1 text-xs text-gray-500">{product.garment}</p>
-                          </div>
-                          <Badge variant="default" className="shrink-0">
-                            {color.name}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2">
-                            <span className="h-4 w-4 rounded-full border border-black/10" style={{ backgroundColor: color.hex }} aria-hidden />
-                            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                              {color.name}
+                  <div className="px-5 py-4">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+                      {colors.map((color) => (
+                        <button
+                          key={`${product.id}:${color.name}`}
+                          type="button"
+                          draggable
+                          onDragStart={(event) => handleDragStart(product, color.name, event)}
+                          onClick={() => openDraft(product, color.name)}
+                          className={cn(
+                            'group flex items-center gap-3 rounded-2xl border bg-gray-50 px-3 py-2 text-left transition-all duration-200',
+                            'border-gray-200 hover:-translate-y-0.5 hover:border-navy-300 hover:bg-white hover:shadow-[0_12px_30px_rgba(5,13,31,0.08)]',
+                          )}
+                        >
+                          <span
+                            className="h-8 w-8 flex-shrink-0 rounded-full border border-black/10"
+                            style={{ backgroundColor: color.hex }}
+                            aria-hidden
+                          />
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-semibold text-navy-900">{color.name}</span>
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                              Click to add
                             </span>
-                          </div>
-                          <p className="text-xs font-semibold text-gray-500">{formatPriceRange(product.minPrice, product.maxPrice)}</p>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Drag or click</span>
-                          <span className="rounded-full bg-navy-900 px-3 py-1 text-[11px] font-semibold text-white">Add</span>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </article>
             );

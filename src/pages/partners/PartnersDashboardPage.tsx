@@ -197,7 +197,7 @@ export default function PartnersDashboardPage() {
                 <p className="label">Club range</p>
                 <h2 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Ordering workspace</h2>
                 <p className="mt-2 text-sm leading-7 text-gray-600">
-                  This private console shows the full catalog directly. Drag a garment colour into the basket, then set size quantities on the right.
+                  This private console shows a compact design-and-colour matrix. Click a colour to open the size and quantity modal, then add it to the basket.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
