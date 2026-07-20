@@ -75,7 +75,7 @@ export async function handleStripeWebhook(
   return new Response('OK', { status: 200 });
 }
 
-async function processCompletedSession(
+export async function processCompletedSession(
   session: Stripe.Checkout.Session,
   request: Request,
   env: Env,
