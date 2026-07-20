@@ -58,6 +58,17 @@ function normalizeHiddenColors(hiddenColors: unknown[]): string[] {
   );
 }
 
+function normalizeSizes(sizes: unknown[]): string[] {
+  return Array.from(
+    new Set(
+      sizes
+        .filter((size): size is string => typeof size === 'string')
+        .map((size) => size.trim())
+        .filter((size) => size.length > 0),
+    ),
+  );
+}
+
 function normalizeColorName(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -227,27 +238,37 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const rawVariants = parseJsonArray<PrintifyVariant>(row.variants);
   const rawColors = parseJsonArray<PrintifyColor>(row.colors);
   const rawCustomColors = parseJsonArray<PrintifyColor>(row.custom_colors);
+  const rawSizes = normalizeSizes(parseJsonArray<string>(row.sizes));
   const pricingMatrix = parseJsonObject<PricingMatrixRow>(row.pricing_matrix);
   const categoryMetadata = parseProductMetadata(row.category);
   const effectivePricingMatrix = isEmptyObject(pricingMatrix) ? (categoryMetadata.pricingMatrix ?? null) : pricingMatrix;
 
-  const customColors = rawCustomColors.length > 0 ? rawCustomColors : (categoryMetadata.customColors ?? []);
-  const colorSource = mergeColors(
+  const adminCustomColors = rawCustomColors.length > 0 ? rawCustomColors : (categoryMetadata.customColors ?? []);
+  const adminColorSource = mergeColors(
     rawColors,
-    customColors,
-    rawColors.length === 0 && customColors.length === 0 ? DEFAULT_FALLBACK_COLORS : [],
+    adminCustomColors,
+    rawColors.length === 0 && adminCustomColors.length === 0 ? DEFAULT_FALLBACK_COLORS : [],
   );
-  const normalizedColors = normalizeColors(colorSource);
-  const syntheticVariants = buildSyntheticVariants(normalizedColors, effectivePricingMatrix, row.id);
+  const adminColors = normalizeColors(adminColorSource);
+  const visibleColors = view === 'admin'
+    ? adminColors
+    : filterVisibleColors(adminColors, hiddenColorSet);
+  const visibleColorSet = new Set(visibleColors.map((color) => normalizeColorName(color.name)));
+  const syntheticVariants = buildSyntheticVariants(visibleColors, effectivePricingMatrix, row.id);
   const rawVariantColorSet = new Set(rawVariants.map((variant) => normalizeColorName(variant.color)));
   const missingColorVariants = syntheticVariants.filter((variant) => !rawVariantColorSet.has(normalizeColorName(variant.color)));
   const colors = view === 'admin'
-    ? normalizedColors
-    : filterVisibleColors(normalizedColors, hiddenColorSet);
+    ? adminColors
+    : filterVisibleColors(adminColors, hiddenColorSet);
 
-  const allVariants = rawVariants.length > 0
-    ? [...rawVariants, ...missingColorVariants]
-    : syntheticVariants;
+  const allVariants = view === 'admin'
+    ? (rawVariants.length > 0 ? [...rawVariants, ...missingColorVariants] : syntheticVariants)
+    : (() => {
+        const selectedRawVariants = rawVariants.filter((variant) => visibleColorSet.has(normalizeColorName(variant.color)));
+        return selectedRawVariants.length > 0
+          ? [...selectedRawVariants, ...missingColorVariants]
+          : syntheticVariants;
+      })();
   const variants = (view === 'admin'
     ? allVariants
     : allVariants.filter((variant) => !hiddenColorSet.has(variant.color))
@@ -263,13 +284,13 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
         if (image.isDefault) {
           return true;
         }
-        if (image.color && hiddenColorSet.has(image.color)) {
+        if (image.color && !visibleColorSet.has(normalizeColorName(image.color))) {
           return false;
         }
         return true;
       });
 
-  const colorHexByName = new Map(colors.map((color) => [color.name, color.hex] as const));
+  const colorHexByName = new Map(visibleColors.map((color) => [color.name, color.hex] as const));
   const aggregates = view === 'admin'
     ? deriveProductAggregates(
         rawVariants,
@@ -293,7 +314,7 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     colors,
     customColors,
     hiddenColors,
-    sizes:          aggregates.sizes,
+    sizes:          rawSizes,
     minPrice:       aggregates.minPrice,
     maxPrice:       aggregates.maxPrice,
     isEnabled:      row.is_enabled === 1,

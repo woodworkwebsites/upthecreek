@@ -51,9 +51,7 @@ function visibleColors(product: Product): PrintifyColor[] {
 }
 
 function getProductSizes(product: Product): string[] {
-  const fromProduct = uniqueStrings(product.sizes);
-  if (fromProduct.length > 0) return fromProduct;
-  return uniqueStrings(product.variants.map((variant) => variant.size));
+  return uniqueStrings(product.sizes);
 }
 
 function getColorVariants(product: Product, color: string): PrintifyVariant[] {
@@ -84,6 +82,7 @@ function buildBasketLine(product: Product, color: string): BasketLineItem {
   const sizes = getProductSizes(product);
   const variants = getColorVariants(product, color);
   const variantBySize = new Map(variants.map((variant) => [variant.size, variant]));
+  const fallbackPrice = product.minPrice > 0 ? product.minPrice : product.maxPrice > 0 ? product.maxPrice : 0;
 
   return {
     id: `${product.id}:${color}`,
@@ -100,8 +99,8 @@ function buildBasketLine(product: Product, color: string): BasketLineItem {
       return {
         size,
         variantId: variant?.id ?? null,
-        available: Boolean(variant?.available),
-        unitPrice: variant?.price ?? 0,
+        available: true,
+        unitPrice: variant?.price ?? fallbackPrice,
         quantity: 0,
       };
     }),
@@ -182,8 +181,7 @@ function CatalogTile({
 }) {
   const sizes = getProductSizes(product);
   const imageSrc = getImageForColor(product, color.name);
-  const variants = getColorVariants(product, color.name);
-  const availableCount = variants.filter((variant) => variant.available).length;
+  const availableCount = sizes.length;
 
   return (
     <button
