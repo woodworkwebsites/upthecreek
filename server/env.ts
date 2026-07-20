@@ -1,5 +1,4 @@
 import type { Env } from '../types/env.js';
-import type { PrintifyMode } from '../types/index.js';
 
 export class EnvError extends Error {
   constructor(message: string) {
@@ -14,8 +13,6 @@ export function validateEnv(env: Env): void {
     'STRIPE_SECRET_KEY_LIVE',
     'STRIPE_WEBHOOK_SECRET_TEST',
     'STRIPE_WEBHOOK_SECRET_LIVE',
-    'PRINTIFY_API_TOKEN',
-    'PRINTIFY_SHOP_ID',
     'ADMIN_TOKEN',
   ];
 
@@ -44,19 +41,6 @@ export function getStripeKeys(request: Request, env: Env, forceTestMode = false)
     secretKey:     useTestMode ? env.STRIPE_SECRET_KEY_TEST     : env.STRIPE_SECRET_KEY_LIVE,
     webhookSecret: useTestMode ? env.STRIPE_WEBHOOK_SECRET_TEST : env.STRIPE_WEBHOOK_SECRET_LIVE,
   };
-}
-
-export function getEffectivePrintifyMode(
-  request: Request,
-  liveEnabled: boolean,
-): PrintifyMode {
-  if (isLocalDevHost(request)) return 'dry_run';
-
-  if (liveEnabled) {
-    return 'live';
-  }
-
-  return 'draft';
 }
 
 export function requireAdminToken(request: Request, env: Env): void {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { SyncLogRow, WebhookLogRow, PrintifyLogRow } from '../../../types/index.js';
+import type { SyncLogRow, WebhookLogRow } from '../../../types/index.js';
 import { adminFetchLogs } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Badge } from '../../components/ui/Badge.js';
@@ -7,7 +7,7 @@ import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatDate } from '../../lib/utils.js';
 
-type TabId = 'webhooks' | 'sync' | 'imports';
+type TabId = 'webhooks' | 'sync';
 const LOG_ARCHIVE_KEY = 'admin.logs.archiveBefore';
 
 function readArchivedBefore(): number | null {
@@ -30,7 +30,6 @@ export default function AdminLogsPage() {
   const [activeTab,    setActiveTab]    = useState<TabId>('webhooks');
   const [syncLogs,     setSyncLogs]     = useState<SyncLogRow[]>([]);
   const [webhookLogs,  setWebhookLogs]  = useState<WebhookLogRow[]>([]);
-  const [printifyLogs, setPrintifyLogs] = useState<PrintifyLogRow[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState<string | null>(null);
   const [archivedBefore, setArchivedBefore] = useState<number | null>(() => readArchivedBefore());
@@ -52,7 +51,6 @@ export default function AdminLogsPage() {
       const data = await adminFetchLogs(token);
       setSyncLogs(data.syncLogs);
       setWebhookLogs(data.webhookLogs);
-      setPrintifyLogs(data.printifyLogs);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load logs');
     } finally {
@@ -68,12 +66,10 @@ export default function AdminLogsPage() {
 
   const visibleSyncLogs = syncLogs.filter((log) => isVisibleAfterArchive(log.created_at, archivedBefore));
   const visibleWebhookLogs = webhookLogs.filter((log) => isVisibleAfterArchive(log.created_at, archivedBefore));
-  const visiblePrintifyLogs = printifyLogs.filter((log) => isVisibleAfterArchive(log.created_at, archivedBefore));
 
   const tabs: { id: TabId; label: string; count: number }[] = [
     { id: 'webhooks', label: 'Webhooks', count: visibleWebhookLogs.length },
     { id: 'sync',     label: 'Sync',     count: visibleSyncLogs.length },
-    { id: 'imports', label: 'Imports', count: visiblePrintifyLogs.length },
   ];
 
   return (
@@ -160,29 +156,6 @@ export default function AdminLogsPage() {
             />
           )}
 
-          {activeTab === 'imports' && (
-            <LogTable
-              headers={['Order', 'Mode', 'Action', 'Status', 'Error', 'Created']}
-              rows={visiblePrintifyLogs}
-              renderRow={(log: PrintifyLogRow) => (
-                <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                  <td className="py-3 pl-4 pr-3 text-xs font-mono text-gray-500 dark:text-gray-400">{log.order_id?.slice(0, 16) ?? '—'}</td>
-                  <td className="px-3 py-3">
-                    <Badge variant={log.mode === 'live' ? 'default' : log.mode === 'draft' ? 'info' : 'warning'}>
-                      {log.mode.replace(/_/g, ' ')}
-                    </Badge>
-                  </td>
-                  <td className="px-3 py-3 text-xs text-gray-700 dark:text-gray-300">{log.action}</td>
-                  <td className="px-3 py-3">
-                    <Badge variant={log.status === 'error' ? 'error' : 'success'}>{log.status}</Badge>
-                  </td>
-                  <td className="px-3 py-3 text-xs text-red-500 dark:text-red-400">{log.error ?? '—'}</td>
-                  <td className="px-3 py-3 text-xs text-gray-400 dark:text-gray-500">{formatDate(log.created_at)}</td>
-                </tr>
-              )}
-              emptyMessage="No supplier logs yet."
-            />
-          )}
         </>
       )}
     </div>

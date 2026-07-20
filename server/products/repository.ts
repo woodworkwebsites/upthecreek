@@ -72,6 +72,22 @@ function normalizeColors(colors: PrintifyColor[]): PrintifyColor[] {
   });
 }
 
+function mergeColors(...groups: PrintifyColor[][]): PrintifyColor[] {
+  const merged: PrintifyColor[] = [];
+  const seen = new Set<string>();
+
+  for (const group of groups) {
+    for (const color of group) {
+      const key = normalizeColorName(color.name);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      merged.push(color);
+    }
+  }
+
+  return merged;
+}
+
 function filterVisibleColors(colors: PrintifyColor[], hiddenColors: Set<string>): PrintifyColor[] {
   return colors.filter((color) => !hiddenColors.has(normalizeColorName(color.name)));
 }
@@ -89,19 +105,33 @@ function parseSalePriceToPence(pricingMatrix: PricingMatrixRow | null): number {
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
 }
 
-function buildSyntheticVariants(colors: PrintifyColor[], pricingMatrix: PricingMatrixRow | null): PrintifyVariant[] {
-  const salePrice = parseSalePriceToPence(pricingMatrix);
-  return buildVariantMatrix(colors, salePrice);
+function buildSyntheticVariantId(seed: string): number {
+  let hash = 2166136261;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  const signed = hash | 0;
+  return signed === 0 ? -1 : (signed > 0 ? -signed : signed);
 }
 
-function buildVariantMatrix(colors: PrintifyColor[], salePrice: number): PrintifyVariant[] {
+function buildSyntheticVariants(
+  colors: PrintifyColor[],
+  pricingMatrix: PricingMatrixRow | null,
+  seedPrefix = '',
+): PrintifyVariant[] {
+  const salePrice = parseSalePriceToPence(pricingMatrix);
+  return buildVariantMatrix(colors, salePrice, seedPrefix);
+}
+
+function buildVariantMatrix(colors: PrintifyColor[], salePrice: number, seedPrefix = ''): PrintifyVariant[] {
   const variants: PrintifyVariant[] = [];
-  let nextId = 1;
 
   for (const color of colors) {
     for (const size of DEFAULT_SIZE_OPTIONS) {
       variants.push({
-        id: nextId++,
+        id: buildSyntheticVariantId(`${seedPrefix}:${color.name}:${size}`),
         color: color.name,
         size,
         price: salePrice,
@@ -202,20 +232,25 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const effectivePricingMatrix = isEmptyObject(pricingMatrix) ? (categoryMetadata.pricingMatrix ?? null) : pricingMatrix;
 
   const customColors = rawCustomColors.length > 0 ? rawCustomColors : (categoryMetadata.customColors ?? []);
-  const colorSource = rawColors.length > 0
-    ? rawColors
-    : customColors.length > 0
-      ? customColors
-      : DEFAULT_FALLBACK_COLORS;
+  const colorSource = mergeColors(
+    rawColors,
+    customColors,
+    rawColors.length === 0 && customColors.length === 0 ? DEFAULT_FALLBACK_COLORS : [],
+  );
   const normalizedColors = normalizeColors(colorSource);
-  const syntheticVariants = buildSyntheticVariants(normalizedColors, effectivePricingMatrix);
+  const syntheticVariants = buildSyntheticVariants(normalizedColors, effectivePricingMatrix, row.id);
+  const rawVariantColorSet = new Set(rawVariants.map((variant) => normalizeColorName(variant.color)));
+  const missingColorVariants = syntheticVariants.filter((variant) => !rawVariantColorSet.has(normalizeColorName(variant.color)));
   const colors = view === 'admin'
     ? normalizedColors
     : filterVisibleColors(normalizedColors, hiddenColorSet);
 
+  const allVariants = rawVariants.length > 0
+    ? [...rawVariants, ...missingColorVariants]
+    : syntheticVariants;
   const variants = (view === 'admin'
-    ? (rawVariants.length > 0 ? rawVariants : syntheticVariants)
-    : (rawVariants.length > 0 ? rawVariants.filter((variant) => !hiddenColorSet.has(variant.color)) : syntheticVariants.filter((variant) => !hiddenColorSet.has(variant.color)))
+    ? allVariants
+    : allVariants.filter((variant) => !hiddenColorSet.has(variant.color))
   ).map((variant) => ({
     ...variant,
     available: true,

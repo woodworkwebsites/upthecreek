@@ -126,18 +126,6 @@ export interface WebhookLogRow {
   created_at: string;
 }
 
-export interface PrintifyLogRow {
-  id: string;
-  order_id: string | null;
-  mode: PrintifyMode;
-  action: string;
-  status: 'success' | 'error';
-  payload: string | null;
-  response: string | null;
-  error: string | null;
-  created_at: string;
-}
-
 export type DiscountCodeKind = 'percent' | 'fixed';
 
 export interface DiscountCodeRow {
@@ -261,7 +249,7 @@ export interface Partner {
 }
 
 export interface PartnerAdmin extends Partner {
-  accessToken: string;
+  accessToken?: string;
 }
 
 export type PartnerCommissionStatus = 'pending' | 'paid' | 'void';
@@ -298,7 +286,7 @@ export interface PartnerInput {
   slug: string;
   name: string;
   discountCode?: string | null;
-  accessToken: string;
+  accessToken?: string;
   commissionRate: number;
   description?: string | null;
   active?: boolean;

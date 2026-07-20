@@ -1,7 +1,5 @@
 import type { Env } from '../../types/env.js';
 import type {
-  TestPayloadRequest,
-  TestOrderHandoffRequest,
   PrintifyVariant,
   PrintifyProductImage,
   OrderStatus,
@@ -15,7 +13,6 @@ import {
   updateOrderStatus,
   listSyncLogs,
   listWebhookLogs,
-  listPrintifyLogs,
 } from '../orders/repository.js';
 import {
   getAllProductsForAdmin,
@@ -29,7 +26,6 @@ import {
 } from '../products/repository.js';
 import { getProductByPrintifyId } from '../products/repository.js';
 import { deriveProductAggregates } from '../products/aggregates.js';
-import { previewPrintifySync, reconcileSyncedProducts, syncProductsPageByPage } from '../printify/sync.js';
 import { getAllSettings, setSetting, getSetting } from '../settings/repository.js';
 import {
   listDiscountCodes,
@@ -48,50 +44,6 @@ import {
 } from '../partners/repository.js';
 import { logger } from '../logging.js';
 import { deleteAsset, storeAssetData } from '../assets/storage.js';
-
-type SyncProductsRequest = {
-  preview?: boolean;
-  page?: number;
-  limit?: number;
-  finalize?: boolean;
-  syncedPrintifyIds?: string[];
-};
-
-export async function handleSyncProducts(env: Env, request: Request): Promise<Response> {
-  logger.info('Admin: triggering product sync');
-  try {
-    const body = await request.json().catch(() => ({})) as SyncProductsRequest;
-
-    if (body.finalize) {
-      const syncedPrintifyIds = body.syncedPrintifyIds ?? [];
-      const result = await reconcileSyncedProducts(env.DB, syncedPrintifyIds);
-      return json({ success: true, finalized: true, ...result });
-    }
-
-    if (body.preview) {
-      const result = await previewPrintifySync(
-        env.DB,
-        env,
-        env.PRINTIFY_API_TOKEN,
-        env.PRINTIFY_SHOP_ID,
-      );
-      return json({ success: true, preview: true, ...result });
-    }
-
-    const result = await syncProductsPageByPage(
-      env.DB,
-      env,
-      env.PRINTIFY_API_TOKEN,
-      env.PRINTIFY_SHOP_ID,
-      body.page ?? 1,
-      body.limit ?? 1,
-    );
-    return json({ success: true, ...result });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return json({ error: message }, 500);
-  }
-}
 
 export async function handleListOrders(env: Env, url: URL): Promise<Response> {
   const limit  = Math.min(parseInt(url.searchParams.get('limit') ?? '50'), 100);
@@ -792,138 +744,11 @@ export async function handleUpdateProductImage(
 }
 
 export async function handleListLogs(env: Env): Promise<Response> {
-  const [syncLogs, webhookLogs, printifyLogs] = await Promise.all([
+  const [syncLogs, webhookLogs] = await Promise.all([
     listSyncLogs(env.DB),
     listWebhookLogs(env.DB),
-    listPrintifyLogs(env.DB),
   ]);
-  return json({ syncLogs, webhookLogs, printifyLogs });
-}
-
-export async function handleTestPrintifyPayload(
-  env: Env,
-  request: Request,
-): Promise<Response> {
-  let body: TestPayloadRequest;
-  try {
-    body = await request.json() as TestPayloadRequest;
-  } catch {
-    return json({ error: 'Invalid JSON body' }, 400);
-  }
-
-  const { printifyId, variantId, quantity, address } = body;
-  if (!printifyId || !variantId || !quantity || !address) {
-    return json({ error: 'Missing required fields: printifyId, variantId, quantity, address' }, 400);
-  }
-
-  const product = await getProductByPrintifyId(env.DB, printifyId);
-  if (!product) return json({ error: `Product not found: ${printifyId}` }, 404);
-
-  const variant = product.variants.find((v) => v.id === variantId);
-  if (!variant) return json({ error: `Variant not found: ${variantId}` }, 404);
-
-  const payload = {
-    external_id: `test_${crypto.randomUUID().substring(0, 8)}`,
-    line_items: [
-      {
-        product_id: printifyId,
-        variant_id: variantId,
-        quantity,
-      },
-    ],
-    shipping_method: 1,
-    send_shipping_notification: true,
-    address_to: {
-      first_name: address.firstName,
-      last_name:  address.lastName,
-      email:      address.email,
-      phone:      address.phone,
-      country:    address.country,
-      region:     '',
-      address1:   address.address1,
-      address2:   address.address2 ?? '',
-      city:       address.city,
-      zip:        address.zip,
-    },
-  };
-
-  return json({
-    payload,
-    product: { title: product.title, variant: { color: variant.color, size: variant.size } },
-    mode: 'test (payload only — no API call)',
-  });
-}
-
-export async function handleTestOrderHandoff(
-  env: Env,
-  request: Request,
-): Promise<Response> {
-  let body: TestOrderHandoffRequest;
-  try {
-    body = await request.json() as TestOrderHandoffRequest;
-  } catch {
-    return json({ error: 'Invalid JSON body' }, 400);
-  }
-
-  const { printifyId, variantId, quantity } = body;
-  if (!printifyId || !variantId || !quantity) {
-    return json({ error: 'Missing required fields: printifyId, variantId, quantity' }, 400);
-  }
-
-  const product = await getProductByPrintifyId(env.DB, printifyId);
-  if (!product) return json({ error: `Product not found: ${printifyId}` }, 404);
-
-  const variant = product.variants.find((v) => v.id === variantId);
-  if (!variant) return json({ error: `Variant not found: ${variantId}` }, 404);
-
-  const orderId = crypto.randomUUID();
-  const fakeSessionId = `cs_test_${crypto.randomUUID().replace(/-/g, '').substring(0, 24)}`;
-
-  await createOrder(env.DB, {
-    id:                  orderId,
-    stripeSessionId:     fakeSessionId,
-    stripePaymentIntent: null,
-    customerEmail:       'test@upthecreekpadel.com',
-    customerName:        'Test Customer',
-    amountTotal:         variant.price * quantity,
-    currency:            'gbp',
-    printifyMode:        mode,
-    fulfillmentProvider: 'printify',
-    shipping: {
-      name:     'Test Customer',
-      phone:    '07700000000',
-      address1: '1 Test Street',
-      address2: '',
-      city:     'London',
-      region:   '',
-      zip:      'SW1A 1AA',
-      country:  'GB',
-    },
-  });
-
-  await createOrderItem(env.DB, {
-    id:         crypto.randomUUID(),
-    orderId,
-    printifyId,
-    variantId,
-    title:      product.title,
-    color:      variant.color,
-    size:       variant.size,
-    quantity,
-    unitPrice:  variant.price,
-  });
-
-  await updateOrderStatus(env.DB, orderId, 'fulfillment_started');
-
-  await updateOrderStatus(env.DB, orderId, 'awaiting_fulfillment');
-  logger.info('Test order recorded for manual fulfilment', { orderId });
-
-  return json({
-    orderId,
-    fakeSessionId,
-    mode: 'manual',
-    note: 'Printify has been removed from the runtime chain; this order is queued for manual fulfilment only.',
-  });
+  return json({ syncLogs, webhookLogs });
 }
 
 

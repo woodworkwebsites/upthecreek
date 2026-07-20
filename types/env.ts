@@ -7,8 +7,6 @@ export interface Env {
   STRIPE_SECRET_KEY_LIVE: string;
   STRIPE_WEBHOOK_SECRET_TEST: string;
   STRIPE_WEBHOOK_SECRET_LIVE: string;
-  PRINTIFY_API_TOKEN: string;
-  PRINTIFY_SHOP_ID: string;
   LIVE_ORDERS_ENABLED: string;
   ADMIN_TOKEN: string;
   PUSHOVER_APP_TOKEN?: string;

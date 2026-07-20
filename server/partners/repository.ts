@@ -13,6 +13,22 @@ import type {
 } from '../../types/index.js';
 import { getOrderWithItems } from '../orders/repository.js';
 
+type PartnerRow = {
+  id: string;
+  slug: string;
+  name: string;
+  discount_code: string | null;
+  commission_rate: number;
+  description: string | null;
+  active: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type PartnerSecretRow = PartnerRow & {
+  access_token: string;
+};
+
 function normalizeSlug(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -64,18 +80,7 @@ export function parsePartnerRow(row: {
   };
 }
 
-function parsePartnerAdminRow(row: {
-  id: string;
-  slug: string;
-  name: string;
-  discount_code: string | null;
-  access_token: string;
-  commission_rate: number;
-  description: string | null;
-  active: number;
-  created_at: string;
-  updated_at: string;
-}): PartnerAdmin {
+function parsePartnerAdminRow(row: PartnerRow & { access_token?: string }): PartnerAdmin {
   return {
     ...parsePartnerRow(row),
     accessToken: row.access_token,
@@ -198,19 +203,11 @@ export async function getPartnerByDiscountCode(db: D1Database, discountCode: str
   await ensurePartnerSchema(db);
 
   const row = await db
-    .prepare('SELECT * FROM partners WHERE discount_code IS NOT NULL AND UPPER(discount_code) = UPPER(?)')
+    .prepare(
+      'SELECT id, slug, name, discount_code, commission_rate, description, active, created_at, updated_at FROM partners WHERE discount_code IS NOT NULL AND UPPER(discount_code) = UPPER(?)',
+    )
     .bind(discountCode.trim())
-    .first<{
-      id: string;
-      slug: string;
-      name: string;
-      discount_code: string | null;
-      commission_rate: number;
-      description: string | null;
-      active: number;
-      created_at: string;
-      updated_at: string;
-    }>();
+    .first<PartnerRow>();
 
   return row ? parsePartnerRow(row) : null;
 }
@@ -219,19 +216,11 @@ export async function getPartnerBySlug(db: D1Database, slug: string): Promise<Pa
   await ensurePartnerSchema(db);
 
   const row = await db
-    .prepare('SELECT * FROM partners WHERE slug = ?')
+    .prepare(
+      'SELECT id, slug, name, discount_code, commission_rate, description, active, created_at, updated_at FROM partners WHERE slug = ?',
+    )
     .bind(normalizeSlug(slug))
-    .first<{
-      id: string;
-      slug: string;
-      name: string;
-      discount_code: string | null;
-      commission_rate: number;
-      description: string | null;
-      active: number;
-      created_at: string;
-      updated_at: string;
-    }>();
+    .first<PartnerRow>();
 
   return row ? parsePartnerRow(row) : null;
 }
@@ -244,19 +233,11 @@ export async function getPartnerBySlugAndToken(
   await ensurePartnerSchema(db);
 
   const row = await db
-    .prepare('SELECT * FROM partners WHERE slug = ? AND access_token = ?')
+    .prepare(
+      'SELECT id, slug, name, discount_code, commission_rate, description, active, created_at, updated_at FROM partners WHERE slug = ? AND access_token = ?',
+    )
     .bind(normalizeSlug(slug), normalizeToken(accessToken))
-    .first<{
-      id: string;
-      slug: string;
-      name: string;
-      discount_code: string | null;
-      commission_rate: number;
-      description: string | null;
-      active: number;
-      created_at: string;
-      updated_at: string;
-    }>();
+    .first<PartnerRow>();
 
   return row ? parsePartnerRow(row) : null;
 }
@@ -265,47 +246,50 @@ export async function listPartners(db: D1Database): Promise<PartnerAdmin[]> {
   await ensurePartnerSchema(db);
 
   const result = await db
-    .prepare('SELECT * FROM partners ORDER BY created_at DESC')
-    .all<{
-      id: string;
-      slug: string;
-      name: string;
-      discount_code: string | null;
-      access_token: string;
-      commission_rate: number;
-      description: string | null;
-      active: number;
-      created_at: string;
-      updated_at: string;
-    }>();
+    .prepare(
+      'SELECT id, slug, name, discount_code, commission_rate, description, active, created_at, updated_at FROM partners ORDER BY created_at DESC',
+    )
+    .all<PartnerRow>();
 
-  return (result.results ?? []).map(parsePartnerAdminRow);
+  return (result.results ?? []).map(parsePartnerRow);
 }
 
 export async function getPartnerById(db: D1Database, id: string): Promise<PartnerAdmin | null> {
   await ensurePartnerSchema(db);
 
   const row = await db
+    .prepare(
+      'SELECT id, slug, name, discount_code, commission_rate, description, active, created_at, updated_at FROM partners WHERE id = ?',
+    )
+    .bind(id)
+    .first<PartnerRow>();
+
+  return row ? parsePartnerRow(row) : null;
+}
+
+async function getPartnerSecretById(db: D1Database, id: string): Promise<(Partner & { accessToken: string }) | null> {
+  await ensurePartnerSchema(db);
+
+  const row = await db
     .prepare('SELECT * FROM partners WHERE id = ?')
     .bind(id)
-    .first<{
-      id: string;
-      slug: string;
-      name: string;
-      discount_code: string | null;
-      access_token: string;
-      commission_rate: number;
-      description: string | null;
-      active: number;
-      created_at: string;
-      updated_at: string;
-    }>();
+    .first<PartnerSecretRow>();
 
-  return row ? parsePartnerAdminRow(row) : null;
+  if (!row) return null;
+
+  return {
+    ...parsePartnerRow(row),
+    accessToken: row.access_token,
+  };
 }
 
 export async function createPartner(db: D1Database, data: PartnerInput): Promise<PartnerAdmin> {
   await ensurePartnerSchema(db);
+
+  const accessToken = data.accessToken?.trim();
+  if (!accessToken) {
+    throw new Error('Access token is required');
+  }
 
   const id = crypto.randomUUID();
   await db
@@ -319,7 +303,7 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
       normalizeSlug(data.slug),
       data.name.trim(),
       data.discountCode?.trim() || null,
-      normalizeToken(data.accessToken),
+      normalizeToken(accessToken),
       Math.max(0, Math.round(data.commissionRate)),
       data.description?.trim() || null,
       data.active === false ? 0 : 1,
@@ -341,6 +325,11 @@ export async function updatePartner(
 ): Promise<PartnerAdmin | null> {
   await ensurePartnerSchema(db);
 
+  const existing = await getPartnerSecretById(db, id);
+  if (!existing) return null;
+
+  const accessToken = data.accessToken?.trim() || existing.accessToken;
+
   const result = await db
     .prepare(`
       UPDATE partners
@@ -358,7 +347,7 @@ export async function updatePartner(
       normalizeSlug(data.slug),
       data.name.trim(),
       data.discountCode?.trim() || null,
-      normalizeToken(data.accessToken),
+      normalizeToken(accessToken),
       Math.max(0, Math.round(data.commissionRate)),
       data.description?.trim() || null,
       data.active === false ? 0 : 1,

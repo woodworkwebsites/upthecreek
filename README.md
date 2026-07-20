@@ -1,348 +1,93 @@
 # Up the Creek Padel
 
-Ecommerce storefront for Up the Creek Padel & Social Club. Sells humorous premium padel apparel via Printify, using Stripe Checkout for payments, hosted on Cloudflare Pages.
-
----
+Ecommerce storefront for Up the Creek Padel & Social Club. Built with React, TypeScript, Stripe Checkout, and Cloudflare Pages.
 
 ## Stack
 
-| Layer       | Technology                        |
-|-------------|-----------------------------------|
-| Frontend    | React + TypeScript + Tailwind CSS |
-| Build       | Vite                              |
-| Hosting     | Cloudflare Pages                  |
-| API / SSR   | Cloudflare Pages Functions        |
-| Database    | Cloudflare D1 (SQLite)            |
-| Payments    | Stripe Checkout                   |
-| Fulfilment  | Printify API                      |
-| CLI         | Wrangler                          |
-
----
-
-## Installation
-
-```bash
-npm install
-```
-
----
+| Layer | Technology |
+|---|---|
+| Frontend | React + TypeScript + Tailwind CSS |
+| Build | Vite |
+| Hosting | Cloudflare Pages |
+| API / SSR | Cloudflare Pages Functions |
+| Database | Cloudflare D1 (SQLite) |
+| Payments | Stripe Checkout |
+| Fulfilment | Manual / admin-managed |
 
 ## Local Development
 
-### 1. Copy environment variables
-
 ```bash
-cp .dev.vars.example .dev.vars
-```
-
-Edit `.dev.vars` with your real test credentials. Never commit this file.
-
-### 2. Create the local database and apply migrations
-
-```bash
+npm install
 npm run db:migrate:local
-```
-
-### 3. Start the development server
-
-```bash
 npm run dev
 ```
 
-This runs:
-- **Vite** on `http://localhost:5173` (React frontend with HMR)
-- **Wrangler Pages Dev** on `http://localhost:8788` (API functions + D1 proxy)
-
-Open `http://localhost:8788` in your browser.
-
-### 4. Forward Stripe webhooks (separate terminal)
-
-Install the [Stripe CLI](https://stripe.com/docs/stripe-cli), then:
-
-```bash
-stripe listen --forward-to http://localhost:8788/api/webhooks/stripe
-```
-
-Copy the webhook secret it outputs and set it as `STRIPE_WEBHOOK_SECRET` in `.dev.vars`.
-
----
+The dev server runs on:
+- `http://localhost:5173` for the Vite frontend
+- `http://localhost:8788` for the Pages Functions proxy
 
 ## Environment Variables
 
-All variables live in `.dev.vars` locally and in Cloudflare Pages → Settings → Environment Variables for production.
+Set these in `.dev.vars` locally and in Cloudflare Pages for production:
 
-| Variable               | Description                                         | Example              |
-|------------------------|-----------------------------------------------------|----------------------|
-| `STRIPE_SECRET_KEY`    | Stripe secret key                                   | `sk_test_…`          |
-| `STRIPE_WEBHOOK_SECRET`| Stripe webhook signing secret                       | `whsec_…`            |
-| `PRINTIFY_API_TOKEN`   | Printify personal access token                      |                      |
-| `PRINTIFY_SHOP_ID`     | Printify shop ID (numeric)                          |                      |
-| `PRINTIFY_MODE`        | `dry_run` \| `draft` \| `live`                     | `dry_run`            |
-| `LIVE_ORDERS_ENABLED`  | Must be `true` to allow live mode                   | `false`              |
-| `ADMIN_TOKEN`          | Secret token for the admin panel                    | `dev-token`          |
-| `SITE_URL`             | Canonical URL of the site                           | `http://localhost:8788` |
-| `ENVIRONMENT`          | `local` \| `preview` \| `production`               | `local`              |
-| `SMTP_HOST`            | SMTP server host for order notification emails      | `smtp.gmail.com`     |
-| `SMTP_PORT`            | SMTP server port                                    | `465`                |
-| `SMTP_USER`            | SMTP username                                       | `you@gmail.com`      |
-| `SMTP_PASSWORD`        | SMTP password or app password                       | `app-password`       |
-| `SMTP_FROM`            | Email address shown as sender                       | `orders@yourdomain.com` |
-| `SMTP_SECURE`          | Set to `true` for TLS SMTP connections              | `true`               |
-| `ORDER_NOTIFICATION_EMAIL_TO` | Primary order notification recipient         | `ops@yourdomain.com` |
-| `ORDER_NOTIFICATION_EMAIL_CC` | CC recipient for order notification emails    | `woodworkwebsites+UTC@gmail.com` |
-
----
+| Variable | Description |
+|---|---|
+| `STRIPE_SECRET_KEY_TEST` | Stripe test secret key |
+| `STRIPE_SECRET_KEY_LIVE` | Stripe live secret key |
+| `STRIPE_WEBHOOK_SECRET_TEST` | Stripe test webhook secret |
+| `STRIPE_WEBHOOK_SECRET_LIVE` | Stripe live webhook secret |
+| `LIVE_ORDERS_ENABLED` | Must be `true` to allow live order processing |
+| `ADMIN_TOKEN` | Secret token for the admin panel |
+| `SMTP_HOST` | SMTP host for order notification emails |
+| `SMTP_PORT` | SMTP port |
+| `SMTP_USER` | SMTP username |
+| `SMTP_PASSWORD` | SMTP password or app password |
+| `SMTP_FROM` | Sender address for email notifications |
+| `SMTP_SECURE` | Set to `true` for TLS |
+| `ORDER_NOTIFICATION_EMAIL_TO` | Primary notification recipient |
+| `ORDER_NOTIFICATION_EMAIL_CC` | CC recipient for notifications |
 
 ## Stripe Setup
 
-1. Create a [Stripe account](https://stripe.com).
-2. Copy your **test** secret key (`sk_test_…`) into `.dev.vars`.
-3. Run `stripe listen --forward-to http://localhost:8788/api/webhooks/stripe` and copy the webhook secret.
-4. For production, create a webhook endpoint in the Stripe dashboard pointing at `https://yourdomain.com/api/webhooks/stripe`, selecting the `checkout.session.completed` event.
-5. Enable Stripe receipt emails in the Stripe dashboard if you want Stripe to send customer confirmation emails.
-
----
-
-## Printify Setup
-
-1. Log in to [Printify](https://printify.com) and create your products.
-2. Generate a **Personal Access Token** in Printify → My Account → Connections.
-3. Find your Shop ID at `https://api.printify.com/v1/shops.json` (use the `id` field).
-4. Add both values to `.dev.vars`.
-5. Sync products: `POST /api/admin/sync-products` (or use the Admin Products page).
-
----
-
-## Product Sync
-
-Products are maintained in Printify. The website caches them in D1.
-
-**Sync via Admin UI:**  
-Go to `/admin/products` and click **Sync from Printify**.
-
-**Sync via API:**
-```bash
-curl -X POST http://localhost:8788/api/admin/sync-products \
-  -H "Authorization: Bearer dev-token"
-```
-
-Synced data: title, description, images, colours, sizes, pricing, Printify product ID, variant IDs.
-
----
-
-## Printify Modes
-
-Set `PRINTIFY_MODE` in your environment:
-
-| Mode       | Behaviour                                                         |
-|------------|-------------------------------------------------------------------|
-| `dry_run`  | No API call. Payload stored in D1. Order ID prefixed `dryrun_`.  |
-| `draft`    | Real Printify API call. Order created but not forced to production. |
-| `live`     | Real production order. Requires `LIVE_ORDERS_ENABLED=true` AND `ENVIRONMENT=production`. |
-
-**Default is always `dry_run`.** Local environment forces `dry_run` unless explicitly set to `draft`.
-
----
-
-## Dry Run Testing
-
-The full local verification loop without involving Stripe:
-
-```bash
-# 1. Start wrangler
-npm run dev
-
-# 2. Test payload generation
-curl -X POST http://localhost:8788/api/admin/test-printify-payload \
-  -H "Authorization: Bearer dev-token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "printifyId": "your-printify-product-id",
-    "variantId": 12345,
-    "quantity": 1,
-    "address": {
-      "firstName": "Test",
-      "lastName": "User",
-      "email": "test@example.com",
-      "phone": "07700000000",
-      "country": "GB",
-      "address1": "1 Test Street",
-      "address2": "",
-      "city": "London",
-      "zip": "SW1A 1AA"
-    }
-  }'
-
-# 3. Full dry-run order (no Stripe needed)
-curl -X POST http://localhost:8788/api/admin/test-order-handoff \
-  -H "Authorization: Bearer dev-token" \
-  -H "Content-Type: application/json" \
-  -d '{"printifyId": "your-printify-product-id", "variantId": 12345, "quantity": 1}'
-
-# 4. Inspect the result in Admin → Orders
-```
-
----
-
-## Draft Mode Testing
-
-To validate the Printify API with a real (but draft) order:
-
-1. Set `PRINTIFY_MODE=draft` in `.dev.vars`.
-2. Run the test order handoff endpoint above.
-3. Check Printify dashboard — the order will appear there.
-
----
-
-## Full Stripe Test Flow
-
-```bash
-# Terminal 1
-npm run dev
-
-# Terminal 2
-stripe listen --forward-to http://localhost:8788/api/webhooks/stripe
-
-# Browser
-# 1. Open http://localhost:8788
-# 2. Browse to a product
-# 3. Select colour + size + quantity
-# 4. Click Buy Now → redirected to Stripe test checkout
-# 5. Pay with test card 4242 4242 4242 4242
-# 6. Webhook fires → order stored in D1 → Printify payload generated
-# 7. Inspect at http://localhost:8788/admin
-```
-
----
+1. Create a Stripe account.
+2. Add the test and live secret keys to your environment.
+3. Run the Stripe CLI locally and forward `checkout.session.completed` to `/api/webhooks/stripe`.
+4. Add the webhook secrets to your environment.
 
 ## Admin Panel
 
-Open `http://localhost:8788/admin` and enter your `ADMIN_TOKEN`.
+Open `/admin` and sign in with `ADMIN_TOKEN`.
 
-| Page     | URL                  | Description                            |
-|----------|----------------------|----------------------------------------|
-| Orders   | `/admin/orders`      | All orders with payload/response viewer |
-| Products | `/admin/products`    | Cached products + sync trigger          |
-| Logs     | `/admin/logs`        | Webhook, sync, and Printify logs       |
+Key pages:
+- `/admin/orders`
+- `/admin/products`
+- `/admin/logs`
+- `/admin/partners`
+- `/admin/settings`
 
----
+## Deployment
 
-## Production Deployment
+1. Create the D1 database and apply migrations.
+2. Set the environment variables in Cloudflare Pages.
+3. Run a production build.
+4. Deploy with Wrangler or your Cloudflare Pages workflow.
 
-### 1. Create a D1 database
+## API
 
-```bash
-wrangler d1 create up-the-creek-orders
-```
+Public:
+- `GET /api/products`
+- `GET /api/products/:id`
+- `POST /api/checkout`
+- `POST /api/webhooks/stripe`
 
-Copy the returned `database_id` into `wrangler.toml`.
+Admin:
+- `GET /api/admin/orders`
+- `GET /api/admin/products`
+- `GET /api/admin/logs`
+- `GET /api/admin/settings`
+- `PATCH /api/admin/settings`
 
-### 2. Apply migrations to production
+## Notes
 
-```bash
-npm run db:migrate:remote
-```
-
-### 3. Set environment variables
-
-In [Cloudflare Pages dashboard](https://dash.cloudflare.com) → your project → Settings → Environment Variables, set all variables from the table above using **production** values:
-
-```
-STRIPE_SECRET_KEY=sk_live_…
-STRIPE_WEBHOOK_SECRET=whsec_…
-PRINTIFY_MODE=dry_run        ← keep dry_run until ready
-ENVIRONMENT=production
-LIVE_ORDERS_ENABLED=false    ← keep false until ready
-```
-
-### 4. Deploy
-
-```bash
-npm run build
-wrangler pages deploy dist
-```
-
-Or connect the repo to Cloudflare Pages for automatic deployments on push.
-
----
-
-## Enabling Live Orders
-
-When you are ready to fulfil real orders, make exactly two changes to environment variables in Cloudflare Pages:
-
-```
-PRINTIFY_MODE=live
-LIVE_ORDERS_ENABLED=true
-```
-
-No code changes required. Redeploy (or trigger a re-deploy without code changes).
-
----
-
-## Deployment Checklist
-
-- [ ] D1 database created and `database_id` in `wrangler.toml`
-- [ ] Migrations applied to production D1
-- [ ] All environment variables set in Cloudflare Pages
-- [ ] Stripe live keys configured
-- [ ] Stripe webhook endpoint created for `checkout.session.completed`
-- [ ] Printify API token and shop ID set
-- [ ] Products synced from Printify
-- [ ] `ENVIRONMENT=production` set
-- [ ] `PRINTIFY_MODE=dry_run` (until ready to go live)
-- [ ] `LIVE_ORDERS_ENABLED=false` (until ready to go live)
-- [ ] Test checkout completed in production with test card
-
-## Production Go-Live Checklist
-
-- [ ] Full test purchase completed (Stripe test mode) in production
-- [ ] Order appears in D1 with correct payload
-- [ ] Printify payload inspected in Admin → Orders
-- [ ] Switch `STRIPE_SECRET_KEY` to `sk_live_…`
-- [ ] Update Stripe webhook to use live mode signing secret
-- [ ] Set `PRINTIFY_MODE=live`
-- [ ] Set `LIVE_ORDERS_ENABLED=true`
-- [ ] Redeploy
-- [ ] Place a real £1 test order to verify end-to-end
-
----
-
-## API Reference
-
-### Public
-
-| Method | Path                        | Description              |
-|--------|-----------------------------|--------------------------|
-| GET    | `/api/products`             | List all cached products |
-| GET    | `/api/products/:id`         | Get a single product     |
-| POST   | `/api/checkout`             | Create Stripe session    |
-| POST   | `/api/webhooks/stripe`      | Stripe webhook handler   |
-
-### Admin (requires `Authorization: Bearer <ADMIN_TOKEN>`)
-
-| Method | Path                                  | Description                      |
-|--------|---------------------------------------|----------------------------------|
-| POST   | `/api/admin/sync-products`            | Sync products from Printify      |
-| GET    | `/api/admin/orders`                   | List orders                      |
-| GET    | `/api/admin/orders?id=<id>`           | Get single order                 |
-| GET    | `/api/admin/products`                 | List cached products             |
-| GET    | `/api/admin/logs`                     | Get all logs                     |
-| POST   | `/api/admin/test-printify-payload`    | Generate Printify payload only   |
-| POST   | `/api/admin/test-order-handoff`       | Fake paid order through pipeline |
-
-### Partners
-
-| Method | Path                         | Description                             |
-|--------|------------------------------|-----------------------------------------|
-| POST   | `/api/partners/auth`         | Verify a club slug and access token     |
-| GET    | `/api/partners/:slug`        | Fetch the authenticated partner portal  |
-
-Frontend routes:
-
-| Path                    | Description                                  |
-|-------------------------|----------------------------------------------|
-| `/partners`             | Public partner funnel and request-access page |
-| `/partners/login`       | Club login page                               |
-| `/partners/dashboard`   | Authenticated partner portal                  |
-
-Commission tracking is driven by discount-code attribution. For a club to see orders in the portal, its partner record must use the same `discount_code` that the checkout flow stores on the order.
+- Orders are recorded in D1 and fulfilled manually by the team.
+- The product and basket flow is driven by the cached product records in the database.

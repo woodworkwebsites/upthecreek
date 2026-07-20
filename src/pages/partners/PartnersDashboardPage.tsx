@@ -5,6 +5,8 @@ import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { formatDate, formatPrice } from '../../lib/utils.js';
 import { partnerFetchDashboard } from '../../lib/api.js';
+import { useProducts } from '../../hooks/useProducts.js';
+import { ProductGrid } from '../../components/product/ProductGrid.js';
 import { usePartnerSession } from '../../hooks/usePartner.js';
 import type { PartnerDashboard } from '../../../types/index.js';
 
@@ -20,6 +22,7 @@ function StatCard({ label, value, tone = 'text-navy-900' }: { label: string; val
 export default function PartnersDashboardPage() {
   const navigate = useNavigate();
   const { session, clearSession } = usePartnerSession();
+  const { products, loading: productsLoading, error: productsError } = useProducts();
   const [dashboard, setDashboard] = useState<PartnerDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,27 +127,18 @@ export default function PartnersDashboardPage() {
         <section className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-[0_20px_70px_rgba(5,13,31,0.07)] sm:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="label">Partner portal</p>
+              <p className="label">Club portal</p>
               <h1 className="mt-3 text-3xl font-black tracking-tight text-navy-900 sm:text-4xl">
                 {partner.name}
               </h1>
               <p className="mt-2 text-sm text-gray-600">
-                Club code: <span className="font-semibold text-navy-900">{partner.slug}</span>
+                Club code: <span className="font-semibold text-navy-900">{partner.slug}</span> · private ordering and commission tracking
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link
-                to="/"
-                className="inline-flex items-center justify-center rounded-full bg-navy-900 px-5 py-3 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:bg-navy-800"
-              >
-                Order stock
-              </Link>
-              <Link
-                to="/checkout"
-                className="inline-flex items-center justify-center rounded-full border border-gray-300 px-5 py-3 text-sm font-bold uppercase tracking-widest text-navy-900 transition-colors hover:bg-gray-50"
-              >
-                View basket
-              </Link>
+              <span className="inline-flex items-center justify-center rounded-full border border-gray-200 bg-gray-50 px-5 py-3 text-sm font-bold uppercase tracking-widest text-gray-600">
+                Internal console
+              </span>
             </div>
           </div>
 
@@ -157,37 +151,9 @@ export default function PartnersDashboardPage() {
           </div>
         </section>
 
-        <section className="mt-8 grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="mt-8 grid gap-8">
           <article className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-[0_20px_70px_rgba(5,13,31,0.07)] sm:p-8">
-            <p className="label">Club actions</p>
-            <h2 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Order from the published range</h2>
-            <p className="mt-3 text-sm leading-7 text-gray-600">
-              Use the public UTC shop to order anything in the published range. The partner portal tracks the club record, commission and order history.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                to="/"
-                className="inline-flex items-center justify-center rounded-full bg-brand-500 px-5 py-3 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:bg-brand-400"
-              >
-                Browse products
-              </Link>
-              <Link
-                to="/checkout"
-                className="inline-flex items-center justify-center rounded-full border border-gray-300 px-5 py-3 text-sm font-bold uppercase tracking-widest text-navy-900 transition-colors hover:bg-gray-50"
-              >
-                Go to basket
-              </Link>
-            </div>
-            <div className="mt-6 rounded-2xl bg-gray-50 p-5 ring-1 ring-gray-200">
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">Partner terms</p>
-              <p className="mt-2 text-sm leading-7 text-gray-600">
-                Member discount, referral commission and fulfilment status are all managed from the UTC side.
-              </p>
-            </div>
-          </article>
-
-          <article className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-[0_20px_70px_rgba(5,13,31,0.07)] sm:p-8">
-            <p className="label">Recent orders</p>
+            <p className="label">Club orders</p>
             <h2 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Tracked automatically</h2>
             <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200">
               {recentOrders.length > 0 ? (
@@ -218,8 +184,38 @@ export default function PartnersDashboardPage() {
                 </div>
               ) : (
                 <div className="p-6 text-sm leading-7 text-gray-500">
-                  No attributed orders yet. Once members buy through the UTC shop, they will appear here.
+                  No attributed orders yet. Once club members buy through the UTC range, they will appear here.
                 </div>
+              )}
+            </div>
+          </article>
+
+          <article className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-[0_20px_70px_rgba(5,13,31,0.07)] sm:p-8">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="label">Club range</p>
+                <h2 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Everything currently available</h2>
+                <p className="mt-2 text-sm leading-7 text-gray-600">
+                  This private console shows the full catalog directly. It is built for club staff, not public browsing.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="info">{products.length} products</Badge>
+                <Badge variant="success">{products.filter((product) => product.isEnabled).length} live</Badge>
+              </div>
+            </div>
+
+            <div className="mt-8">
+              {productsLoading ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div key={index} className="aspect-[3/4] animate-pulse rounded-2xl bg-gray-100" />
+                  ))}
+                </div>
+              ) : productsError ? (
+                <p className="text-sm text-red-600">{productsError}</p>
+              ) : (
+                <ProductGrid products={products} />
               )}
             </div>
           </article>

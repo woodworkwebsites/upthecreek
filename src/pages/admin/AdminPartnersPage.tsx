@@ -74,7 +74,7 @@ export default function AdminPartnersPage() {
       slug: partner.slug,
       name: partner.name,
       discountCode: partner.discountCode ?? '',
-      accessToken: partner.accessToken,
+      accessToken: partner.accessToken ?? '',
       commissionRate: String(partner.commissionRate),
       description: partner.description ?? '',
       active: partner.active,
@@ -97,7 +97,7 @@ export default function AdminPartnersPage() {
       setError('Name is required');
       return;
     }
-    if (!accessToken) {
+    if (!editingId && !accessToken) {
       setError('Access token is required');
       return;
     }
@@ -111,21 +111,26 @@ export default function AdminPartnersPage() {
     setSaved(null);
 
     try {
-      const payload = {
+      const basePayload = {
         slug,
         name,
         discountCode: draft.discountCode.trim() || null,
-        accessToken,
         commissionRate,
         description: draft.description.trim() || null,
         active: draft.active,
       };
 
       if (editingId) {
-        await adminUpdatePartner(token, editingId, payload);
+        await adminUpdatePartner(token, editingId, {
+          ...basePayload,
+          accessToken: accessToken || undefined,
+        });
         setSaved('Partner updated');
       } else {
-        await adminCreatePartner(token, payload);
+        await adminCreatePartner(token, {
+          ...basePayload,
+          accessToken,
+        });
         setSaved('Partner created');
       }
 
@@ -188,7 +193,7 @@ export default function AdminPartnersPage() {
               {editingId ? 'Edit partner' : 'New partner'}
             </p>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              The access token is what clubs use to open their portal.
+              Clubs use the access token to open their portal. Leave it blank while editing to keep the current token.
             </p>
           </div>
 
@@ -241,7 +246,7 @@ export default function AdminPartnersPage() {
             <input
               value={draft.accessToken}
               onChange={(e) => setDraft((current) => ({ ...current, accessToken: e.target.value }))}
-              placeholder="partner token"
+              placeholder={editingId ? 'Leave blank to keep current token' : 'partner token'}
               className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
             />
           </label>
@@ -298,7 +303,6 @@ export default function AdminPartnersPage() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Partner</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Code</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Token</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Commission</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Updated</th>
@@ -313,9 +317,6 @@ export default function AdminPartnersPage() {
                       <p className="text-xs text-gray-500 dark:text-gray-400">Code {partner.slug}</p>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.discountCode ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <code className="max-w-[220px] break-all text-xs text-gray-700 dark:text-gray-300">{partner.accessToken}</code>
-                    </td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.commissionRate}%</td>
                     <td className="px-4 py-3">
                       <Badge variant={partner.active ? 'success' : 'default'}>
@@ -325,13 +326,6 @@ export default function AdminPartnersPage() {
                     <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(partner.updatedAt)}</td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void navigator.clipboard.writeText(partner.accessToken)}
-                          className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
-                        >
-                          Copy token
-                        </button>
                         <button
                           type="button"
                           onClick={() => startEdit(partner)}

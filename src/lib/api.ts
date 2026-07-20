@@ -11,9 +11,6 @@ import type {
   PartnerLoginResponse,
   SyncLogRow,
   WebhookLogRow,
-  PrintifyLogRow,
-  TestPayloadRequest,
-  TestOrderHandoffRequest,
   DiscountCode,
   DiscountCodeInput,
 } from '../../types/index.js';
@@ -291,37 +288,6 @@ export async function adminCreateProduct(
   return res.json() as Promise<{ product: Product }>;
 }
 
-export async function adminSyncProducts(
-  token: string,
-  body: { preview?: boolean; page?: number; limit?: number; finalize?: boolean; syncedPrintifyIds?: string[] } = {},
-): Promise<{
-  success: boolean;
-  preview?: boolean;
-  productsFound?: number;
-  productsSynced?: number;
-  productsUnchanged?: number;
-  productsNew?: number;
-  productsUpdated?: number;
-  productsRemoved?: number;
-  errors?: string[];
-  currentPage?: number;
-  lastPage?: number;
-  hasMore?: boolean;
-  syncedPrintifyIds?: string[];
-  seenPrintifyIds?: string[];
-  finalized?: boolean;
-  reenabled?: number;
-  hidden?: number;
-  newProducts?: Array<{ printifyId: string; title: string }>;
-  updatedProducts?: Array<{ printifyId: string; title: string }>;
-  removedProducts?: Array<{ printifyId: string; title: string }>;
-}> {
-  return adminFetch('/api/admin/sync-products', token, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
 export async function adminGetSettings(token: string): Promise<Record<string, string>> {
   const data = await adminFetch<{ settings: Record<string, string> }>('/api/admin/settings', token);
   return data.settings;
@@ -340,7 +306,6 @@ export async function adminUpdateSettings(
 export async function adminFetchLogs(token: string): Promise<{
   syncLogs: SyncLogRow[];
   webhookLogs: WebhookLogRow[];
-  printifyLogs: PrintifyLogRow[];
 }> {
   return adminFetch('/api/admin/logs', token);
 }
@@ -426,26 +391,6 @@ export async function adminUpdatePartner(
 export async function adminDeletePartner(token: string, id: string): Promise<void> {
   await adminFetch(`/api/admin/partners/${id}`, token, {
     method: 'DELETE',
-  });
-}
-
-export async function adminTestPayload(
-  token: string,
-  body: TestPayloadRequest,
-): Promise<unknown> {
-  return adminFetch('/api/admin/test-printify-payload', token, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export async function adminTestOrderHandoff(
-  token: string,
-  body: TestOrderHandoffRequest,
-): Promise<unknown> {
-  return adminFetch('/api/admin/test-order-handoff', token, {
-    method: 'POST',
-    body: JSON.stringify(body),
   });
 }
 

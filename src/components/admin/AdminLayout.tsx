@@ -7,6 +7,7 @@ import type { Order } from '../../../types/index.js';
 const navItems = [
   { path: '/admin/orders',   label: 'Orders'   },
   { path: '/admin/partners', label: 'Partners' },
+  { path: '/admin/partner-basket', label: 'Partner Basket' },
   { path: '/admin/discount-codes', label: 'Discount Codes' },
   { path: '/admin/products', label: 'Products' },
   { path: '/admin/catalog',  label: 'Catalog'  },

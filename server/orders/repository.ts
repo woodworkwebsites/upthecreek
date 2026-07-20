@@ -9,7 +9,6 @@ import type {
   FulfillmentProvider,
   SyncLogRow,
   WebhookLogRow,
-  PrintifyLogRow,
 } from '../../types/index.js';
 
 function parseOrder(row: OrderRow): Order {
@@ -328,13 +327,5 @@ export async function listWebhookLogs(db: D1Database, limit = 50): Promise<Webho
     .prepare('SELECT * FROM webhook_logs ORDER BY created_at DESC LIMIT ?')
     .bind(limit)
     .all<WebhookLogRow>();
-  return result.results ?? [];
-}
-
-export async function listPrintifyLogs(db: D1Database, limit = 50): Promise<PrintifyLogRow[]> {
-  const result = await db
-    .prepare('SELECT * FROM printify_logs ORDER BY created_at DESC LIMIT ?')
-    .bind(limit)
-    .all<PrintifyLogRow>();
   return result.results ?? [];
 }
