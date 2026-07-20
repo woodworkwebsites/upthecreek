@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
 import { ProductGrid } from '../../components/product/ProductGrid.js';
 import { useProducts } from '../../hooks/useProducts.js';
