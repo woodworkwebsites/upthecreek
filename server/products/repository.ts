@@ -373,6 +373,7 @@ export interface UpsertProductData {
   colors: PrintifyColor[];
   customColors?: PrintifyColor[];
   hiddenColors?: string[];
+  isEnabled: boolean;
   sizes: string[];
   minPrice: number;
   maxPrice: number;
@@ -576,9 +577,9 @@ export async function upsertProduct(
       INSERT INTO products
         (id, printify_id, title, description, category, images, variants, colors, custom_colors, pricing_matrix, hidden_colors, sizes,
          min_price, max_price, is_enabled, size_guide_image, synced_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL, datetime('now'), datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, datetime('now'), datetime('now'), datetime('now'))
       ON CONFLICT(printify_id) DO UPDATE SET
-        is_enabled     = 1,
+        is_enabled     = excluded.is_enabled,
         title          = excluded.title,
         description    = excluded.description,
         category       = excluded.category,
@@ -609,6 +610,7 @@ export async function upsertProduct(
       JSON.stringify(data.sizes),
       data.minPrice,
       data.maxPrice,
+      data.isEnabled ? 1 : 0,
     )
     .run();
 }

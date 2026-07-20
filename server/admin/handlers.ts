@@ -301,6 +301,7 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
   const audience = (form.get('audience') as string | null)?.trim() || '';
   const productType = (form.get('productType') as string | null)?.trim() || '';
   const garment = (form.get('garment') as string | null)?.trim() || '';
+  const isEnabled = (form.get('isEnabled') as string | null) !== 'false';
 
   if (!title) return json({ error: 'Title is required' }, 400);
 
@@ -415,6 +416,7 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
     colors,
     pricingMatrix,
     hiddenColors: [],
+    isEnabled,
     sizes,
     minPrice,
     maxPrice,

@@ -107,6 +107,7 @@ function InlineDraftProductRow({
         delivery: '',
         salePrice: '',
       }));
+      form.append('isEnabled', String(isEnabled));
       form.append('variants', JSON.stringify([]));
       form.append('imagesMeta', JSON.stringify(images.map((img) => ({
         isDefault: img.isDefault,
@@ -197,9 +198,9 @@ function InlineDraftProductRow({
           </div>
 
           <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Variants later</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Publish on save</p>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              This creates the product shell only. Add colours and sizes after the row exists.
+              Saving writes the product to the shop immediately.
             </p>
           </div>
 
@@ -682,9 +683,7 @@ function ProductRow({
                   Enabled
                 </label>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {product.printifyId.startsWith('manual_') ? 'Manual product' : 'Synced'}
-              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Shop product</p>
               <p className="font-mono text-[11px] text-gray-400 dark:text-gray-500 truncate">{product.printifyId}</p>
             </div>
           </div>
@@ -941,9 +940,7 @@ function ProductRow({
             {saved && <div className="text-xs text-green-600 dark:text-green-400">Saved</div>}
             {error && <div className="text-xs text-red-600 dark:text-red-400">{error}</div>}
             <p className="text-xs text-gray-400 dark:text-gray-500">
-              {product.printifyId.startsWith('manual_')
-                ? `Added manually ${formatDate(product.syncedAt)}`
-                : `Synced ${formatDate(product.syncedAt)}`}
+              Published {formatDate(product.syncedAt)}
             </p>
           </div>
         </td>

@@ -142,6 +142,7 @@ async function transformProduct(raw: PrintifyApiProduct, env: Env): Promise<{
   images: PrintifyProductImage[];
   variants: PrintifyVariant[];
   colors: PrintifyColor[];
+  isEnabled: boolean;
   sizes: string[];
   minPrice: number;
   maxPrice: number;
@@ -188,6 +189,7 @@ async function transformProduct(raw: PrintifyApiProduct, env: Env): Promise<{
     images:      publishedImages,
     variants:    core.variants,
     colors:      core.colors,
+    isEnabled:   true,
     sizes:       core.sizes,
     minPrice:    core.minPrice,
     maxPrice:    core.maxPrice,

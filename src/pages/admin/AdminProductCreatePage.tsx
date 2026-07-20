@@ -128,6 +128,7 @@ export default function AdminProductCreatePage() {
         delivery: '',
         salePrice: '',
       }));
+      form.append('isEnabled', String(isEnabled));
       form.append('variants', JSON.stringify([]));
       form.append('imagesMeta', JSON.stringify(images.map((img) => ({
         isDefault: img.isDefault,
@@ -229,7 +230,7 @@ export default function AdminProductCreatePage() {
             Enabled
           </label>
           <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
-            Create the product shell first. Add colours and sizes after the row exists.
+            Saving publishes the product to the shop immediately.
           </div>
         </div>
       </div>
