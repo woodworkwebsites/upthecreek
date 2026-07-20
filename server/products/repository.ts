@@ -245,31 +245,28 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const rawImages = parseJsonArray<PrintifyProductImage>(row.images);
   const rawVariants = parseJsonArray<PrintifyVariant>(row.variants);
   const rawColors = parseJsonArray<PrintifyColor>(row.colors);
-  const rawCustomColors = parseJsonArray<PrintifyColor>(row.custom_colors);
   const rawSizes = normalizeSizes(parseJsonArray<string>(row.sizes));
   const pricingMatrix = parseJsonObject<PricingMatrixRow>(row.pricing_matrix);
   const categoryMetadata = parseProductMetadata(row.category);
   const effectivePricingMatrix = isEmptyObject(pricingMatrix) ? (categoryMetadata.pricingMatrix ?? null) : pricingMatrix;
 
-  const adminColorSource = mergeColors(
+  const colorSource = mergeColors(
     rawColors,
-    rawCustomColors,
     categoryMetadata.colors ?? [],
-    rawColors.length === 0 && rawCustomColors.length === 0 && !(categoryMetadata.colors?.length ?? 0)
+    rawColors.length === 0 && !(categoryMetadata.colors?.length ?? 0)
       ? DEFAULT_FALLBACK_COLORS
       : [],
   );
-  const adminColors = normalizeColors(adminColorSource);
-  const publicColors = normalizeColors(rawColors);
+  const normalizedColors = normalizeColors(colorSource);
   const visibleColors = view === 'admin'
-    ? adminColors
-    : filterVisibleColors(publicColors, hiddenColorSet);
+    ? normalizedColors
+    : filterVisibleColors(normalizedColors, hiddenColorSet);
   const visibleColorSet = new Set(visibleColors.map((color) => normalizeColorName(color.name)));
   const syntheticVariants = buildSyntheticVariants(visibleColors, effectivePricingMatrix, row.id);
   const rawVariantColorSet = new Set(rawVariants.map((variant) => normalizeColorName(variant.color)));
   const missingColorVariants = syntheticVariants.filter((variant) => !rawVariantColorSet.has(normalizeColorName(variant.color)));
   const colors = view === 'admin'
-    ? adminColors
+    ? normalizedColors
     : visibleColors;
 
   const allVariants = view === 'admin'
@@ -305,7 +302,7 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const aggregates = view === 'admin'
     ? deriveProductAggregates(
         rawVariants,
-        new Map(rawColors.map((color) => [color.name, color.hex] as const)),
+        new Map(normalizedColors.map((color) => [color.name, color.hex] as const)),
         parseSalePriceToPence(effectivePricingMatrix),
       )
     : deriveProductAggregates(variants, colorHexByName, parseSalePriceToPence(effectivePricingMatrix));
@@ -528,29 +525,25 @@ export async function updateProductFields(
   fields: UpdateProductFields,
 ): Promise<boolean> {
   const current = await db
-    .prepare('SELECT category, variants, colors, custom_colors, pricing_matrix FROM products WHERE printify_id = ?')
+    .prepare('SELECT category, variants, colors, pricing_matrix FROM products WHERE printify_id = ?')
     .bind(printifyId)
     .first<{
       category: string;
       variants: string;
       colors: string | null;
-      custom_colors: string | null;
       pricing_matrix: string | null;
     }>();
 
   if (!current) return false;
   const currentVariants = parseJsonArray<PrintifyVariant>(current.variants);
   const currentColors = parseJsonArray<PrintifyColor>(current.colors);
-  const currentCustomColors = parseJsonArray<PrintifyColor>(current.custom_colors);
   const currentPricingMatrix = parseJsonObject<PricingMatrixRow>(current.pricing_matrix);
   const categoryMetadata = parseProductMetadata(current.category);
   const colorSource = currentColors.length > 0
     ? currentColors
-    : currentCustomColors.length > 0
-      ? currentCustomColors
-      : categoryMetadata.colors?.length
-        ? categoryMetadata.colors
-        : DEFAULT_FALLBACK_COLORS;
+    : categoryMetadata.colors?.length
+      ? categoryMetadata.colors
+      : DEFAULT_FALLBACK_COLORS;
   const normalizedColors = normalizeColors(colorSource);
 
   const setCategoryMetadata = (
@@ -607,7 +600,7 @@ export async function updateProductFields(
   }
 
   if (fields.colors !== undefined) {
-    sets.push('custom_colors = ?');
+    sets.push('colors = ?');
     values.push(JSON.stringify(normalizeColors(fields.colors)));
   }
 
@@ -651,11 +644,11 @@ export async function upsertProduct(
   data: UpsertProductData,
 ): Promise<void> {
   const existing = await db
-    .prepare('SELECT custom_colors FROM products WHERE printify_id = ?')
+    .prepare('SELECT colors FROM products WHERE printify_id = ?')
     .bind(data.printifyId)
-    .first<{ custom_colors: string | null }>();
-  const existingCustomColors = parseJsonArray<PrintifyColor>(existing?.custom_colors);
-  const nextColors = data.colors.length > 0 ? data.colors : existingCustomColors;
+    .first<{ colors: string | null }>();
+  const existingColors = parseJsonArray<PrintifyColor>(existing?.colors);
+  const nextColors = data.colors.length > 0 ? data.colors : existingColors;
   const category = serializeProductMetadata({
     baseCategory: data.category,
     audience: data.audience,
@@ -668,7 +661,7 @@ export async function upsertProduct(
   await db
     .prepare(`
       INSERT INTO products
-        (id, printify_id, title, description, category, images, variants, colors, custom_colors, pricing_matrix, hidden_colors, sizes,
+        (id, printify_id, title, description, category, images, variants, colors, pricing_matrix, hidden_colors, sizes,
          min_price, max_price, is_enabled, size_guide_image, synced_at, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, datetime('now'), datetime('now'), datetime('now'))
       ON CONFLICT(printify_id) DO UPDATE SET
@@ -679,7 +672,6 @@ export async function upsertProduct(
         images         = excluded.images,
         variants       = excluded.variants,
         colors         = excluded.colors,
-        custom_colors  = excluded.custom_colors,
         pricing_matrix = excluded.pricing_matrix,
         hidden_colors  = excluded.hidden_colors,
         sizes          = excluded.sizes,

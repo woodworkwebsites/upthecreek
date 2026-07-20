@@ -53,7 +53,6 @@ export interface ProductRow {
   images: string;     // JSON
   variants: string;   // JSON
   colors: string;     // JSON
-  custom_colors: string; // JSON
   hidden_colors: string; // JSON
   sizes: string;      // JSON
   min_price: number;
