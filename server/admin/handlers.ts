@@ -48,6 +48,7 @@ import {
 } from '../partners/repository.js';
 import { logger } from '../logging.js';
 import { deleteAsset, storeAssetData } from '../assets/storage.js';
+import { DEFAULT_CATALOG_OPTIONS } from '../../src/lib/catalog.js';
 
 type SyncProductsRequest = {
   preview?: boolean;
@@ -241,6 +242,28 @@ function isKnownColor(color: string, knownColors: Array<{ name: string }>): bool
   return knownColors.some((entry) => normalizeColorName(entry.name) === target);
 }
 
+function buildDefaultManualVariants(
+  colors: Array<{ name: string; hex: string }>,
+  salePricePence: number,
+): PrintifyVariant[] {
+  const variants: PrintifyVariant[] = [];
+  let nextId = 1;
+
+  for (const color of colors) {
+    for (const size of DEFAULT_SIZE_OPTIONS) {
+      variants.push({
+        id: nextId++,
+        color: color.name,
+        size,
+        price: salePricePence,
+        available: true,
+      });
+    }
+  }
+
+  return variants;
+}
+
 function getVariantIdsForColor(product: { variants: PrintifyVariant[] }, color: string): number[] {
   const target = normalizeColorName(color);
   return product.variants
@@ -349,25 +372,33 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
   }
 
   const imageFiles = form.getAll('images').filter((v): v is File => v instanceof File);
+  const settings = await getAllSettings(env.DB);
+  const catalogColors = parseCatalogColors(settings);
+  const fallbackColors = catalogColors.length > 0 ? catalogColors : DEFAULT_CATALOG_OPTIONS.colors;
+  const colorSource = variantRows.length > 0
+    ? variantRows
+        .filter((row) => row.color?.trim())
+        .map((row) => ({ name: row.color.trim(), hex: row.hex || '#cccccc' }))
+    : fallbackColors;
 
   const id = crypto.randomUUID();
   const printifyId = crypto.randomUUID();
 
-  const variants: PrintifyVariant[] = variantRows.map((row, index) => ({
-    id:        index + 1,
-    color:     row.color?.trim() ?? '',
-    size:      row.size?.trim() ?? '',
-    price:     Math.round(row.price) || 0,
-    available: true,
-  }));
+  const salePrice = pricingMatrix?.salePrice ? Math.round(parseFloat(pricingMatrix.salePrice) * 100) : 0;
+  const variants: PrintifyVariant[] = variantRows.length > 0
+    ? variantRows.map((row, index) => ({
+        id:        index + 1,
+        color:     row.color?.trim() ?? '',
+        size:      row.size?.trim() ?? '',
+        price:     Math.round(row.price) || 0,
+        available: true,
+      }))
+    : buildDefaultManualVariants(fallbackColors, Number.isFinite(salePrice) ? salePrice : 0);
 
   const colorHexByName = new Map(
-    variantRows
-      .filter((row) => row.color?.trim())
-      .map((row) => [row.color.trim(), row.hex || '#cccccc'] as [string, string]),
+    colorSource.map((color) => [color.name.trim(), color.hex.trim() || '#cccccc'] as const),
   );
 
-  const salePrice = pricingMatrix?.salePrice ? Math.round(parseFloat(pricingMatrix.salePrice) * 100) : 0;
   const { colors, sizes, minPrice, maxPrice } = deriveProductAggregates(variants, colorHexByName, Number.isFinite(salePrice) ? salePrice : 0);
 
   const images: PrintifyProductImage[] = [];
@@ -1133,12 +1164,11 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
 
   const slug = body.slug?.trim() ?? existing.slug;
   const name = body.name?.trim() ?? existing.name;
-  const accessToken = body.accessToken?.trim() ?? existing.accessToken;
+  const accessToken = body.accessToken?.trim();
   const commissionRate = typeof body.commissionRate === 'string' ? Number(body.commissionRate) : (body.commissionRate ?? existing.commissionRate);
 
   if (!slug) return json({ error: 'Partner code is required' }, 400);
   if (!name) return json({ error: 'Name is required' }, 400);
-  if (!accessToken) return json({ error: 'Access token is required' }, 400);
   if (!Number.isFinite(commissionRate) || commissionRate < 0) {
     return json({ error: 'Commission rate must be a non-negative number' }, 400);
   }
@@ -1148,7 +1178,7 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
       slug,
       name,
       discountCode: body.discountCode?.trim() || null,
-      accessToken,
+      accessToken: accessToken || undefined,
       commissionRate,
       description: body.description?.trim() || null,
       active: body.active ?? existing.active,

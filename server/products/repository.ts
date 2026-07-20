@@ -91,6 +91,10 @@ function parseSalePriceToPence(pricingMatrix: PricingMatrixRow | null): number {
 
 function buildSyntheticVariants(colors: PrintifyColor[], pricingMatrix: PricingMatrixRow | null): PrintifyVariant[] {
   const salePrice = parseSalePriceToPence(pricingMatrix);
+  return buildVariantMatrix(colors, salePrice);
+}
+
+function buildVariantMatrix(colors: PrintifyColor[], salePrice: number): PrintifyVariant[] {
   const variants: PrintifyVariant[] = [];
   let nextId = 1;
 
@@ -459,11 +463,30 @@ export async function updateProductFields(
   fields: UpdateProductFields,
 ): Promise<boolean> {
   const current = await db
-    .prepare('SELECT category, variants, custom_colors, pricing_matrix FROM products WHERE printify_id = ?')
+    .prepare('SELECT category, variants, colors, custom_colors, pricing_matrix FROM products WHERE printify_id = ?')
     .bind(printifyId)
-    .first<{ category: string; variants: string; custom_colors: string | null; pricing_matrix: string | null }>();
+    .first<{
+      category: string;
+      variants: string;
+      colors: string | null;
+      custom_colors: string | null;
+      pricing_matrix: string | null;
+    }>();
 
   if (!current) return false;
+  const currentVariants = parseJsonArray<PrintifyVariant>(current.variants);
+  const currentColors = parseJsonArray<PrintifyColor>(current.colors);
+  const currentCustomColors = parseJsonArray<PrintifyColor>(current.custom_colors);
+  const currentPricingMatrix = parseJsonObject<PricingMatrixRow>(current.pricing_matrix);
+  const categoryMetadata = parseProductMetadata(current.category);
+  const colorSource = currentColors.length > 0
+    ? currentColors
+    : currentCustomColors.length > 0
+      ? currentCustomColors
+      : categoryMetadata.customColors?.length
+        ? categoryMetadata.customColors
+        : DEFAULT_FALLBACK_COLORS;
+  const normalizedColors = normalizeColors(colorSource);
 
   const setCategoryMetadata = (
     fields.category !== undefined ||
@@ -528,20 +551,23 @@ export async function updateProductFields(
     values.push(JSON.stringify(fields.pricingMatrix ?? {}));
   }
 
-  const nextSalePrice = fields.pricingMatrix?.salePrice?.trim();
+  const nextSalePrice = (fields.pricingMatrix?.salePrice?.trim() || currentPricingMatrix?.salePrice?.trim() || '');
   if (nextSalePrice) {
     const parsed = parseFloat(nextSalePrice);
     if (Number.isFinite(parsed)) {
       const unitPrice = Math.round(parsed * 100);
-      const variants = parseJsonArray<PrintifyVariant>(current.variants).map((variant) => ({
-        ...variant,
-        available: true,
-        price: unitPrice,
-      }));
-      const { minPrice, maxPrice } = deriveProductAggregates(variants, new Map(), unitPrice);
+      const variants = currentVariants.length > 0
+        ? currentVariants.map((variant) => ({
+            ...variant,
+            available: true,
+            price: unitPrice,
+          }))
+        : buildVariantMatrix(normalizedColors.length > 0 ? normalizedColors : DEFAULT_FALLBACK_COLORS, unitPrice);
+      const colorHexByName = new Map((normalizedColors.length > 0 ? normalizedColors : DEFAULT_FALLBACK_COLORS).map((color) => [color.name, color.hex] as const));
+      const { minPrice, maxPrice } = deriveProductAggregates(variants, colorHexByName, unitPrice);
 
-      sets.push('variants = ?', 'min_price = ?', 'max_price = ?');
-      values.push(JSON.stringify(variants), minPrice, maxPrice);
+      sets.push('variants = ?', 'colors = ?', 'sizes = ?', 'min_price = ?', 'max_price = ?');
+      values.push(JSON.stringify(variants), JSON.stringify(normalizedColors.length > 0 ? normalizedColors : DEFAULT_FALLBACK_COLORS), JSON.stringify(DEFAULT_SIZE_OPTIONS), minPrice, maxPrice);
     }
   }
 
