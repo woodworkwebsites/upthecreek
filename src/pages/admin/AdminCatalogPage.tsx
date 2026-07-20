@@ -255,7 +255,8 @@ export default function AdminCatalogPage() {
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Pricing Matrix Presets</p>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Default row templates for the matrix in the product creator. Partner price is your income per garment on the partner
-              order page; partner margin is Sale price (RRP) minus partner price — what you're giving up versus a retail sale.
+              order page. Partner margin is Sale price (RRP) minus partner price — what you're giving up versus a retail sale.
+              Net profit is partner price minus manufacturing cost and delivery — what you actually keep.
             </p>
           </div>
           <button
@@ -282,6 +283,7 @@ export default function AdminCatalogPage() {
                 <th className="px-2 py-2">Margin</th>
                 <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
                 <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Sale price (RRP) minus partner price">Partner margin</th>
+                <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Partner price minus manufacturing cost and delivery — your actual profit on a partner order">Net profit</th>
                 <th className="px-2 py-2">Actions</th>
               </tr>
             </thead>
@@ -289,6 +291,7 @@ export default function AdminCatalogPage() {
                 {pricingRows.map((row, index) => {
                   const margin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
                   const partnerMargin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.partnerPrice || '0');
+                  const partnerNetProfit = Number.parseFloat(row.partnerPrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
                   return (
                   <tr key={index} className="border-t border-gray-100 dark:border-gray-800">
                     <td className="px-2 py-1.5">
@@ -326,6 +329,11 @@ export default function AdminCatalogPage() {
                     <td className="px-2 py-1.5">
                       <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerMargin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
                         £{partnerMargin.toFixed(2)}
+                      </div>
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerNetProfit >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                        £{partnerNetProfit.toFixed(2)}
                       </div>
                     </td>
                     <td className="px-2 py-1.5">
