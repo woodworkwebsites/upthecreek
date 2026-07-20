@@ -10,8 +10,7 @@ import {
   writeWebhookLog,
 } from '../orders/repository.js';
 import { getProductByPrintifyId } from '../products/repository.js';
-import { buildPrintifyPayload, fulfillOrder } from '../printify/orders.js';
-import { getEffectivePrintifyMode, getStripeKeys } from '../env.js';
+import { getStripeKeys } from '../env.js';
 import { getSetting } from '../settings/repository.js';
 import { sendOrderNotificationEmail } from '../notifications/email.js';
 import { sendPushoverNotification } from '../notifications/pushover.js';
@@ -102,8 +101,8 @@ export async function processCompletedSession(
   }>;
 
   const liveEnabled = (await getSetting(env.DB, 'live_orders_enabled')) === 'true';
-  const mode = getEffectivePrintifyMode(request, liveEnabled);
-  const fulfillmentProvider = (await getSetting(env.DB, 'fulfillment_provider')) === 'manual' ? 'manual' : 'printify';
+  const mode = liveEnabled ? 'live' : 'draft';
+  const fulfillmentProvider: 'manual' = 'manual';
   const orderId = crypto.randomUUID();
 
   const customerEmail = session.customer_details?.email ?? session.customer_email ?? 'unknown';
@@ -240,38 +239,7 @@ export async function processCompletedSession(
     text: `${customerEmail} · ${((session.amount_total ?? 0) / 100).toFixed(2)} ${(session.currency ?? 'gbp').toUpperCase()}\n${itemSummary}\nShip to: ${fullName}, ${address.address1}, ${address.city}, ${address.zip}, ${address.country}`,
   });
 
-  if (fulfillmentProvider === 'manual') {
-    await updateOrderStatus(env.DB, orderId, 'awaiting_fulfillment');
-    await syncPartnerCommissionStatusByOrderId(env.DB, orderId, 'awaiting_fulfillment');
-    logger.info('Order awaiting manual fulfillment', { orderId });
-
-    return;
-  }
-
-  const payload = buildPrintifyPayload(orderId, lineItems, address);
-
-  try {
-    const result = await fulfillOrder(
-      env.DB,
-      orderId,
-      mode,
-      payload,
-      env.PRINTIFY_API_TOKEN,
-      env.PRINTIFY_SHOP_ID,
-    );
-
-    await updateOrderStatus(env.DB, orderId, 'fulfilled', {
-      printifyOrderId:  result.printifyOrderId,
-      printifyPayload:  result.payload,
-      printifyResponse: result.response,
-    });
-    await syncPartnerCommissionStatusByOrderId(env.DB, orderId, 'fulfilled');
-
-    logger.info('Order fulfilled', { orderId, printifyOrderId: result.printifyOrderId, mode });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    await updateOrderStatus(env.DB, orderId, 'failed', { error: message });
-    await syncPartnerCommissionStatusByOrderId(env.DB, orderId, 'failed');
-    throw err;
-  }
+  await updateOrderStatus(env.DB, orderId, 'awaiting_fulfillment');
+  await syncPartnerCommissionStatusByOrderId(env.DB, orderId, 'awaiting_fulfillment');
+  logger.info('Order awaiting manual fulfillment', { orderId, mode });
 }

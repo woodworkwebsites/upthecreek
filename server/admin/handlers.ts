@@ -30,8 +30,6 @@ import {
 import { getProductByPrintifyId } from '../products/repository.js';
 import { deriveProductAggregates } from '../products/aggregates.js';
 import { previewPrintifySync, reconcileSyncedProducts, syncProductsPageByPage } from '../printify/sync.js';
-import { buildPrintifyPayload, fulfillOrder } from '../printify/orders.js';
-import { getEffectivePrintifyMode } from '../env.js';
 import { getAllSettings, setSetting, getSetting } from '../settings/repository.js';
 import {
   listDiscountCodes,
@@ -813,22 +811,30 @@ export async function handleTestPrintifyPayload(
   const variant = product.variants.find((v) => v.id === variantId);
   if (!variant) return json({ error: `Variant not found: ${variantId}` }, 404);
 
-  const payload = buildPrintifyPayload(
-    `test_${crypto.randomUUID().substring(0, 8)}`,
-    [{ printifyId, variantId, quantity }],
-    {
-      firstName: address.firstName,
-      lastName:  address.lastName,
-      email:     address.email,
-      phone:     address.phone,
-      country:   address.country,
-      region:    '',
-      address1:  address.address1,
-      address2:  address.address2 ?? '',
-      city:      address.city,
-      zip:       address.zip,
+  const payload = {
+    external_id: `test_${crypto.randomUUID().substring(0, 8)}`,
+    line_items: [
+      {
+        product_id: printifyId,
+        variant_id: variantId,
+        quantity,
+      },
+    ],
+    shipping_method: 1,
+    send_shipping_notification: true,
+    address_to: {
+      first_name: address.firstName,
+      last_name:  address.lastName,
+      email:      address.email,
+      phone:      address.phone,
+      country:    address.country,
+      region:     '',
+      address1:   address.address1,
+      address2:   address.address2 ?? '',
+      city:       address.city,
+      zip:        address.zip,
     },
-  );
+  };
 
   return json({
     payload,
@@ -859,8 +865,6 @@ export async function handleTestOrderHandoff(
   const variant = product.variants.find((v) => v.id === variantId);
   if (!variant) return json({ error: `Variant not found: ${variantId}` }, 404);
 
-  const liveEnabled = (await getSetting(env.DB, 'live_orders_enabled')) === 'true';
-  const mode = getEffectivePrintifyMode(request, liveEnabled);
   const orderId = crypto.randomUUID();
   const fakeSessionId = `cs_test_${crypto.randomUUID().replace(/-/g, '').substring(0, 24)}`;
 
@@ -900,54 +904,15 @@ export async function handleTestOrderHandoff(
 
   await updateOrderStatus(env.DB, orderId, 'fulfillment_started');
 
-  const payload = buildPrintifyPayload(
+  await updateOrderStatus(env.DB, orderId, 'awaiting_fulfillment');
+  logger.info('Test order recorded for manual fulfilment', { orderId });
+
+  return json({
     orderId,
-    [{ printifyId, variantId, quantity }],
-    {
-      firstName: 'Test',
-      lastName:  'Customer',
-      email:     'test@upthecreekpadel.com',
-      phone:     '07700000000',
-      country:   'GB',
-      region:    '',
-      address1:  '1 Test Street',
-      address2:  '',
-      city:      'London',
-      zip:       'SW1A 1AA',
-    },
-  );
-
-  try {
-    const result = await fulfillOrder(
-      env.DB,
-      orderId,
-      mode,
-      payload,
-      env.PRINTIFY_API_TOKEN,
-      env.PRINTIFY_SHOP_ID,
-    );
-
-    await updateOrderStatus(env.DB, orderId, 'fulfilled', {
-      printifyOrderId:  result.printifyOrderId,
-      printifyPayload:  result.payload,
-      printifyResponse: result.response,
-    });
-
-    logger.info('Test order handoff complete', { orderId, mode });
-
-    return json({
-      orderId,
-      fakeSessionId,
-      mode,
-      printifyOrderId: result.printifyOrderId,
-      payload: result.payload,
-      response: result.response,
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    await updateOrderStatus(env.DB, orderId, 'failed', { error: message });
-    return json({ error: message, orderId }, 500);
-  }
+    fakeSessionId,
+    mode: 'manual',
+    note: 'Printify has been removed from the runtime chain; this order is queued for manual fulfilment only.',
+  });
 }
 
 
@@ -974,6 +939,10 @@ export async function handleUpdateSettings(env: Env, request: Request): Promise<
   ];
   for (const [key, value] of Object.entries(body)) {
     if (!allowed.includes(key) && !allowedCatalogKeys.includes(key)) return json({ error: `Unknown setting: ${key}` }, 400);
+    if (key === 'fulfillment_provider') {
+      await setSetting(env.DB, key, 'manual');
+      continue;
+    }
     await setSetting(env.DB, key, value);
   }
 

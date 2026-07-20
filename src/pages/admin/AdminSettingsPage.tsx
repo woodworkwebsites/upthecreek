@@ -7,7 +7,6 @@ export default function AdminSettingsPage() {
   const { token } = useAdminToken();
   const [liveOrders, setLiveOrders]       = useState(false);
   const [stripeTestMode, setStripeTestMode] = useState(false);
-  const [fulfillmentProvider, setFulfillmentProvider] = useState<'printify' | 'manual'>('printify');
   const [loading, setLoading]              = useState(true);
   const [saving, setSaving]                = useState(false);
   const [saved, setSaved]                  = useState(false);
@@ -20,7 +19,6 @@ export default function AdminSettingsPage() {
       const settings = await adminGetSettings(token);
       setLiveOrders(settings.live_orders_enabled === 'true');
       setStripeTestMode(settings.stripe_test_mode === 'true');
-      setFulfillmentProvider(settings.fulfillment_provider === 'manual' ? 'manual' : 'printify');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings');
     } finally {
@@ -48,23 +46,6 @@ export default function AdminSettingsPage() {
     }
   }
 
-  async function handleSetFulfillmentProvider(provider: 'printify' | 'manual') {
-    if (!token) return;
-    setSaving(true);
-    setSaved(false);
-    setError(null);
-    try {
-      await adminUpdateSettings(token, { fulfillment_provider: provider });
-      setFulfillmentProvider(provider);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
-    } finally {
-      setSaving(false);
-    }
-  }
-
   if (loading) return <PageLoader />;
 
   return (
@@ -72,76 +53,20 @@ export default function AdminSettingsPage() {
       <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Settings</h1>
 
       <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4">
-
         <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Fulfillment Provider</p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Fulfillment</p>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Controls what happens after a customer pays. <strong>Printify (automatic)</strong> submits the
-            order to Printify's API immediately, using the Live Orders / Draft setting below.
-            <strong> Manual (SellShirts)</strong> skips Printify entirely — the order is recorded as
-            "awaiting fulfilment" with full shipping details, you get a Pushover alert, and you dispatch
-            it yourself from the SellShirts admin console, then mark it fulfilled here.
+            Orders are recorded for manual fulfilment only. Printify is no longer part of the live chain.
           </p>
-        </div>
-
-        <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-1">
-          <div className="grid grid-cols-2 gap-1">
-          <button
-            onClick={() => handleSetFulfillmentProvider('printify')}
-            disabled={saving}
-            aria-pressed={fulfillmentProvider === 'printify'}
-            className={`rounded-xl border px-4 py-4 text-left transition-all disabled:opacity-50 ${
-              fulfillmentProvider === 'printify'
-                ? 'border-navy-800 bg-navy-800 text-white shadow-lg shadow-navy-900/20 ring-2 ring-navy-800 ring-offset-2 ring-offset-gray-50 dark:ring-offset-gray-800/40'
-                : 'border-transparent bg-white/80 text-gray-700 hover:bg-white dark:bg-gray-900/80 dark:text-gray-300 dark:hover:bg-gray-900'
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-black">Printify</p>
-              {fulfillmentProvider === 'printify' && (
-                <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
-                  Selected
-                </span>
-              )}
-            </div>
-            <p className={`mt-1 text-xs font-medium ${fulfillmentProvider === 'printify' ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
-              Automatic order submission
-            </p>
-          </button>
-          <button
-            onClick={() => handleSetFulfillmentProvider('manual')}
-            disabled={saving}
-            aria-pressed={fulfillmentProvider === 'manual'}
-            className={`rounded-xl border px-4 py-4 text-left transition-all disabled:opacity-50 ${
-              fulfillmentProvider === 'manual'
-                ? 'border-emerald-700 bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 ring-2 ring-emerald-600 ring-offset-2 ring-offset-gray-50 dark:ring-offset-gray-800/40'
-                : 'border-transparent bg-white/80 text-gray-700 hover:bg-white dark:bg-gray-900/80 dark:text-gray-300 dark:hover:bg-gray-900'
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-black">Manual</p>
-              {fulfillmentProvider === 'manual' && (
-                <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
-                  Selected
-                </span>
-              )}
-            </div>
-            <p className={`mt-1 text-xs font-medium ${fulfillmentProvider === 'manual' ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
-              SellShirts - dispatch yourself
-            </p>
-          </button>
-        </div>
         </div>
       </div>
 
-      <div className={`rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4 ${fulfillmentProvider === 'manual' ? 'opacity-50' : ''}`}>
+      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4">
 
         <div>
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Order Fulfilment Mode</p>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            {fulfillmentProvider === 'manual'
-              ? 'Not used while Fulfillment Provider is set to Manual.'
-              : <>When Live Orders is off, completed checkouts are submitted to Printify as <strong>drafts</strong> — no garments are printed or charged. Turn it on only when you're ready to fulfil real orders.</>}
+            When Live Orders is off, completed checkouts are held for manual action. Turn it on only when you're ready to process real orders.
           </p>
         </div>
 
@@ -149,7 +74,7 @@ export default function AdminSettingsPage() {
           <div>
             <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Live Orders</p>
             <p className={`text-xs font-semibold mt-0.5 ${liveOrders ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
-              {liveOrders ? '● Active — orders are being sent to Printify' : '● Draft mode — orders are NOT being fulfilled'}
+              {liveOrders ? '● Active — orders are being captured for fulfilment' : '● Draft mode — orders are NOT being fulfilled'}
             </p>
           </div>
           <button
