@@ -54,7 +54,7 @@ export default function PartnersLoginPage() {
                 Sign in to your club portal.
               </h1>
               <p className="max-w-xl text-base leading-8 text-white/72">
-                Enter the club slug and access token you were issued by UTC. After login, you will only see your club’s orders and commission data.
+                Enter the club code and access token you were issued by UTC. After login, you will only see your club’s orders and commission data.
               </p>
             </div>
 
@@ -85,7 +85,7 @@ export default function PartnersLoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.22em] text-gray-500">Club slug</span>
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.22em] text-gray-500">Club code</span>
                 <input
                   value={slug}
                   onChange={(event) => setSlug(event.target.value)}

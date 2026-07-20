@@ -171,7 +171,7 @@ export default function PartnersDashboardPage() {
 
           <div className="flex items-center gap-3">
             <a href="/partners" className="text-xs font-semibold uppercase tracking-[0.22em] text-white/60 hover:text-white">
-              Funnel
+              Partner page
             </a>
             <Button
               variant="secondary"
@@ -214,7 +214,7 @@ export default function PartnersDashboardPage() {
                 <p className="label">Current partner</p>
                 <h2 className="mt-3 text-3xl font-black tracking-tight">{dashboard.partner.name}</h2>
                 <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-600">
-                  Club slug: <span className="font-semibold text-navy-900">{dashboard.partner.slug}</span>
+                  Partner code: <span className="font-semibold text-navy-900">{dashboard.partner.slug}</span>
                   {dashboard.partner.discountCode ? (
                     <>
                       {' '}

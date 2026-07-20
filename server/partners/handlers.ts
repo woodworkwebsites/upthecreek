@@ -27,7 +27,7 @@ export async function handlePartnerAuth(env: Env, request: Request): Promise<Res
   const accessToken = body.accessToken?.trim();
 
   if (!slug || !accessToken) {
-    return json({ error: 'Slug and access token are required' }, 400);
+    return json({ error: 'Partner code and access token are required' }, 400);
   }
 
   const partner = await getPartnerBySlugAndToken(env.DB, slug, accessToken);

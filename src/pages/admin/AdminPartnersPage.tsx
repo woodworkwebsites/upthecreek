@@ -90,7 +90,7 @@ export default function AdminPartnersPage() {
     const commissionRate = Number(draft.commissionRate);
 
     if (!slug) {
-      setError('Slug is required');
+      setError('Partner code is required');
       return;
     }
     if (!name) {
@@ -193,7 +193,7 @@ export default function AdminPartnersPage() {
           </div>
 
           <label className="block space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Slug</span>
+            <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Partner code</span>
             <input
               value={draft.slug}
               onChange={(e) => setDraft((current) => ({ ...current, slug: e.target.value }))}
@@ -310,7 +310,7 @@ export default function AdminPartnersPage() {
                   <tr key={partner.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <td className="px-4 py-3">
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{partner.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{partner.slug}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Code {partner.slug}</p>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.discountCode ?? '—'}</td>
                     <td className="px-4 py-3">

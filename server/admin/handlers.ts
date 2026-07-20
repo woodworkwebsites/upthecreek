@@ -1109,7 +1109,7 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
   const accessToken = body.accessToken?.trim();
   const commissionRate = typeof body.commissionRate === 'string' ? Number(body.commissionRate) : body.commissionRate;
 
-  if (!slug) return json({ error: 'Slug is required' }, 400);
+  if (!slug) return json({ error: 'Partner code is required' }, 400);
   if (!name) return json({ error: 'Name is required' }, 400);
   if (!accessToken) return json({ error: 'Access token is required' }, 400);
   if (typeof commissionRate !== 'number' || !Number.isFinite(commissionRate) || commissionRate < 0) {
@@ -1158,7 +1158,7 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
   const accessToken = body.accessToken?.trim() ?? existing.accessToken;
   const commissionRate = typeof body.commissionRate === 'string' ? Number(body.commissionRate) : (body.commissionRate ?? existing.commissionRate);
 
-  if (!slug) return json({ error: 'Slug is required' }, 400);
+  if (!slug) return json({ error: 'Partner code is required' }, 400);
   if (!name) return json({ error: 'Name is required' }, 400);
   if (!accessToken) return json({ error: 'Access token is required' }, 400);
   if (!Number.isFinite(commissionRate) || commissionRate < 0) {

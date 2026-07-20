@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useProducts } from '../hooks/useProducts.js';
 import { ProductGrid } from '../components/product/ProductGrid.js';
 import { PageLoader } from '../components/ui/LoadingSpinner.js';
@@ -72,16 +72,25 @@ export default function HomePage() {
       <section id="collection" className="scroll-mt-0">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-20 sm:pt-12 sm:pb-28">
 
-          <div className="flex justify-center mb-14">
-            <h2 className="mt-0 flex flex-col items-center gap-1 sm:gap-2 text-3xl sm:text-4xl font-black font-sans text-navy-800 tracking-tight text-center">
-              <span className="block">The</span>
-              <img
-                src="/Up The Creek_Wordmark.png"
-                alt="Up the Creek"
-                className="h-24 sm:h-32 w-auto object-contain"
-              />
-              <span className="block">Collection</span>
-            </h2>
+          <div className="mb-14 flex justify-center">
+            <div className="flex flex-col items-center gap-5 text-center lg:flex-row lg:items-end lg:gap-8">
+              <h2 className="mt-0 flex flex-col items-center gap-1 sm:gap-2 text-3xl sm:text-4xl font-black font-sans text-navy-800 tracking-tight text-center">
+                <span className="block">The</span>
+                <img
+                  src="/Up The Creek_Wordmark.png"
+                  alt="Up the Creek"
+                  className="h-24 w-auto object-contain sm:h-32"
+                />
+                <span className="block">Collection</span>
+              </h2>
+
+              <Link
+                to="/partners"
+                className="inline-flex items-center justify-center rounded-full border-2 border-navy-800 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white"
+              >
+                Interested in stocking UTC Apparel?
+              </Link>
+            </div>
           </div>
 
           {loading ? (
