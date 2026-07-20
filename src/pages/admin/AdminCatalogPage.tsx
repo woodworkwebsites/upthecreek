@@ -249,108 +249,174 @@ export default function AdminCatalogPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Pricing Matrix Presets</p>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Default row templates for the matrix in the product creator. Partner price is your income per garment on the partner
-              order page. Partner margin is Sale price (RRP) minus partner price — what you're giving up versus a retail sale.
-              Net profit is partner price minus manufacturing cost and delivery — what you actually keep.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => addPricingRow()}
-            className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white"
-          >
-            Add row
-          </button>
-        </div>
+      <PricingMatrixTable
+        title="In-store pricing (partners)"
+        hint="What clubs pay per garment for stock they sell in the clubhouse. Partner margin is Sale price (RRP) minus partner price — what you're giving up versus a retail sale. Net profit is partner price minus manufacturing cost and delivery — what you actually keep."
+        pricingRows={pricingRows}
+        onAddRow={() => addPricingRow()}
+        onUpdateRow={updatePricingRow}
+        onRemoveRow={removePricingRow}
+        channel="partner"
+      />
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full table-fixed border-separate border-spacing-x-1 border-spacing-y-0 text-left">
-            <thead className="bg-gray-50 dark:bg-gray-900">
-              <tr className="text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
-                <th className="px-2 py-2">Audience</th>
-                <th className="px-2 py-2">Product</th>
-                <th className="px-2 py-2">Garment</th>
-                <th className="px-2 py-2">Print surface</th>
-                <th className="px-2 py-2">Manufacturing</th>
-                <th className="px-2 py-2">Sale cost</th>
-                <th className="px-2 py-2">Delivery</th>
-                <th className="px-2 py-2">Sale price</th>
-                <th className="px-2 py-2">Margin</th>
-                <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
-                <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Sale price (RRP) minus partner price">Partner margin</th>
-                <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Partner price minus manufacturing cost and delivery — your actual profit on a partner order">Net profit</th>
-                <th className="px-2 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-                {pricingRows.map((row, index) => {
-                  const margin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
-                  const partnerMargin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.partnerPrice || '0');
-                  const partnerNetProfit = Number.parseFloat(row.partnerPrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
-                  return (
-                  <tr key={index} className="border-t border-gray-100 dark:border-gray-800">
-                    <td className="px-2 py-1.5">
-                      <input value={row.audience} onChange={(e) => updatePricingRow(index, { audience: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input value={row.product} onChange={(e) => updatePricingRow(index, { product: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input value={row.garment} onChange={(e) => updatePricingRow(index, { garment: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input value={row.printSurface} onChange={(e) => updatePricingRow(index, { printSurface: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input value={row.manufacturingCost} onChange={(e) => updatePricingRow(index, { manufacturingCost: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input value={row.saleCost} onChange={(e) => updatePricingRow(index, { saleCost: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input value={row.delivery} onChange={(e) => updatePricingRow(index, { delivery: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input value={row.salePrice} onChange={(e) => updatePricingRow(index, { salePrice: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${margin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
-                        £{margin.toFixed(2)}
-                      </div>
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <input value={row.partnerPrice} onChange={(e) => updatePricingRow(index, { partnerPrice: e.target.value })} placeholder="e.g. 11.29" className="w-full min-w-0 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-gray-100" />
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerMargin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
-                        £{partnerMargin.toFixed(2)}
-                      </div>
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerNetProfit >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
-                        £{partnerNetProfit.toFixed(2)}
-                      </div>
-                    </td>
-                    <td className="px-2 py-1.5">
-                      <button
-                        type="button"
-                        onClick={() => removePricingRow(index)}
-                        className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-red-400"
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      <PricingMatrixTable
+        title="Online pricing (retail)"
+        hint="What customers pay on the storefront. Margin is Sale price minus manufacturing cost and delivery."
+        pricingRows={pricingRows}
+        onAddRow={() => addPricingRow()}
+        onUpdateRow={updatePricingRow}
+        onRemoveRow={removePricingRow}
+        channel="retail"
+      />
+    </div>
+  );
+}
+
+function PricingIdentityCells({
+  row,
+  onChange,
+}: {
+  row: PricingRowOption;
+  onChange: (patch: Partial<PricingRowOption>) => void;
+}) {
+  return (
+    <>
+      <td className="px-2 py-1.5">
+        <input value={row.audience} onChange={(e) => onChange({ audience: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+      </td>
+      <td className="px-2 py-1.5">
+        <input value={row.product} onChange={(e) => onChange({ product: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+      </td>
+      <td className="px-2 py-1.5">
+        <input value={row.garment} onChange={(e) => onChange({ garment: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+      </td>
+      <td className="px-2 py-1.5">
+        <input value={row.printSurface} onChange={(e) => onChange({ printSurface: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+      </td>
+    </>
+  );
+}
+
+function PricingMatrixTable({
+  title,
+  hint,
+  pricingRows,
+  onAddRow,
+  onUpdateRow,
+  onRemoveRow,
+  channel,
+}: {
+  title: string;
+  hint: string;
+  pricingRows: PricingRowOption[];
+  onAddRow: () => void;
+  onUpdateRow: (index: number, patch: Partial<PricingRowOption>) => void;
+  onRemoveRow: (index: number) => void;
+  channel: 'partner' | 'retail';
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{hint}</p>
         </div>
+        <button
+          type="button"
+          onClick={onAddRow}
+          className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white"
+        >
+          Add row
+        </button>
+      </div>
+
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full table-fixed border-separate border-spacing-x-1 border-spacing-y-0 text-left">
+          <thead className="bg-gray-50 dark:bg-gray-900">
+            <tr className="text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+              <th className="px-2 py-2">Audience</th>
+              <th className="px-2 py-2">Product</th>
+              <th className="px-2 py-2">Garment</th>
+              <th className="px-2 py-2">Print surface</th>
+              <th className="px-2 py-2">Manufacturing</th>
+              {channel === 'retail' && <th className="px-2 py-2">Sale cost</th>}
+              <th className="px-2 py-2">Delivery</th>
+              {channel === 'partner' ? (
+                <>
+                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
+                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Sale price (RRP) minus partner price">Partner margin</th>
+                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Partner price minus manufacturing cost and delivery — your actual profit on a partner order">Net profit</th>
+                </>
+              ) : (
+                <>
+                  <th className="px-2 py-2">Sale price</th>
+                  <th className="px-2 py-2">Margin</th>
+                </>
+              )}
+              <th className="px-2 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pricingRows.map((row, index) => {
+              const margin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
+              const partnerMargin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.partnerPrice || '0');
+              const partnerNetProfit = Number.parseFloat(row.partnerPrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
+              return (
+                <tr key={index} className="border-t border-gray-100 dark:border-gray-800">
+                  <PricingIdentityCells row={row} onChange={(patch) => onUpdateRow(index, patch)} />
+                  <td className="px-2 py-1.5">
+                    <input value={row.manufacturingCost} onChange={(e) => onUpdateRow(index, { manufacturingCost: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                  </td>
+                  {channel === 'retail' && (
+                    <td className="px-2 py-1.5">
+                      <input value={row.saleCost} onChange={(e) => onUpdateRow(index, { saleCost: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                    </td>
+                  )}
+                  <td className="px-2 py-1.5">
+                    <input value={row.delivery} onChange={(e) => onUpdateRow(index, { delivery: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                  </td>
+                  {channel === 'partner' ? (
+                    <>
+                      <td className="px-2 py-1.5">
+                        <input value={row.partnerPrice} onChange={(e) => onUpdateRow(index, { partnerPrice: e.target.value })} placeholder="e.g. 11.29" className="w-full min-w-0 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-gray-100" />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerMargin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                          £{partnerMargin.toFixed(2)}
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerNetProfit >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                          £{partnerNetProfit.toFixed(2)}
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-2 py-1.5">
+                        <input value={row.salePrice} onChange={(e) => onUpdateRow(index, { salePrice: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${margin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                          £{margin.toFixed(2)}
+                        </div>
+                      </td>
+                    </>
+                  )}
+                  <td className="px-2 py-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onRemoveRow(index)}
+                      className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-red-400"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
