@@ -48,7 +48,6 @@ import {
 } from '../partners/repository.js';
 import { logger } from '../logging.js';
 import { deleteAsset, storeAssetData } from '../assets/storage.js';
-import { DEFAULT_CATALOG_OPTIONS } from '../../src/lib/catalog.js';
 
 type SyncProductsRequest = {
   preview?: boolean;
@@ -242,28 +241,6 @@ function isKnownColor(color: string, knownColors: Array<{ name: string }>): bool
   return knownColors.some((entry) => normalizeColorName(entry.name) === target);
 }
 
-function buildDefaultManualVariants(
-  colors: Array<{ name: string; hex: string }>,
-  salePricePence: number,
-): PrintifyVariant[] {
-  const variants: PrintifyVariant[] = [];
-  let nextId = 1;
-
-  for (const color of colors) {
-    for (const size of DEFAULT_SIZE_OPTIONS) {
-      variants.push({
-        id: nextId++,
-        color: color.name,
-        size,
-        price: salePricePence,
-        available: true,
-      });
-    }
-  }
-
-  return variants;
-}
-
 function getVariantIdsForColor(product: { variants: PrintifyVariant[] }, color: string): number[] {
   const target = normalizeColorName(color);
   return product.variants
@@ -372,28 +349,25 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
   }
 
   const imageFiles = form.getAll('images').filter((v): v is File => v instanceof File);
-  const settings = await getAllSettings(env.DB);
-  const catalogColors = parseCatalogColors(settings);
-  const fallbackColors = catalogColors.length > 0 ? catalogColors : DEFAULT_CATALOG_OPTIONS.colors;
-  const colorSource = variantRows.length > 0
-    ? variantRows
-        .filter((row) => row.color?.trim())
-        .map((row) => ({ name: row.color.trim(), hex: row.hex || '#cccccc' }))
-    : fallbackColors;
+  if (variantRows.length === 0) {
+    return json({ error: 'Select at least one colour' }, 400);
+  }
+
+  const colorSource = variantRows
+    .filter((row) => row.color?.trim())
+    .map((row) => ({ name: row.color.trim(), hex: row.hex || '#cccccc' }));
 
   const id = crypto.randomUUID();
   const printifyId = crypto.randomUUID();
 
   const salePrice = pricingMatrix?.salePrice ? Math.round(parseFloat(pricingMatrix.salePrice) * 100) : 0;
-  const variants: PrintifyVariant[] = variantRows.length > 0
-    ? variantRows.map((row, index) => ({
-        id:        index + 1,
-        color:     row.color?.trim() ?? '',
-        size:      row.size?.trim() ?? '',
-        price:     Math.round(row.price) || 0,
-        available: true,
-      }))
-    : buildDefaultManualVariants(fallbackColors, Number.isFinite(salePrice) ? salePrice : 0);
+  const variants: PrintifyVariant[] = variantRows.map((row, index) => ({
+    id:        index + 1,
+    color:     row.color?.trim() ?? '',
+    size:      row.size?.trim() ?? '',
+    price:     Math.round(row.price) || 0,
+    available: true,
+  }));
 
   const colorHexByName = new Map(
     colorSource.map((color) => [color.name.trim(), color.hex.trim() || '#cccccc'] as const),

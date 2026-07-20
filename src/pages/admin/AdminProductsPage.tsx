@@ -6,7 +6,8 @@ import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatPriceRange, formatDate } from '../../lib/utils.js';
-import { DEFAULT_CATALOG_OPTIONS, findPricingPresetRow, parseCatalogSettings, serializeCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
+import { ColorMultiSelect } from '../../components/admin/ColorMultiSelect.js';
+import { DEFAULT_CATALOG_OPTIONS, DEFAULT_SIZE_OPTIONS, findPricingPresetRow, parseCatalogSettings, serializeCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
 
 interface DraftImageRow {
   file: File;
@@ -34,6 +35,7 @@ function InlineDraftProductRow({
   const [productType, setProductType] = useState(catalog.products[0] ?? '');
   const [garmentType, setGarmentType] = useState(catalog.garments[0] ?? '');
   const [isEnabled, setIsEnabled] = useState(true);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [images, setImages] = useState<DraftImageRow[]>([]);
   const imagesRef = useRef<DraftImageRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -70,6 +72,14 @@ function InlineDraftProductRow({
     setImages((current) => current.map((row, i) => ({ ...row, isDefault: i === index })));
   }
 
+  function toggleColor(colorName: string) {
+    setSelectedColors((current) => (
+      current.includes(colorName)
+        ? current.filter((value) => value !== colorName)
+        : [...current, colorName]
+    ));
+  }
+
   async function handleSubmit() {
     if (!token) return;
     setError(null);
@@ -77,6 +87,11 @@ function InlineDraftProductRow({
     const resolvedTitle = title.trim();
     if (!resolvedTitle) {
       setError('Title is required');
+      return;
+    }
+
+    if (selectedColors.length === 0) {
+      setError('Select at least one colour');
       return;
     }
 
@@ -99,6 +114,10 @@ function InlineDraftProductRow({
       const pricingPreset = matchPricingPresetBySelection(category, productType, garmentType, catalog)
         ?? catalog.pricingRows[0]
         ?? null;
+      const salePrice = pricingPreset?.salePrice?.trim() || catalog.pricingRows[0]?.salePrice?.trim() || '24.99';
+      const selectedColorRows = selectedColors
+        .map((name) => catalog.colors.find((color) => color.name === name))
+        .filter((color): color is { name: string; hex: string } => Boolean(color));
       form.append('pricingMatrix', JSON.stringify(pricingPreset ?? {
         audience: '',
         product: '',
@@ -107,10 +126,21 @@ function InlineDraftProductRow({
         manufacturingCost: '',
         saleCost: '',
         delivery: '',
-        salePrice: catalog.pricingRows[0]?.salePrice?.trim() || '24.99',
+        salePrice,
       }));
       form.append('isEnabled', String(isEnabled));
-      form.append('variants', JSON.stringify([]));
+      form.append('variants', JSON.stringify(
+        selectedColorRows.flatMap((color, colorIndex) =>
+          DEFAULT_SIZE_OPTIONS.map((size, sizeIndex) => ({
+            id: colorIndex * DEFAULT_SIZE_OPTIONS.length + sizeIndex + 1,
+            color: color.name,
+            hex: color.hex,
+            size,
+            price: Math.round(parseFloat(salePrice) * 100) || 0,
+            available: true,
+          })),
+        ),
+      ));
       form.append('imagesMeta', JSON.stringify(images.map((img) => ({
         isDefault: img.isDefault,
       }))));
@@ -199,10 +229,18 @@ function InlineDraftProductRow({
             </div>
           </div>
 
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+            <ColorMultiSelect
+              colors={catalog.colors}
+              selected={selectedColors}
+              onToggle={(color) => toggleColor(color.name)}
+            />
+          </div>
+
           <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Publish on save</p>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              Saving writes the product to the shop immediately.
+              Select the colours you want, then save to publish the product to the shop immediately.
             </p>
           </div>
 

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminCreateProduct, adminGetSettings } from '../../lib/api.js';
+import { ColorMultiSelect } from '../../components/admin/ColorMultiSelect.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
-import { DEFAULT_CATALOG_OPTIONS, findPricingPresetRow, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
+import { DEFAULT_CATALOG_OPTIONS, DEFAULT_SIZE_OPTIONS, findPricingPresetRow, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
 
 interface ImageRow {
   file: File;
@@ -26,6 +27,7 @@ export default function AdminProductCreatePage() {
   const [garmentType, setGarmentType] = useState(DEFAULT_CATALOG_OPTIONS.garments[0] ?? '');
   const [printSurface, setPrintSurface] = useState('');
   const [catalog, setCatalog] = useState(DEFAULT_CATALOG_OPTIONS);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [images, setImages] = useState<ImageRow[]>([]);
   const [isEnabled, setIsEnabled] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -83,6 +85,14 @@ export default function AdminProductCreatePage() {
     setImages((current) => current.map((row, i) => ({ ...row, isDefault: i === index })));
   }
 
+  function toggleColor(colorName: string) {
+    setSelectedColors((current) => (
+      current.includes(colorName)
+        ? current.filter((value) => value !== colorName)
+        : [...current, colorName]
+    ));
+  }
+
   async function handleSubmit() {
     if (!token) return;
     setError(null);
@@ -90,6 +100,11 @@ export default function AdminProductCreatePage() {
     const resolvedTitle = title.trim();
     if (!resolvedTitle) {
       setError('Title is required');
+      return;
+    }
+
+    if (selectedColors.length === 0) {
+      setError('Select at least one colour');
       return;
     }
 
@@ -111,6 +126,10 @@ export default function AdminProductCreatePage() {
       const pricingPreset = findPricingPresetRow(catalog.pricingRows, category, productType, garmentType)
         ?? catalog.pricingRows[0]
         ?? null;
+      const salePrice = pricingPreset?.salePrice?.trim() || catalog.pricingRows[0]?.salePrice?.trim() || '24.99';
+      const selectedColorRows = selectedColors
+        .map((name) => catalog.colors.find((color) => color.name === name))
+        .filter((color): color is { name: string; hex: string } => Boolean(color));
       form.append('pricingMatrix', JSON.stringify(pricingPreset ? {
         audience: pricingPreset.audience.trim(),
         product: pricingPreset.product.trim(),
@@ -128,10 +147,21 @@ export default function AdminProductCreatePage() {
         manufacturingCost: '',
         saleCost: '',
         delivery: '',
-        salePrice: catalog.pricingRows[0]?.salePrice?.trim() || '24.99',
+        salePrice,
       }));
       form.append('isEnabled', String(isEnabled));
-      form.append('variants', JSON.stringify([]));
+      form.append('variants', JSON.stringify(
+        selectedColorRows.flatMap((color, colorIndex) =>
+          DEFAULT_SIZE_OPTIONS.map((size, sizeIndex) => ({
+            id: colorIndex * DEFAULT_SIZE_OPTIONS.length + sizeIndex + 1,
+            color: color.name,
+            hex: color.hex,
+            size,
+            price: Math.round(parseFloat(salePrice) * 100) || 0,
+            available: true,
+          })),
+        ),
+      ));
       form.append('imagesMeta', JSON.stringify(images.map((img) => ({
         isDefault: img.isDefault,
       }))));
@@ -232,9 +262,17 @@ export default function AdminProductCreatePage() {
             Enabled
           </label>
           <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
-            Saving publishes the product to the shop immediately.
+            Select the colours you want, then save to publish the product to the shop immediately.
           </div>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4">
+        <ColorMultiSelect
+          colors={catalog.colors}
+          selected={selectedColors}
+          onToggle={(color) => toggleColor(color.name)}
+        />
       </div>
 
       <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4">
