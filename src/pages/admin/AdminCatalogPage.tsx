@@ -307,6 +307,15 @@ export default function AdminCatalogPage() {
         channel="partner"
       />
 
+      <PricingMatrixTable
+        title="Online partnership orders (club discount code)"
+        hint="A player buys online using the club's code. Purchaser price is Sale cost plus delivery, less 10%. Club commission is 10% of that discounted price. My margin is what's left after the commission, manufacturing cost and delivery. New rows come from adding a garment above."
+        pricingRows={pricingRows}
+        onUpdateRow={updatePricingRow}
+        onRemoveRow={removePricingRow}
+        channel="online-partnership"
+      />
+
       {garmentModalOpen && (
         <GarmentPricingModal
           draft={garmentDraft}
@@ -353,7 +362,7 @@ function GarmentPricingModal({
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">New garment</p>
         <h2 className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">Add garment &amp; pricing</h2>
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          This adds the garment to the list and creates one pricing row in both matrices below.
+          This adds the garment to the list and creates one pricing row in all three matrices below.
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -515,7 +524,7 @@ function PricingMatrixTable({
   pricingRows: PricingRowOption[];
   onUpdateRow: (index: number, patch: Partial<PricingRowOption>) => void;
   onRemoveRow: (index: number) => void;
-  channel: 'partner' | 'retail';
+  channel: 'partner' | 'retail' | 'online-partnership';
 }) {
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
@@ -535,16 +544,25 @@ function PricingMatrixTable({
               <th className="px-2 py-2">Manufacturing</th>
               {channel === 'retail' && <th className="px-2 py-2">Sale cost</th>}
               <th className="px-2 py-2">Delivery</th>
-              {channel === 'partner' ? (
+              {channel === 'partner' && (
                 <>
                   <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
                   <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Sale price (RRP) minus partner price">Partner margin</th>
                   <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Partner price minus manufacturing cost and delivery — your actual profit on a partner order">Net profit</th>
                 </>
-              ) : (
+              )}
+              {channel === 'retail' && (
                 <>
                   <th className="px-2 py-2">Sale price</th>
                   <th className="px-2 py-2">Margin</th>
+                </>
+              )}
+              {channel === 'online-partnership' && (
+                <>
+                  <th className="px-2 py-2">Sale cost</th>
+                  <th className="px-2 py-2 text-sky-700 dark:text-sky-400" title="Sale cost plus delivery, less the purchaser's 10% club discount">Purchaser price (−10%)</th>
+                  <th className="px-2 py-2 text-sky-700 dark:text-sky-400" title="10% of the discounted purchaser price">Club commission (10%)</th>
+                  <th className="px-2 py-2 text-sky-700 dark:text-sky-400" title="Purchaser price minus club commission, manufacturing cost and delivery">My margin</th>
                 </>
               )}
               <th className="px-2 py-2">Actions</th>
@@ -552,9 +570,16 @@ function PricingMatrixTable({
           </thead>
           <tbody>
             {pricingRows.map((row, index) => {
-              const margin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
-              const partnerMargin = Number.parseFloat(row.salePrice || '0') - Number.parseFloat(row.partnerPrice || '0');
-              const partnerNetProfit = Number.parseFloat(row.partnerPrice || '0') - Number.parseFloat(row.manufacturingCost || '0') - Number.parseFloat(row.delivery || '0');
+              const salePrice = Number.parseFloat(row.salePrice || '0');
+              const saleCost = Number.parseFloat(row.saleCost || '0');
+              const manufacturingCost = Number.parseFloat(row.manufacturingCost || '0');
+              const delivery = Number.parseFloat(row.delivery || '0');
+              const margin = salePrice - manufacturingCost - delivery;
+              const partnerMargin = salePrice - Number.parseFloat(row.partnerPrice || '0');
+              const partnerNetProfit = Number.parseFloat(row.partnerPrice || '0') - manufacturingCost - delivery;
+              const purchaserPrice = (saleCost + delivery) * 0.9;
+              const clubCommission = purchaserPrice * 0.1;
+              const onlinePartnershipMargin = purchaserPrice - clubCommission - manufacturingCost - delivery;
               return (
                 <tr key={index} className="border-t border-gray-100 dark:border-gray-800">
                   <PricingIdentityCells row={row} onChange={(patch) => onUpdateRow(index, patch)} />
@@ -569,7 +594,7 @@ function PricingMatrixTable({
                   <td className="px-2 py-1.5">
                     <input value={row.delivery} onChange={(e) => onUpdateRow(index, { delivery: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                   </td>
-                  {channel === 'partner' ? (
+                  {channel === 'partner' && (
                     <>
                       <td className="px-2 py-1.5">
                         <input value={row.partnerPrice} onChange={(e) => onUpdateRow(index, { partnerPrice: e.target.value })} placeholder="e.g. 11.29" className="w-full min-w-0 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-gray-100" />
@@ -585,7 +610,8 @@ function PricingMatrixTable({
                         </div>
                       </td>
                     </>
-                  ) : (
+                  )}
+                  {channel === 'retail' && (
                     <>
                       <td className="px-2 py-1.5">
                         <input value={row.salePrice} onChange={(e) => onUpdateRow(index, { salePrice: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
@@ -593,6 +619,30 @@ function PricingMatrixTable({
                       <td className="px-2 py-1.5">
                         <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${margin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
                           £{margin.toFixed(2)}
+                        </div>
+                      </td>
+                    </>
+                  )}
+                  {channel === 'online-partnership' && (
+                    <>
+                      <td className="px-2 py-1.5">
+                        <div className="rounded-lg bg-gray-100 px-2 py-1.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                          £{saleCost.toFixed(2)}
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <div className="rounded-lg bg-sky-50 px-2 py-1.5 text-xs font-semibold text-sky-700 dark:bg-sky-900/20 dark:text-sky-300">
+                          £{purchaserPrice.toFixed(2)}
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <div className="rounded-lg bg-sky-50 px-2 py-1.5 text-xs font-semibold text-sky-700 dark:bg-sky-900/20 dark:text-sky-300">
+                          £{clubCommission.toFixed(2)}
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${onlinePartnershipMargin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                          £{onlinePartnershipMargin.toFixed(2)}
                         </div>
                       </td>
                     </>
