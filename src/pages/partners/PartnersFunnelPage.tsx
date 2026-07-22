@@ -122,7 +122,10 @@ export default function PartnersFunnelPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl">
+        <p className="mx-auto max-w-2xl text-center text-sm font-semibold text-gray-500 sm:text-base">
+          Partners collect both margin from wholesale and commission from referrals.
+        </p>
+        <div className="mx-auto mt-6 max-w-2xl">
           <article className="rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
             <p className="label">How it works</p>
             <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Set up, sell, track</h3>
