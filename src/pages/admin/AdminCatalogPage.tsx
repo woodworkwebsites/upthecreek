@@ -11,6 +11,18 @@ import {
   type PricingRowOption,
 } from '../../lib/catalog.js';
 
+const emptyGarmentDraft = {
+  name: '',
+  audience: '',
+  product: '',
+  printSurface: '',
+  manufacturingCost: '',
+  saleCost: '',
+  delivery: '',
+  salePrice: '',
+  partnerPrice: '',
+};
+
 export default function AdminCatalogPage() {
   const { token } = useAdminToken();
   const [audiences, setAudiences] = useState(DEFAULT_CATALOG_OPTIONS.audiences);
@@ -22,6 +34,8 @@ export default function AdminCatalogPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [garmentModalOpen, setGarmentModalOpen] = useState(false);
+  const [garmentDraft, setGarmentDraft] = useState(emptyGarmentDraft);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -82,6 +96,38 @@ export default function AdminCatalogPage() {
 
   function removePricingRow(index: number) {
     setPricingRows((current) => current.filter((_, i) => i !== index));
+  }
+
+  function openGarmentModal() {
+    setGarmentDraft({
+      ...emptyGarmentDraft,
+      audience: audiences[0] ?? '',
+      product: products[0] ?? '',
+    });
+    setGarmentModalOpen(true);
+  }
+
+  function updateGarmentDraft(patch: Partial<typeof emptyGarmentDraft>) {
+    setGarmentDraft((current) => ({ ...current, ...patch }));
+  }
+
+  function handleCreateGarment() {
+    const name = garmentDraft.name.trim();
+    if (!name) return;
+
+    setGarments((current) => (current.includes(name) ? current : [...current, name]));
+    addPricingRow({
+      audience: garmentDraft.audience.trim(),
+      product: garmentDraft.product.trim(),
+      garment: name,
+      printSurface: garmentDraft.printSurface.trim(),
+      manufacturingCost: garmentDraft.manufacturingCost.trim(),
+      saleCost: garmentDraft.saleCost.trim(),
+      delivery: garmentDraft.delivery.trim(),
+      salePrice: garmentDraft.salePrice.trim(),
+      partnerPrice: garmentDraft.partnerPrice.trim(),
+    });
+    setGarmentModalOpen(false);
   }
 
   async function handleSave() {
@@ -162,22 +208,16 @@ export default function AdminCatalogPage() {
           hint="Tshirt / Hoody / Sweatshirt"
           items={products}
           onUpdate={(index, value) => updateListItem(setProducts, index, value)}
-          onAdd={() => {
-            addListItem(setProducts);
-            addPricingRow({ product: '' });
-          }}
+          onAdd={() => addListItem(setProducts)}
           onRemove={(index) => removeListItem(setProducts, index)}
         />
 
         <EditableListBox
           label="Garment"
-          hint="Mens Heavyweight and related fits"
+          hint="Adding a garment opens the pricing matrix modal"
           items={garments}
           onUpdate={(index, value) => updateListItem(setGarments, index, value)}
-          onAdd={() => {
-            addListItem(setGarments);
-            addPricingRow({ garment: '' });
-          }}
+          onAdd={openGarmentModal}
           onRemove={(index) => removeListItem(setGarments, index)}
         />
       </div>
@@ -251,9 +291,8 @@ export default function AdminCatalogPage() {
 
       <PricingMatrixTable
         title="Online pricing (retail)"
-        hint="What customers pay on the storefront. Margin is Sale price minus manufacturing cost and delivery."
+        hint="What customers pay on the storefront. Margin is Sale price minus manufacturing cost and delivery. New rows come from adding a garment above."
         pricingRows={pricingRows}
-        onAddRow={() => addPricingRow()}
         onUpdateRow={updatePricingRow}
         onRemoveRow={removePricingRow}
         channel="retail"
@@ -261,13 +300,179 @@ export default function AdminCatalogPage() {
 
       <PricingMatrixTable
         title="In-store pricing (partners)"
-        hint="What clubs pay per garment for stock they sell in the clubhouse. Partner margin is Sale price (RRP) minus partner price — what you're giving up versus a retail sale. Net profit is partner price minus manufacturing cost and delivery — what you actually keep."
+        hint="What clubs pay per garment for stock they sell in the clubhouse. Partner margin is Sale price (RRP) minus partner price — what you're giving up versus a retail sale. Net profit is partner price minus manufacturing cost and delivery — what you actually keep. New rows come from adding a garment above."
         pricingRows={pricingRows}
-        onAddRow={() => addPricingRow()}
         onUpdateRow={updatePricingRow}
         onRemoveRow={removePricingRow}
         channel="partner"
       />
+
+      {garmentModalOpen && (
+        <GarmentPricingModal
+          draft={garmentDraft}
+          audiences={audiences}
+          products={products}
+          onChange={updateGarmentDraft}
+          onCancel={() => setGarmentModalOpen(false)}
+          onSubmit={handleCreateGarment}
+        />
+      )}
+    </div>
+  );
+}
+
+function GarmentPricingModal({
+  draft,
+  audiences,
+  products,
+  onChange,
+  onCancel,
+  onSubmit,
+}: {
+  draft: typeof emptyGarmentDraft;
+  audiences: string[];
+  products: string[];
+  onChange: (patch: Partial<typeof emptyGarmentDraft>) => void;
+  onCancel: () => void;
+  onSubmit: () => void;
+}) {
+  const canSubmit = draft.name.trim().length > 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/70 p-4 backdrop-blur-sm"
+      onClick={onCancel}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Add garment"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-800 dark:bg-gray-900"
+      >
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">New garment</p>
+        <h2 className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">Add garment &amp; pricing</h2>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          This adds the garment to the list and creates one pricing row in both matrices below.
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">Garment name</span>
+            <input
+              autoFocus
+              value={draft.name}
+              onChange={(e) => onChange({ name: e.target.value })}
+              placeholder="e.g. Mens Heavyweight"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">Audience</span>
+            <input
+              list="garment-modal-audiences"
+              value={draft.audience}
+              onChange={(e) => onChange({ audience: e.target.value })}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            />
+            <datalist id="garment-modal-audiences">
+              {audiences.map((option) => <option key={option} value={option} />)}
+            </datalist>
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">Product</span>
+            <input
+              list="garment-modal-products"
+              value={draft.product}
+              onChange={(e) => onChange({ product: e.target.value })}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            />
+            <datalist id="garment-modal-products">
+              {products.map((option) => <option key={option} value={option} />)}
+            </datalist>
+          </label>
+
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">Print surface</span>
+            <input
+              value={draft.printSurface}
+              onChange={(e) => onChange({ printSurface: e.target.value })}
+              placeholder="e.g. Double"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">Manufacturing cost</span>
+            <input
+              value={draft.manufacturingCost}
+              onChange={(e) => onChange({ manufacturingCost: e.target.value })}
+              placeholder="e.g. 8.30"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">Delivery</span>
+            <input
+              value={draft.delivery}
+              onChange={(e) => onChange({ delivery: e.target.value })}
+              placeholder="e.g. 2.99"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">Sale cost</span>
+            <input
+              value={draft.saleCost}
+              onChange={(e) => onChange({ saleCost: e.target.value })}
+              placeholder="e.g. 22.00"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">Sale price (RRP)</span>
+            <input
+              value={draft.salePrice}
+              onChange={(e) => onChange({ salePrice: e.target.value })}
+              placeholder="e.g. 24.99"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            />
+          </label>
+
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-semibold text-amber-600 dark:text-amber-400">Partner price</span>
+            <input
+              value={draft.partnerPrice}
+              onChange={(e) => onChange({ partnerPrice: e.target.value })}
+              placeholder="e.g. 11.29"
+              className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-gray-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-gray-100"
+            />
+          </label>
+        </div>
+
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={!canSubmit}
+            className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            Create garment
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -301,7 +506,6 @@ function PricingMatrixTable({
   title,
   hint,
   pricingRows,
-  onAddRow,
   onUpdateRow,
   onRemoveRow,
   channel,
@@ -309,25 +513,15 @@ function PricingMatrixTable({
   title: string;
   hint: string;
   pricingRows: PricingRowOption[];
-  onAddRow: () => void;
   onUpdateRow: (index: number, patch: Partial<PricingRowOption>) => void;
   onRemoveRow: (index: number) => void;
   channel: 'partner' | 'retail';
 }) {
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{hint}</p>
-        </div>
-        <button
-          type="button"
-          onClick={onAddRow}
-          className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white"
-        >
-          Add row
-        </button>
+      <div>
+        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</p>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{hint}</p>
       </div>
 
       <div className="mt-4 overflow-x-auto">
