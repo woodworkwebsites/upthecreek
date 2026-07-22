@@ -236,6 +236,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
   const [basket, setBasket] = useState<BasketLineItem[]>([]);
   const [query, setQuery] = useState('');
   const [hydrated, setHydrated] = useState(false);
+  const [basketModalOpen, setBasketModalOpen] = useState(false);
   const [draftLines, setDraftLines] = useState<BasketLineItem[]>([]);
   const [draftColor, setDraftColor] = useState<string | null>(null);
   const activeDraft = draftLines.find((line) => line.color === draftColor) ?? null;
@@ -339,7 +340,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1.22fr)_420px] xl:grid-cols-[minmax(0,1.25fr)_460px]">
+    <div>
       <section className="space-y-6">
         <div className="rounded-[1.75rem] border border-gray-200 bg-white p-5 shadow-[0_18px_50px_rgba(5,13,31,0.06)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -369,119 +370,167 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
         </div>
       </section>
 
-      <aside className="lg:sticky lg:top-8 self-start">
-        <div className="flex max-h-[calc(100vh-4rem)] flex-col rounded-[1.75rem] border border-gray-200 bg-white p-5 shadow-[0_18px_50px_rgba(5,13,31,0.06)]">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Basket</p>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-navy-900">
-                Your order
-                {pieceCount > 0 && (
-                  <span className="ml-2 text-sm font-semibold text-gray-400">
-                    {pieceCount} piece{pieceCount === 1 ? '' : 's'}
-                  </span>
-                )}
-              </h2>
-            </div>
-            {basket.length > 0 && (
+      {basket.length > 0 && !basketModalOpen && (
+        <div className="fixed inset-x-0 bottom-0 z-40 pointer-events-none">
+          <div className="mx-auto max-w-2xl px-3 pb-4 sm:px-4">
+            <div className="pointer-events-auto flex items-center justify-between gap-4 rounded-2xl bg-navy-900 px-5 py-3.5 shadow-2xl shadow-navy-950/50">
+              <div className="flex items-center gap-3">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 text-[11px] font-black text-white">
+                  {pieceCount}
+                </span>
+                <div className="leading-tight">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Basket</p>
+                  <p className="text-sm font-black text-white">{formatPrice(value)}</p>
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={() => setBasket([])}
-                className="text-xs font-semibold text-gray-400 hover:text-red-600"
+                onClick={() => setBasketModalOpen(true)}
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-5 text-[11px] font-black uppercase tracking-widest text-navy-900 transition-all hover:bg-cream active:scale-95"
               >
-                Clear all
-              </button>
-            )}
-          </div>
-
-          {basket.length === 0 ? (
-            <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl bg-gray-50 px-4 py-10 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white ring-1 ring-gray-200">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                View Basket
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
-              </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {basketModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-navy-950/70 p-4 backdrop-blur-sm sm:items-center"
+          onClick={() => setBasketModalOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Basket"
+            onClick={(event) => event.stopPropagation()}
+            className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-[1.75rem] bg-white p-5 shadow-[0_30px_90px_rgba(0,0,0,0.35)]"
+          >
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-black text-navy-900">Nothing here yet</p>
-                <p className="mt-1 text-xs text-gray-400">Click a product photo to add sizes.</p>
+                <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Basket</p>
+                <h2 className="mt-1 text-xl font-black tracking-tight text-navy-900">
+                  Your order
+                  {pieceCount > 0 && (
+                    <span className="ml-2 text-sm font-semibold text-gray-400">
+                      {pieceCount} piece{pieceCount === 1 ? '' : 's'}
+                    </span>
+                  )}
+                </h2>
+              </div>
+              <div className="flex items-center gap-3">
+                {basket.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setBasket([])}
+                    className="text-xs font-semibold text-gray-400 hover:text-red-600"
+                  >
+                    Clear all
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setBasketModalOpen(false)}
+                  className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                >
+                  Close
+                </button>
               </div>
             </div>
-          ) : (
-            <>
-              <div className="mt-5 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-                {basket.map((item) => (
-                  <div key={item.id} className="flex gap-3 rounded-2xl bg-gray-50 p-3 ring-1 ring-black/5">
-                    <img
-                      src={item.imageSrc}
-                      alt={`${item.title} ${item.color}`}
-                      className="h-16 w-14 flex-shrink-0 rounded-xl object-cover object-top"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-black text-navy-900">{item.title}</p>
-                          <p className="text-xs text-gray-500">{item.color}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeLine(item.id)}
-                          aria-label="Remove item"
-                          className="mt-0.5 flex-shrink-0 text-gray-300 hover:text-red-500"
-                        >
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
 
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {item.sizes.filter((entry) => entry.quantity > 0).map((entry) => (
-                          <div key={entry.size} className="inline-flex items-center gap-1 rounded-full bg-white py-1 pl-2 pr-1 ring-1 ring-gray-200">
-                            <span className="text-[11px] font-bold text-navy-900">{entry.size}</span>
-                            <button
-                              type="button"
-                              onClick={() => updateQuantity(item.id, entry.size, entry.quantity - 1)}
-                              aria-label={`Decrease ${entry.size}`}
-                              className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-gray-400 hover:text-navy-900"
-                            >
-                              −
-                            </button>
-                            <span className="w-4 text-center text-[11px] font-semibold text-navy-900">{entry.quantity}</span>
-                            <button
-                              type="button"
-                              onClick={() => updateQuantity(item.id, entry.size, entry.quantity + 1)}
-                              aria-label={`Increase ${entry.size}`}
-                              className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-gray-400 hover:text-navy-900"
-                            >
-                              +
-                            </button>
+            {basket.length === 0 ? (
+              <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl bg-gray-50 px-4 py-10 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white ring-1 ring-gray-200">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-black text-navy-900">Nothing here yet</p>
+                  <p className="mt-1 text-xs text-gray-400">Click a product photo to add sizes.</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="mt-5 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+                  {basket.map((item) => (
+                    <div key={item.id} className="flex gap-3 rounded-2xl bg-gray-50 p-3 ring-1 ring-black/5">
+                      <img
+                        src={item.imageSrc}
+                        alt={`${item.title} ${item.color}`}
+                        className="h-16 w-14 flex-shrink-0 rounded-xl object-cover object-top"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-navy-900">{item.title}</p>
+                            <p className="text-xs text-gray-500">{item.color}</p>
                           </div>
-                        ))}
-                      </div>
+                          <button
+                            type="button"
+                            onClick={() => removeLine(item.id)}
+                            aria-label="Remove item"
+                            className="mt-0.5 flex-shrink-0 text-gray-300 hover:text-red-500"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
 
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="text-xs text-gray-400">{lineCount(item)} pcs</span>
-                        <span className="text-sm font-black text-navy-900">{formatPrice(lineTotal(item))}</span>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {item.sizes.filter((entry) => entry.quantity > 0).map((entry) => (
+                            <div key={entry.size} className="inline-flex items-center gap-1 rounded-full bg-white py-1 pl-2 pr-1 ring-1 ring-gray-200">
+                              <span className="text-[11px] font-bold text-navy-900">{entry.size}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(item.id, entry.size, entry.quantity - 1)}
+                                aria-label={`Decrease ${entry.size}`}
+                                className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-gray-400 hover:text-navy-900"
+                              >
+                                −
+                              </button>
+                              <span className="w-4 text-center text-[11px] font-semibold text-navy-900">{entry.quantity}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(item.id, entry.size, entry.quantity + 1)}
+                                aria-label={`Increase ${entry.size}`}
+                                className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-gray-400 hover:text-navy-900"
+                              >
+                                +
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="text-xs text-gray-400">{lineCount(item)} pcs</span>
+                          <span className="text-sm font-black text-navy-900">{formatPrice(lineTotal(item))}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              <div className="mt-5 border-t border-gray-100 pt-4">
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>Total pieces</span>
-                  <span className="font-semibold text-navy-900">{pieceCount}</span>
+                <div className="mt-5 border-t border-gray-100 pt-4">
+                  <div className="flex items-center justify-between text-sm text-gray-500">
+                    <span>Total pieces</span>
+                    <span className="font-semibold text-navy-900">{pieceCount}</span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-base font-black text-navy-900">
+                    <span>Total value</span>
+                    <span>{formatPrice(value)}</span>
+                  </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between text-base font-black text-navy-900">
-                  <span>Total value</span>
-                  <span>{formatPrice(value)}</span>
-                </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
         </div>
-      </aside>
+      )}
 
       {activeDraft && (() => {
         const draftProduct = products.find((entry) => entry.id === activeDraft.productId);
