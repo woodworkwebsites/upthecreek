@@ -4,6 +4,10 @@ import { Badge } from '../ui/Badge.js';
 import { cn, formatPrice } from '../../lib/utils.js';
 
 const priceChipClass = 'inline-flex items-center rounded-full bg-emerald-700 px-2.5 py-1 text-xs font-bold text-white';
+const rrpChipClass = 'inline-flex items-center rounded-full bg-gray-700 px-2.5 py-1 text-xs font-bold text-white';
+const marginChipClass = 'inline-flex items-center rounded-full bg-sky-700 px-2.5 py-1 text-xs font-bold text-white';
+const commissionChipClass = 'inline-flex items-center rounded-full bg-amber-700 px-2.5 py-1 text-xs font-bold text-white';
+const rowLabelClass = 'w-16 flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-gray-400';
 
 type BasketSizeEntry = {
   size: string;
@@ -66,6 +70,18 @@ function getPartnerUnitPrice(product: Product, fallback: number): number {
 
 function getRrp(product: Product): number {
   return product.minPrice > 0 ? product.minPrice : product.maxPrice > 0 ? product.maxPrice : 0;
+}
+
+function getReferralPricing(product: Product): { purchaserPrice: number; commission: number } {
+  const saleCost = parseFloat(product.pricingMatrix?.saleCost?.trim() || '0');
+  const delivery = parseFloat(product.pricingMatrix?.delivery?.trim() || '0');
+  const purchaserPricePounds = (Number.isFinite(saleCost) ? saleCost : 0) + (Number.isFinite(delivery) ? delivery : 0);
+  const discountedPounds = purchaserPricePounds * 0.9;
+  const commissionPounds = discountedPounds * 0.1;
+  return {
+    purchaserPrice: Math.round(discountedPounds * 100),
+    commission: Math.round(commissionPounds * 100),
+  };
 }
 
 function buildSizeEntries(product: Product, color: string): BasketSizeEntry[] {
@@ -171,6 +187,10 @@ function ProductMatrixCard({
   const colors = visibleColors(product);
   const [selectedColorName, setSelectedColorName] = useState(colors[0]?.name ?? '');
   const activeColor = colors.find((color) => color.name === selectedColorName) ?? colors[0];
+  const partnerPrice = getPartnerUnitPrice(product, product.minPrice);
+  const rrp = getRrp(product);
+  const margin = rrp - partnerPrice;
+  const { purchaserPrice, commission } = getReferralPricing(product);
 
   return (
     <article className="overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_40px_rgba(5,13,31,0.05)]">
@@ -195,14 +215,22 @@ function ProductMatrixCard({
         <h2 className="text-base font-black leading-snug tracking-tight text-navy-900">{product.title}</h2>
         <p className="mt-0.5 text-xs font-semibold text-gray-500">{product.garment}</p>
 
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className={priceChipClass}>
-            {formatPrice(getPartnerUnitPrice(product, product.minPrice))} partner
-          </span>
-          <span className="text-xs text-gray-400">
-            {colors.length} colours · {getProductSizes(product).length} sizes
-          </span>
+        <div className="mt-2.5 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={rowLabelClass}>In-store</span>
+            <span className={priceChipClass}>{formatPrice(partnerPrice)} partner</span>
+            <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
+            <span className={marginChipClass}>{formatPrice(margin)} margin</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={rowLabelClass}>Referral</span>
+            <span className={commissionChipClass}>{formatPrice(commission)} commission</span>
+            <span className={rrpChipClass}>{formatPrice(purchaserPrice)} price</span>
+          </div>
         </div>
+        <p className="mt-2 text-xs text-gray-400">
+          {colors.length} colours · {getProductSizes(product).length} sizes
+        </p>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
           {colors.map((color) => (
@@ -537,6 +565,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
         const draftColors = draftProduct ? visibleColors(draftProduct) : [];
         const draftTotalPieces = draftLines.reduce((sum, line) => sum + lineCount(line), 0);
         const draftTotalValue = draftLines.reduce((sum, line) => sum + lineTotal(line), 0);
+        const draftReferral = draftProduct ? getReferralPricing(draftProduct) : { purchaserPrice: 0, commission: 0 };
         return (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/70 p-4 backdrop-blur-sm"
@@ -573,9 +602,20 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                     <p className="mt-2 text-sm leading-7 text-gray-500">
                       Set quantities for this colour. Switch colours above to add more, then add everything to the basket at once.
                     </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className={priceChipClass}>Partner {formatPrice(activeDraft.sizes[0]?.unitPrice ?? 0)}</span>
-                      <Badge variant="default">RRP {formatPrice(activeDraft.rrp)}</Badge>
+                    <div className="mt-3 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={rowLabelClass}>In-store</span>
+                        <span className={priceChipClass}>{formatPrice(activeDraft.sizes[0]?.unitPrice ?? 0)} partner</span>
+                        <span className={rrpChipClass}>{formatPrice(activeDraft.rrp)} RRP</span>
+                        <span className={marginChipClass}>
+                          {formatPrice(activeDraft.rrp - (activeDraft.sizes[0]?.unitPrice ?? 0))} margin
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={rowLabelClass}>Referral</span>
+                        <span className={commissionChipClass}>{formatPrice(draftReferral.commission)} commission</span>
+                        <span className={rrpChipClass}>{formatPrice(draftReferral.purchaserPrice)} price</span>
+                      </div>
                     </div>
                     {draftColors.length > 1 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
