@@ -560,9 +560,9 @@ function PricingMatrixTable({
               {channel === 'online-partnership' && (
                 <>
                   <th className="px-2 py-2">Sale cost</th>
-                  <th className="px-2 py-2 text-sky-700 dark:text-sky-400" title="Sale cost plus delivery, less the purchaser's 10% club discount">Purchaser price (−10%)</th>
-                  <th className="px-2 py-2 text-sky-700 dark:text-sky-400" title="10% of the discounted purchaser price">Club commission (10%)</th>
-                  <th className="px-2 py-2 text-sky-700 dark:text-sky-400" title="Purchaser price minus club commission, manufacturing cost and delivery">My margin</th>
+                  <th className="px-2 py-2" title="Sale cost plus delivery, less the purchaser's 10% club discount">Purchaser price (−10%)</th>
+                  <th className="px-2 py-2" title="10% of the discounted purchaser price">Club commission (10%)</th>
+                  <th className="px-2 py-2" title="Purchaser price minus club commission, manufacturing cost and delivery">My margin</th>
                 </>
               )}
               <th className="px-2 py-2">Actions</th>
@@ -600,12 +600,12 @@ function PricingMatrixTable({
                         <input value={row.partnerPrice} onChange={(e) => onUpdateRow(index, { partnerPrice: e.target.value })} placeholder="e.g. 11.29" className="w-full min-w-0 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-gray-100" />
                       </td>
                       <td className="px-2 py-1.5">
-                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerMargin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerMargin >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
                           £{partnerMargin.toFixed(2)}
                         </div>
                       </td>
                       <td className="px-2 py-1.5">
-                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerNetProfit >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerNetProfit >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
                           £{partnerNetProfit.toFixed(2)}
                         </div>
                       </td>
@@ -617,7 +617,7 @@ function PricingMatrixTable({
                         <input value={row.salePrice} onChange={(e) => onUpdateRow(index, { salePrice: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                       </td>
                       <td className="px-2 py-1.5">
-                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${margin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${margin >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
                           £{margin.toFixed(2)}
                         </div>
                       </td>
@@ -631,17 +631,17 @@ function PricingMatrixTable({
                         </div>
                       </td>
                       <td className="px-2 py-1.5">
-                        <div className="rounded-lg bg-sky-50 px-2 py-1.5 text-xs font-semibold text-sky-700 dark:bg-sky-900/20 dark:text-sky-300">
+                        <div className="rounded-lg bg-gray-100 px-2 py-1.5 text-xs font-semibold text-gray-900 dark:bg-gray-800 dark:text-gray-100">
                           £{purchaserPrice.toFixed(2)}
                         </div>
                       </td>
                       <td className="px-2 py-1.5">
-                        <div className="rounded-lg bg-sky-50 px-2 py-1.5 text-xs font-semibold text-sky-700 dark:bg-sky-900/20 dark:text-sky-300">
+                        <div className="rounded-lg bg-gray-100 px-2 py-1.5 text-xs font-semibold text-gray-900 dark:bg-gray-800 dark:text-gray-100">
                           £{clubCommission.toFixed(2)}
                         </div>
                       </td>
                       <td className="px-2 py-1.5">
-                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${onlinePartnershipMargin >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${onlinePartnershipMargin >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
                           £{onlinePartnershipMargin.toFixed(2)}
                         </div>
                       </td>
