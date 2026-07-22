@@ -9,6 +9,8 @@ import type {
   PartnerAdmin,
   PartnerDashboard,
   PartnerLoginResponse,
+  PartnerStockOrder,
+  PartnerStockOrderInput,
   SyncLogRow,
   WebhookLogRow,
   DiscountCode,
@@ -455,4 +457,15 @@ export async function partnerFetchDashboard(
 
 export async function partnerFetchProfile(slug: string): Promise<{ partner: Partner }> {
   return apiFetch<{ partner: Partner }>(`/api/partners/${encodeURIComponent(slug)}`);
+}
+
+export async function submitPartnerStockOrder(
+  slug: string,
+  accessToken: string,
+  data: PartnerStockOrderInput,
+): Promise<{ order: PartnerStockOrder }> {
+  return partnerFetch<{ order: PartnerStockOrder }>(`/api/partners/${encodeURIComponent(slug)}/stock-orders`, accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }

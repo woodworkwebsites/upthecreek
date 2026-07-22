@@ -322,6 +322,72 @@ export interface PartnerLoginResponse {
   partner: Partner;
 }
 
+export type PartnerStockOrderStatus = 'submitted' | 'fulfilled' | 'cancelled';
+
+export interface PartnerStockOrderItem {
+  id: string;
+  stockOrderId: string;
+  printifyId: string;
+  variantId: number | null;
+  title: string;
+  color: string;
+  size: string;
+  quantity: number;
+  unitPrice: number;
+  createdAt: string;
+}
+
+export interface PartnerStockOrder {
+  id: string;
+  partnerId: string;
+  status: PartnerStockOrderStatus;
+  totalPieces: number;
+  totalValue: number;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: PartnerStockOrderItem[];
+}
+
+export interface PartnerStockOrderItemInput {
+  printifyId: string;
+  variantId: number | null;
+  title: string;
+  color: string;
+  size: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface PartnerStockOrderInput {
+  items: PartnerStockOrderItemInput[];
+  notes?: string | null;
+}
+
+export interface PartnerStockOrderRow {
+  id: string;
+  partner_id: string;
+  status: PartnerStockOrderStatus;
+  total_pieces: number;
+  total_value: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PartnerStockOrderItemRow {
+  id: string;
+  stock_order_id: string;
+  printify_id: string;
+  variant_id: number | null;
+  title: string;
+  color: string;
+  size: string;
+  quantity: number;
+  unit_price: number;
+  created_at: string;
+}
+
 // ─── API request/response shapes ─────────────────────────────────────────────
 
 export interface CheckoutItem {

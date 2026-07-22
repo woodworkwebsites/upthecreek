@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { PrintifyColor, PrintifyVariant, Product } from '../../../types/index.js';
 import { Badge } from '../ui/Badge.js';
 import { cn, formatPrice } from '../../lib/utils.js';
+import { submitPartnerStockOrder } from '../../lib/api.js';
 
 const priceChipClass = 'inline-flex items-center rounded-full bg-emerald-700 px-2.5 py-1 text-xs font-bold text-white';
 const rrpChipClass = 'inline-flex items-center rounded-full bg-gray-700 px-2.5 py-1 text-xs font-bold text-white';
@@ -260,13 +261,24 @@ function ProductMatrixCard({
   );
 }
 
-export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
+export function PartnerOrderWorkspace({
+  products,
+  slug,
+  accessToken,
+}: {
+  products: Product[];
+  slug: string;
+  accessToken: string;
+}) {
   const [basket, setBasket] = useState<BasketLineItem[]>([]);
   const [query, setQuery] = useState('');
   const [hydrated, setHydrated] = useState(false);
   const [basketModalOpen, setBasketModalOpen] = useState(false);
   const [draftLines, setDraftLines] = useState<BasketLineItem[]>([]);
   const [draftColor, setDraftColor] = useState<string | null>(null);
+  const [orderNotes, setOrderNotes] = useState('');
+  const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const activeDraft = draftLines.find((line) => line.color === draftColor) ?? null;
 
   useEffect(() => {
@@ -367,6 +379,43 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
     setBasket((current) => current.filter((item) => item.id !== itemId));
   }
 
+  function openBasketModal() {
+    setSubmitState('idle');
+    setSubmitError(null);
+    setBasketModalOpen(true);
+  }
+
+  async function handleSubmitOrder() {
+    if (basket.length === 0) return;
+    setSubmitState('submitting');
+    setSubmitError(null);
+    try {
+      const items = basket.flatMap((line) =>
+        line.sizes
+          .filter((entry) => entry.quantity > 0)
+          .map((entry) => ({
+            printifyId: line.printifyId,
+            variantId: entry.variantId,
+            title: line.title,
+            color: line.color,
+            size: entry.size,
+            quantity: entry.quantity,
+            unitPrice: entry.unitPrice,
+          })),
+      );
+      await submitPartnerStockOrder(slug, accessToken, {
+        items,
+        notes: orderNotes.trim() || null,
+      });
+      setBasket([]);
+      setOrderNotes('');
+      setSubmitState('success');
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Could not submit order');
+      setSubmitState('error');
+    }
+  }
+
   return (
     <div>
       <section className="space-y-6">
@@ -413,7 +462,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
               </div>
               <button
                 type="button"
-                onClick={() => setBasketModalOpen(true)}
+                onClick={openBasketModal}
                 className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-5 text-[11px] font-black uppercase tracking-widest text-navy-900 transition-all hover:bg-cream active:scale-95"
               >
                 View Basket
@@ -470,7 +519,28 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
               </div>
             </div>
 
-            {basket.length === 0 ? (
+            {submitState === 'success' ? (
+              <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-10 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white ring-1 ring-emerald-200">
+                  <svg className="h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-black text-navy-900">Order submitted</p>
+                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                    We've received your stock order and will be in touch to confirm dispatch and invoicing.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBasketModalOpen(false)}
+                  className="mt-2 rounded-full bg-navy-900 px-5 py-2 text-xs font-bold uppercase tracking-widest text-white"
+                >
+                  Done
+                </button>
+              </div>
+            ) : basket.length === 0 ? (
               <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl bg-gray-50 px-4 py-10 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white ring-1 ring-gray-200">
                   <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -553,6 +623,27 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                     <span>Total value</span>
                     <span>{formatPrice(value)}</span>
                   </div>
+
+                  <textarea
+                    value={orderNotes}
+                    onChange={(event) => setOrderNotes(event.target.value)}
+                    placeholder="Notes for this order (optional)"
+                    rows={2}
+                    className="mt-4 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-navy-900 outline-none transition-colors placeholder:text-gray-400 focus:border-navy-800"
+                  />
+
+                  {submitState === 'error' && submitError && (
+                    <p className="mt-3 text-xs font-semibold text-red-600">{submitError}</p>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleSubmitOrder}
+                    disabled={submitState === 'submitting'}
+                    className="mt-4 w-full rounded-full bg-navy-900 py-3 text-sm font-black uppercase tracking-widest text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {submitState === 'submitting' ? 'Submitting…' : 'Submit order'}
+                  </button>
                 </div>
               </>
             )}

@@ -1,4 +1,5 @@
-import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import HomePage       from './pages/HomePage.js';
 import ProductPage    from './pages/ProductPage.js';
 import BasketPage     from './pages/BasketPage.js';
@@ -20,10 +21,22 @@ import AdminSettingsPage from './pages/admin/AdminSettingsPage.js';
 import { BasketProvider } from './context/BasketContext.js';
 import { BasketBar } from './components/basket/BasketBar.js';
 
+function ScrollToTop() {
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    if (hash) return;
+    window.scrollTo(0, 0);
+  }, [pathname, hash]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <BasketProvider>
+        <ScrollToTop />
         <div className="pb-24 sm:pb-20">
           <Routes>
             <Route path="/"              element={<HomePage />} />

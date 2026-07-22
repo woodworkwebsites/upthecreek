@@ -206,7 +206,7 @@ export default function PartnersDashboardPage() {
               ) : productsError ? (
                 <p className="text-sm text-red-600">{productsError}</p>
               ) : (
-                <PartnerOrderWorkspace products={products} />
+                <PartnerOrderWorkspace products={products} slug={session.slug} accessToken={session.accessToken} />
               )}
             </div>
           </article>
