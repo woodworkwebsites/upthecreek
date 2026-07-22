@@ -58,7 +58,7 @@ export default function PartnersFunnelPage() {
           <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
         </div>
 
-        <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-8 sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-7xl px-4 pb-8 pt-8 sm:px-6 lg:px-8">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
             <div aria-hidden className="hidden sm:block" />
             <img
@@ -121,11 +121,11 @@ export default function PartnersFunnelPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <p className="mx-auto max-w-2xl text-center text-sm font-semibold text-gray-500 sm:text-base">
+      <section className="mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+        <h2 className="mx-auto max-w-3xl text-center text-2xl font-black tracking-tight text-navy-900 sm:text-3xl">
           Partners collect both margin from wholesale and commission from referrals.
-        </p>
-        <div className="mx-auto mt-6 max-w-2xl">
+        </h2>
+        <div className="mx-auto mt-8 max-w-2xl">
           <article className="rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
             <p className="label">How it works</p>
             <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Set up, sell, track</h3>
