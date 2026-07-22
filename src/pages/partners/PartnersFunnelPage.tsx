@@ -100,12 +100,9 @@ export default function PartnersFunnelPage() {
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-white/50">Featured products</p>
                 <h2 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
-                  A few products from the range
+                  Selected Products
                 </h2>
               </div>
-              <p className="max-w-xl text-sm leading-7 text-white/70">
-                Open the full range below. Product cards show the actual imagery and live pricing.
-              </p>
             </div>
 
             <div className="rounded-[1.5rem] border border-gray-200 bg-[linear-gradient(180deg,_#f7f3eb_0%,_#efe7db_100%)] p-4 sm:p-6">
@@ -120,7 +117,7 @@ export default function PartnersFunnelPage() {
                   {error}
                 </div>
               ) : featuredProducts.length > 0 ? (
-                <ProductGrid products={featuredProducts} />
+                <ProductGrid products={featuredProducts} priceLabel="RRP" />
               ) : (
                 <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-sm text-gray-500">
                   No products are available right now.

@@ -5,9 +5,10 @@ import { formatPriceRange, cn } from '../../lib/utils.js';
 
 interface ProductCardProps {
   product: Product;
+  priceLabel?: string;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, priceLabel }: ProductCardProps) {
   const defaultImage = product.images.find((i) => i.isDefault) ?? product.images[0];
   const altImage     = product.images.find((i) => !i.isDefault && i !== defaultImage) ?? null;
   const [isHovered, setIsHovered] = useState(false);
@@ -88,7 +89,7 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.title}
         </h3>
         <p className="text-sm font-semibold text-gray-400">
-          {formatPriceRange(product.minPrice, product.maxPrice)}
+          {priceLabel ? `${priceLabel} ` : ''}{formatPriceRange(product.minPrice, product.maxPrice)}
         </p>
         {displayColors.length > 0 && (
           <div className="flex items-center gap-1.5 pt-1.5">
