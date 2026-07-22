@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState, type DragEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { PrintifyColor, PrintifyVariant, Product } from '../../../types/index.js';
 import { Badge } from '../ui/Badge.js';
 import { cn, formatPrice } from '../../lib/utils.js';
-import { DEFAULT_SIZE_OPTIONS } from '../../../types/catalog.js';
+
+const priceChipClass = 'inline-flex items-center rounded-full bg-emerald-700 px-2.5 py-1 text-xs font-bold text-white';
 
 type BasketSizeEntry = {
   size: string;
@@ -25,11 +26,6 @@ type BasketLineItem = {
   sizes: BasketSizeEntry[];
 };
 
-type DragPayload = {
-  productId: string;
-  color: string;
-};
-
 const STORAGE_KEY = 'utc_partner_console_basket_v1';
 
 function uniqueStrings(values: string[]): string[] {
@@ -49,12 +45,6 @@ function visibleColors(product: Product): PrintifyColor[] {
     seen.add(key);
     return true;
   });
-}
-
-function getProductLabel(product: Product): string {
-  const parts = [product.audience, product.productType].map((value) => value?.trim()).filter(Boolean);
-  if (parts.length > 0) return parts.join(' / ');
-  return product.garment || product.title;
 }
 
 function getProductSizes(product: Product): string[] {
@@ -159,17 +149,6 @@ function basketCount(basket: BasketLineItem[]): number {
   return basket.reduce((sum, line) => sum + lineCount(line), 0);
 }
 
-function sizeTotals(basket: BasketLineItem[]): Record<string, number> {
-  const totals: Record<string, number> = {};
-  for (const line of basket) {
-    for (const entry of line.sizes) {
-      if (entry.quantity <= 0) continue;
-      totals[entry.size] = (totals[entry.size] ?? 0) + entry.quantity;
-    }
-  }
-  return totals;
-}
-
 function readBasket(): BasketLineItem[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -185,11 +164,9 @@ function readBasket(): BasketLineItem[] {
 function ProductMatrixCard({
   product,
   onOpenDraft,
-  onDragStart,
 }: {
   product: Product;
   onOpenDraft: (product: Product, color: string) => void;
-  onDragStart: (product: Product, color: string, event: DragEvent<HTMLButtonElement>) => void;
 }) {
   const colors = visibleColors(product);
   const [selectedColorName, setSelectedColorName] = useState(colors[0]?.name ?? '');
@@ -197,70 +174,58 @@ function ProductMatrixCard({
 
   return (
     <article className="overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_40px_rgba(5,13,31,0.05)]">
-      <div className="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)]">
-        <div className="border-b border-gray-100 px-5 py-4 lg:border-b-0 lg:border-r">
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-brand-500">
-            {getProductLabel(product)}
-          </p>
-          <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
-            <h2 className="text-xl font-black tracking-tight text-navy-900">{product.title}</h2>
-            <span className="text-sm font-semibold text-gray-500">{product.garment}</span>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Badge variant="info">{colors.length} colours</Badge>
-            <Badge variant="default">{getProductSizes(product).length} sizes</Badge>
-            <Badge variant="success">{formatPrice(getPartnerUnitPrice(product, product.minPrice))} partner</Badge>
-          </div>
+      {activeColor && (
+        <button
+          type="button"
+          onClick={() => onOpenDraft(product, activeColor.name)}
+          className="group block w-full overflow-hidden text-left"
+        >
+          <span className="block aspect-[4/3] w-full overflow-hidden bg-gray-50">
+            <img
+              src={getImageForColor(product, activeColor.name)}
+              alt={`${product.title} ${activeColor.name}`}
+              className="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-105"
+              loading="lazy"
+            />
+          </span>
+        </button>
+      )}
+
+      <div className="p-4">
+        <h2 className="text-base font-black leading-snug tracking-tight text-navy-900">{product.title}</h2>
+        <p className="mt-0.5 text-xs font-semibold text-gray-500">{product.garment}</p>
+
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className={priceChipClass}>
+            {formatPrice(getPartnerUnitPrice(product, product.minPrice))} partner
+          </span>
+          <span className="text-xs text-gray-400">
+            {colors.length} colours · {getProductSizes(product).length} sizes
+          </span>
         </div>
 
-        <div className="px-5 py-4">
-          {activeColor && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {colors.map((color) => (
             <button
+              key={color.name}
               type="button"
-              draggable
-              onDragStart={(event) => onDragStart(product, activeColor.name, event)}
-              onClick={() => onOpenDraft(product, activeColor.name)}
-              className="group block w-full overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-navy-300 hover:shadow-[0_12px_30px_rgba(5,13,31,0.08)]"
+              onClick={() => setSelectedColorName(color.name)}
+              aria-pressed={color.name === activeColor?.name}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+                color.name === activeColor?.name
+                  ? 'border-navy-800 bg-navy-800 text-white'
+                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
+              )}
             >
-              <span className="block aspect-[4/3] w-full overflow-hidden">
-                <img
-                  src={getImageForColor(product, activeColor.name)}
-                  alt={`${product.title} ${activeColor.name}`}
-                  className="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-105"
-                  loading="lazy"
-                />
-              </span>
-              <span className="block px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
-                Click to choose sizes
-              </span>
+              <span
+                className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-black/10"
+                style={{ backgroundColor: color.hex }}
+                aria-hidden
+              />
+              {color.name}
             </button>
-          )}
-
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {colors.map((color) => (
-              <button
-                key={color.name}
-                type="button"
-                draggable
-                onDragStart={(event) => onDragStart(product, color.name, event)}
-                onClick={() => setSelectedColorName(color.name)}
-                aria-pressed={color.name === activeColor?.name}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
-                  color.name === activeColor?.name
-                    ? 'border-navy-800 bg-navy-800 text-white'
-                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
-                )}
-              >
-                <span
-                  className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-black/10"
-                  style={{ backgroundColor: color.hex }}
-                  aria-hidden
-                />
-                {color.name}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
       </div>
     </article>
@@ -270,7 +235,6 @@ function ProductMatrixCard({
 export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
   const [basket, setBasket] = useState<BasketLineItem[]>([]);
   const [query, setQuery] = useState('');
-  const [dropActive, setDropActive] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [draftLines, setDraftLines] = useState<BasketLineItem[]>([]);
   const [draftColor, setDraftColor] = useState<string | null>(null);
@@ -298,11 +262,6 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
     });
   }, [products, query]);
 
-  const totals = useMemo(() => sizeTotals(basket), [basket]);
-  const orderedSizes = useMemo(
-    () => DEFAULT_SIZE_OPTIONS.filter((size) => (totals[size] ?? 0) > 0),
-    [totals],
-  );
   const pieceCount = useMemo(() => basketCount(basket), [basket]);
   const value = useMemo(() => basketTotal(basket), [basket]);
 
@@ -375,43 +334,8 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
     );
   }
 
-  function clearLine(itemId: string) {
-    setBasket((current) =>
-      current.map((item) =>
-        item.id === itemId ? { ...item, sizes: item.sizes.map((entry) => ({ ...entry, quantity: 0 })) } : item,
-      ),
-    );
-  }
-
   function removeLine(itemId: string) {
     setBasket((current) => current.filter((item) => item.id !== itemId));
-  }
-
-  function handleDragStart(product: Product, color: string, event: DragEvent<HTMLButtonElement>) {
-    const payload: DragPayload = { productId: product.id, color };
-    event.dataTransfer.effectAllowed = 'copy';
-    event.dataTransfer.setData('application/json', JSON.stringify(payload));
-    event.dataTransfer.setData('text/plain', JSON.stringify(payload));
-  }
-
-  function handleDrop(event: DragEvent<HTMLElement>) {
-    event.preventDefault();
-    setDropActive(false);
-
-    const raw = event.dataTransfer.getData('application/json') || event.dataTransfer.getData('text/plain');
-    if (!raw) return;
-
-    try {
-      const payload = JSON.parse(raw) as DragPayload;
-      const product = products.find((entry) => entry.id === payload.productId);
-      if (!product) return;
-      const colors = visibleColors(product);
-      const color = colors.find((entry) => entry.name === payload.color)?.name ?? colors[0]?.name;
-      if (!color) return;
-      openDraft(product, color);
-    } catch {
-      // Ignore malformed drag payloads.
-    }
   }
 
   return (
@@ -422,7 +346,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Product matrix</p>
               <p className="mt-2 text-sm leading-7 text-gray-500">
-                Choose a product, then click a colour to set sizes and quantities.
+                Click a colour chip to preview it, then click the photo to set sizes and quantities.
               </p>
             </div>
             <input
@@ -434,162 +358,128 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filteredProducts.map((product) => (
             <ProductMatrixCard
               key={product.id}
               product={product}
               onOpenDraft={openDraft}
-              onDragStart={handleDragStart}
             />
           ))}
         </div>
       </section>
 
       <aside className="lg:sticky lg:top-8 self-start">
-        <div
-          onDragEnter={() => setDropActive(true)}
-          onDragLeave={() => setDropActive(false)}
-          onDragOver={(event) => {
-            event.preventDefault();
-            event.dataTransfer.dropEffect = 'copy';
-          }}
-          onDrop={handleDrop}
-          className={cn(
-            'flex max-h-[calc(100vh-4rem)] flex-col rounded-[1.75rem] border bg-white p-5 shadow-[0_18px_50px_rgba(5,13,31,0.06)] transition-all',
-            dropActive ? 'border-brand-300 ring-2 ring-brand-400/25' : 'border-gray-200',
-          )}
-        >
+        <div className="flex max-h-[calc(100vh-4rem)] flex-col rounded-[1.75rem] border border-gray-200 bg-white p-5 shadow-[0_18px_50px_rgba(5,13,31,0.06)]">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Order pile</p>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-navy-900">Basket</h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Build the club order here. This basket is for stock orders, not public checkout.
-              </p>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Basket</p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-navy-900">
+                Your order
+                {pieceCount > 0 && (
+                  <span className="ml-2 text-sm font-semibold text-gray-400">
+                    {pieceCount} piece{pieceCount === 1 ? '' : 's'}
+                  </span>
+                )}
+              </h2>
             </div>
-            <button
-              type="button"
-              onClick={() => setBasket([])}
-              className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-            >
-              Clear all
-            </button>
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-gray-50 p-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Lines</p>
-              <p className="mt-1.5 text-xl font-black text-navy-900">{basket.length}</p>
-            </div>
-            <div className="rounded-2xl bg-gray-50 p-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Pieces</p>
-              <p className="mt-1.5 text-xl font-black text-navy-900">{pieceCount}</p>
-            </div>
-            <div className="rounded-2xl bg-gray-50 p-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Value</p>
-              <p className="mt-1.5 text-xl font-black text-navy-900">{formatPrice(value)}</p>
-            </div>
-            <div className="rounded-2xl bg-gray-50 p-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Sizes</p>
-              <p className="mt-1.5 text-xl font-black text-navy-900">{Object.keys(totals).length}</p>
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">Drop zone</p>
-            <p className="mt-2 text-sm leading-7 text-gray-500">
-              Click a colour card to choose sizes and quantities. Dragging a card here opens the same selector.
-            </p>
-          </div>
-
-          <div className="mt-5 min-h-0 flex-1 overflow-auto pr-1">
-            {basket.length === 0 ? (
-              <div className="rounded-[1.5rem] border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">
-                Basket is empty.
-              </div>
-            ) : (
-              <table className="w-full min-w-[420px] border-separate border-spacing-y-2 text-sm">
-                <thead>
-                  <tr className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
-                    <th className="px-2 py-1 text-left">Garment / Colour</th>
-                    {orderedSizes.map((size) => (
-                      <th key={size} className="px-1 py-1 text-center">{size}</th>
-                    ))}
-                    <th className="px-2 py-1 text-right">Pcs</th>
-                    <th className="px-2 py-1 text-right">Value</th>
-                    <th className="px-2 py-1" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {basket.map((item) => (
-                    <tr key={item.id}>
-                      <td className="rounded-l-xl border-y border-l border-gray-200 bg-white px-2.5 py-2">
-                        <div className="flex items-center gap-2.5">
-                          <img
-                            src={item.imageSrc}
-                            alt={`${item.title} ${item.color}`}
-                            className="h-11 w-9 flex-shrink-0 rounded-lg bg-gray-50 object-cover object-top"
-                          />
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-black tracking-tight text-navy-900">{item.title}</p>
-                            <p className="mt-0.5 truncate text-[10px] text-gray-500">{item.garment}</p>
-                            <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
-                              {item.color}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      {orderedSizes.map((size) => {
-                        const entry = item.sizes.find((candidate) => candidate.size === size);
-                        return (
-                          <td key={size} className="border-y border-gray-200 bg-white px-1 py-2 text-center">
-                            {entry?.available ? (
-                              <input
-                                type="number"
-                                min="0"
-                                max="99"
-                                step="1"
-                                value={entry.quantity}
-                                onChange={(event) => updateQuantity(item.id, size, Number(event.target.value))}
-                                className="h-8 w-12 rounded-lg border border-gray-200 bg-gray-50 text-center text-xs font-semibold text-navy-900 outline-none transition-colors focus:border-navy-800"
-                              />
-                            ) : (
-                              <span className="text-gray-300">–</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className="border-y border-gray-200 bg-white px-2.5 py-2 text-right text-xs font-black text-navy-900">
-                        {lineCount(item)}
-                      </td>
-                      <td className="border-y border-gray-200 bg-white px-2.5 py-2 text-right text-xs font-black text-navy-900">
-                        {formatPrice(lineTotal(item))}
-                      </td>
-                      <td className="rounded-r-xl border-y border-r border-gray-200 bg-white px-2.5 py-2">
-                        <div className="flex flex-col items-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => removeLine(item.id)}
-                            className="rounded-full border border-gray-200 px-2 py-0.5 text-[10px] font-semibold text-red-600 hover:bg-red-50"
-                          >
-                            Remove
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => clearLine(item.id)}
-                            className="text-[10px] font-semibold text-gray-400 underline decoration-gray-300 underline-offset-2 hover:text-navy-900"
-                          >
-                            Clear
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {basket.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setBasket([])}
+                className="text-xs font-semibold text-gray-400 hover:text-red-600"
+              >
+                Clear all
+              </button>
             )}
           </div>
+
+          {basket.length === 0 ? (
+            <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl bg-gray-50 px-4 py-10 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white ring-1 ring-gray-200">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-black text-navy-900">Nothing here yet</p>
+                <p className="mt-1 text-xs text-gray-400">Click a product photo to add sizes.</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mt-5 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+                {basket.map((item) => (
+                  <div key={item.id} className="flex gap-3 rounded-2xl bg-gray-50 p-3 ring-1 ring-black/5">
+                    <img
+                      src={item.imageSrc}
+                      alt={`${item.title} ${item.color}`}
+                      className="h-16 w-14 flex-shrink-0 rounded-xl object-cover object-top"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black text-navy-900">{item.title}</p>
+                          <p className="text-xs text-gray-500">{item.color}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeLine(item.id)}
+                          aria-label="Remove item"
+                          className="mt-0.5 flex-shrink-0 text-gray-300 hover:text-red-500"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {item.sizes.filter((entry) => entry.quantity > 0).map((entry) => (
+                          <div key={entry.size} className="inline-flex items-center gap-1 rounded-full bg-white py-1 pl-2 pr-1 ring-1 ring-gray-200">
+                            <span className="text-[11px] font-bold text-navy-900">{entry.size}</span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, entry.size, entry.quantity - 1)}
+                              aria-label={`Decrease ${entry.size}`}
+                              className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-gray-400 hover:text-navy-900"
+                            >
+                              −
+                            </button>
+                            <span className="w-4 text-center text-[11px] font-semibold text-navy-900">{entry.quantity}</span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, entry.size, entry.quantity + 1)}
+                              aria-label={`Increase ${entry.size}`}
+                              className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-gray-400 hover:text-navy-900"
+                            >
+                              +
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-xs text-gray-400">{lineCount(item)} pcs</span>
+                        <span className="text-sm font-black text-navy-900">{formatPrice(lineTotal(item))}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 border-t border-gray-100 pt-4">
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <span>Total pieces</span>
+                  <span className="font-semibold text-navy-900">{pieceCount}</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-base font-black text-navy-900">
+                  <span>Total value</span>
+                  <span>{formatPrice(value)}</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </aside>
 
@@ -635,7 +525,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                       Set quantities for this colour. Switch colours above to add more, then add everything to the basket at once.
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge variant="success">Partner {formatPrice(activeDraft.sizes[0]?.unitPrice ?? 0)}</Badge>
+                      <span className={priceChipClass}>Partner {formatPrice(activeDraft.sizes[0]?.unitPrice ?? 0)}</span>
                       <Badge variant="default">RRP {formatPrice(activeDraft.rrp)}</Badge>
                     </div>
                     {draftColors.length > 1 && (
@@ -666,7 +556,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                                 <span
                                   className={cn(
                                     'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
-                                    color.name === activeDraft.color ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700',
+                                    color.name === activeDraft.color ? 'bg-white/20 text-white' : 'bg-emerald-700 text-white',
                                   )}
                                 >
                                   {queuedPieces}
@@ -743,7 +633,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                       {draftLines.length > 1 && (
                         <Badge variant="default">{draftTotalPieces} pcs total</Badge>
                       )}
-                      <Badge variant="success">{formatPrice(draftTotalValue)}</Badge>
+                      <span className={priceChipClass}>{formatPrice(draftTotalValue)}</span>
                     </div>
                     <div className="flex gap-2">
                       <button
