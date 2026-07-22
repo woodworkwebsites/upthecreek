@@ -77,10 +77,10 @@ export default function PartnersFunnelPage() {
           <div className="mx-auto max-w-4xl pt-14 text-center animate-fade-up">
             <p className="label text-white/60">Partner programme</p>
             <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl lg:text-7xl">
-              Club apparel with stock ordering and tracked commission.
+              Offer unique Padel apparel for your club with flexible stock ordering and tracked commission.
             </h1>
             <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-white/78 sm:text-lg">
-              UTC gives clubs a stock range for the clubhouse, a code for players to use online, and a portal that shows
+              UTC offers clubs a selection for the clubhouse alongside a discount code for players to use online, and a portal that shows
               orders, sales and commission clearly.
             </p>
           </div>
@@ -128,7 +128,7 @@ export default function PartnersFunnelPage() {
         <div className="mx-auto mt-8 max-w-2xl">
           <article className="rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
             <p className="label">How it works</p>
-            <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Set up, sell, track</h3>
+            <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Partner, Sell, Earn</h3>
             <div className="mt-6 space-y-5">
               {process.map((item, index) => (
                 <div key={item} className="flex gap-4">
@@ -146,9 +146,8 @@ export default function PartnersFunnelPage() {
           <p className="label">Collaboration drop</p>
           <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">One-off club x UTC collection</h3>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
-            If a club wants something beyond the core range, UTC can produce a limited edition design that combines the club
-            identity with UTC branding. It can be run as a one-time drop, a short seasonal release, or a small exclusive
-            collection for club players.
+            Partner with Up The Creek and we can produce a limited edition design that combines the club
+            identity with UTC branding.
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">

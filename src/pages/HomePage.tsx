@@ -51,7 +51,7 @@ export default function HomePage() {
             className="w-[min(88vw,820px)] max-h-[32vh] h-auto object-contain"
           />
           <p className="mt-[50px] whitespace-nowrap text-xs sm:text-base text-white/85 tracking-wide leading-relaxed px-4">
-            Original T-shirts for life inside and outside the glass.
+            Original designs for life inside and outside the glass.
           </p>
         </div>
 

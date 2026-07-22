@@ -189,11 +189,7 @@ export default function PartnersDashboardPage() {
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="label">Club range</p>
-                <h2 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Ordering workspace</h2>
-                <p className="mt-2 text-sm leading-7 text-gray-600">
-                  This workspace shows the full product matrix. Click a colour to set sizes and quantities, then add it to the basket.
-                </p>
-              </div>
+                <h2 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Partner Ordering</h2>              </div>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="info">{products.length} products</Badge>
                 <Badge variant="success">{products.filter((product) => product.isEnabled).length} live</Badge>
