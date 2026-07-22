@@ -182,6 +182,91 @@ function readBasket(): BasketLineItem[] {
   }
 }
 
+function ProductMatrixCard({
+  product,
+  onOpenDraft,
+  onDragStart,
+}: {
+  product: Product;
+  onOpenDraft: (product: Product, color: string) => void;
+  onDragStart: (product: Product, color: string, event: DragEvent<HTMLButtonElement>) => void;
+}) {
+  const colors = visibleColors(product);
+  const [selectedColorName, setSelectedColorName] = useState(colors[0]?.name ?? '');
+  const activeColor = colors.find((color) => color.name === selectedColorName) ?? colors[0];
+
+  return (
+    <article className="overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_40px_rgba(5,13,31,0.05)]">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)]">
+        <div className="border-b border-gray-100 px-5 py-4 lg:border-b-0 lg:border-r">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-brand-500">
+            {getProductLabel(product)}
+          </p>
+          <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
+            <h2 className="text-xl font-black tracking-tight text-navy-900">{product.title}</h2>
+            <span className="text-sm font-semibold text-gray-500">{product.garment}</span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Badge variant="info">{colors.length} colours</Badge>
+            <Badge variant="default">{getProductSizes(product).length} sizes</Badge>
+            <Badge variant="success">{formatPrice(getPartnerUnitPrice(product, product.minPrice))} partner</Badge>
+          </div>
+        </div>
+
+        <div className="px-5 py-4">
+          {activeColor && (
+            <button
+              type="button"
+              draggable
+              onDragStart={(event) => onDragStart(product, activeColor.name, event)}
+              onClick={() => onOpenDraft(product, activeColor.name)}
+              className="group block w-full overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-navy-300 hover:shadow-[0_12px_30px_rgba(5,13,31,0.08)]"
+            >
+              <span className="block aspect-[4/3] w-full overflow-hidden">
+                <img
+                  src={getImageForColor(product, activeColor.name)}
+                  alt={`${product.title} ${activeColor.name}`}
+                  className="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-105"
+                  loading="lazy"
+                />
+              </span>
+              <span className="block px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                Click to choose sizes
+              </span>
+            </button>
+          )}
+
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {colors.map((color) => (
+              <button
+                key={color.name}
+                type="button"
+                draggable
+                onDragStart={(event) => onDragStart(product, color.name, event)}
+                onClick={() => setSelectedColorName(color.name)}
+                aria-pressed={color.name === activeColor?.name}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+                  color.name === activeColor?.name
+                    ? 'border-navy-800 bg-navy-800 text-white'
+                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
+                )}
+              >
+                <span
+                  className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-black/10"
+                  style={{ backgroundColor: color.hex }}
+                  aria-hidden
+                />
+                {color.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
   const [basket, setBasket] = useState<BasketLineItem[]>([]);
   const [query, setQuery] = useState('');
@@ -221,6 +306,15 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
 
   function openDraft(product: Product, color: string) {
     setActiveDraft(buildLine(product, color));
+  }
+
+  function switchDraftColor(color: string) {
+    setActiveDraft((current) => {
+      if (!current) return current;
+      const product = products.find((entry) => entry.id === current.productId);
+      if (!product) return current;
+      return buildLine(product, color);
+    });
   }
 
   function closeDraft() {
@@ -331,67 +425,14 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
         </div>
 
         <div className="space-y-3">
-          {filteredProducts.map((product) => {
-            const colors = visibleColors(product);
-            return (
-              <article
-                key={product.id}
-                className="overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_40px_rgba(5,13,31,0.05)]"
-              >
-                <div className="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)]">
-                  <div className="border-b border-gray-100 px-5 py-4 lg:border-b-0 lg:border-r">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-brand-500">
-                      {getProductLabel(product)}
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
-                      <h2 className="text-xl font-black tracking-tight text-navy-900">{product.title}</h2>
-                      <span className="text-sm font-semibold text-gray-500">{product.garment}</span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge variant="info">{colors.length} colours</Badge>
-                      <Badge variant="default">{getProductSizes(product).length} sizes</Badge>
-                      <Badge variant="success">{formatPrice(getPartnerUnitPrice(product, product.minPrice))} partner</Badge>
-                    </div>
-                  </div>
-
-                  <div className="px-5 py-4">
-                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
-                      {colors.map((color) => (
-                        <button
-                          key={`${product.id}:${color.name}`}
-                          type="button"
-                          draggable
-                          onDragStart={(event) => handleDragStart(product, color.name, event)}
-                          onClick={() => openDraft(product, color.name)}
-                          className={cn(
-                            'group flex flex-col overflow-hidden rounded-2xl border bg-white text-left transition-all duration-200',
-                            'border-gray-200 hover:-translate-y-0.5 hover:border-navy-300 hover:shadow-[0_12px_30px_rgba(5,13,31,0.08)]',
-                          )}
-                        >
-                          <span className="aspect-square w-full overflow-hidden bg-gray-50">
-                            <img
-                              src={getImageForColor(product, color.name)}
-                              alt={`${product.title} ${color.name}`}
-                              className="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-105"
-                              loading="lazy"
-                            />
-                          </span>
-                          <span className="flex items-center gap-1.5 px-2.5 py-2">
-                            <span
-                              className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-black/10"
-                              style={{ backgroundColor: color.hex }}
-                              aria-hidden
-                            />
-                            <span className="min-w-0 flex-1 truncate text-xs font-semibold text-navy-900">{color.name}</span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+          {filteredProducts.map((product) => (
+            <ProductMatrixCard
+              key={product.id}
+              product={product}
+              onOpenDraft={openDraft}
+              onDragStart={handleDragStart}
+            />
+          ))}
         </div>
       </section>
 
@@ -542,7 +583,10 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
         </div>
       </aside>
 
-      {activeDraft && (
+      {activeDraft && (() => {
+        const draftProduct = products.find((entry) => entry.id === activeDraft.productId);
+        const draftColors = draftProduct ? visibleColors(draftProduct) : [];
+        return (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/70 p-4 backdrop-blur-sm"
           onClick={closeDraft}
@@ -582,6 +626,31 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                       <Badge variant="success">Partner {formatPrice(activeDraft.sizes[0]?.unitPrice ?? 0)}</Badge>
                       <Badge variant="default">RRP {formatPrice(activeDraft.rrp)}</Badge>
                     </div>
+                    {draftColors.length > 1 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {draftColors.map((color) => (
+                          <button
+                            key={color.name}
+                            type="button"
+                            onClick={() => switchDraftColor(color.name)}
+                            aria-pressed={color.name === activeDraft.color}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+                              color.name === activeDraft.color
+                                ? 'border-navy-800 bg-navy-800 text-white'
+                                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
+                            )}
+                          >
+                            <span
+                              className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-black/10"
+                              style={{ backgroundColor: color.hex }}
+                              aria-hidden
+                            />
+                            {color.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -670,7 +739,8 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
