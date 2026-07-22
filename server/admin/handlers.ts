@@ -3,6 +3,7 @@ import type {
   PrintifyVariant,
   PrintifyProductImage,
   OrderStatus,
+  PartnerStockOrderStatus,
 } from '../../types/index.js';
 import {
   listOrders,
@@ -46,6 +47,10 @@ import {
   getPartnerById,
   syncPartnerCommissionStatusByOrderId,
 } from '../partners/repository.js';
+import {
+  listPartnerStockOrders,
+  updatePartnerStockOrderStatus,
+} from '../partner-stock-orders/repository.js';
 import { logger } from '../logging.js';
 import { deleteAsset, storeAssetData } from '../assets/storage.js';
 
@@ -1020,6 +1025,36 @@ export async function handleDeletePartner(env: Env, id: string): Promise<Respons
 
   await deletePartner(env.DB, id);
   return json({ success: true });
+}
+
+export async function handleListPartnerStockOrders(env: Env): Promise<Response> {
+  const orders = await listPartnerStockOrders(env.DB);
+  return json({ orders });
+}
+
+const validPartnerStockOrderStatuses: PartnerStockOrderStatus[] = ['submitted', 'fulfilled', 'cancelled'];
+
+export async function handleUpdatePartnerStockOrderStatus(
+  env: Env,
+  id: string,
+  request: Request,
+): Promise<Response> {
+  let body: { status?: string };
+  try {
+    body = await request.json() as { status?: string };
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const status = body.status?.trim();
+  if (!status || !validPartnerStockOrderStatuses.includes(status as PartnerStockOrderStatus)) {
+    return json({ error: 'Invalid status' }, 400);
+  }
+
+  const updated = await updatePartnerStockOrderStatus(env.DB, id, status as PartnerStockOrderStatus);
+  if (!updated) return json({ error: 'Stock order not found' }, 404);
+
+  return json({ success: true, status });
 }
 
 function json(data: unknown, status = 200): Response {

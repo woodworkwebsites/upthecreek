@@ -12,6 +12,7 @@ import AdminLoginPage from './pages/admin/AdminLoginPage.js';
 import AdminLayout    from './components/admin/AdminLayout.js';
 import AdminOrdersPage   from './pages/admin/AdminOrdersPage.js';
 import AdminPartnersPage from './pages/admin/AdminPartnersPage.js';
+import AdminStockOrdersPage from './pages/admin/AdminStockOrdersPage.js';
 import AdminDiscountCodesPage from './pages/admin/AdminDiscountCodesPage.js';
 import AdminProductsPage from './pages/admin/AdminProductsPage.js';
 import AdminProductCreatePage from './pages/admin/AdminProductCreatePage.js';
@@ -53,6 +54,7 @@ export default function App() {
               <Route index              element={<AdminOrdersPage />} />
               <Route path="orders"      element={<AdminOrdersPage />} />
               <Route path="partners"    element={<AdminPartnersPage />} />
+              <Route path="stock-orders" element={<AdminStockOrdersPage />} />
               <Route path="discount-codes" element={<AdminDiscountCodesPage />} />
               <Route path="products"    element={<AdminProductsPage />} />
               <Route path="products/new" element={<AdminProductCreatePage />} />

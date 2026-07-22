@@ -183,7 +183,7 @@ export default function PartnersFunnelPage() {
             href="mailto:partners@upthecreekpadel.club?subject=UTC%20Partner%20Programme"
             className="inline-flex items-center justify-center rounded-full bg-navy-900 px-7 py-3 text-sm font-bold tracking-wider text-white transition-colors hover:bg-navy-800"
           >
-            Apply to become a partner club
+            Register your interest in becoming a partner club
           </a>
         </div>
       </section>

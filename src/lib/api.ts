@@ -10,7 +10,9 @@ import type {
   PartnerDashboard,
   PartnerLoginResponse,
   PartnerStockOrder,
+  PartnerStockOrderAdminSummary,
   PartnerStockOrderInput,
+  PartnerStockOrderStatus,
   SyncLogRow,
   WebhookLogRow,
   DiscountCode,
@@ -420,6 +422,22 @@ export async function adminUpdatePartner(
 export async function adminDeletePartner(token: string, id: string): Promise<void> {
   await adminFetch(`/api/admin/partners/${id}`, token, {
     method: 'DELETE',
+  });
+}
+
+export async function adminFetchPartnerStockOrders(token: string): Promise<PartnerStockOrderAdminSummary[]> {
+  const data = await adminFetch<{ orders: PartnerStockOrderAdminSummary[] }>('/api/admin/stock-orders', token);
+  return data.orders;
+}
+
+export async function adminUpdatePartnerStockOrderStatus(
+  token: string,
+  id: string,
+  status: PartnerStockOrderStatus,
+): Promise<void> {
+  await adminFetch(`/api/admin/stock-orders/${id}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
   });
 }
 

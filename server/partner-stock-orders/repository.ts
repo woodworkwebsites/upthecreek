@@ -1,10 +1,12 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type {
   PartnerStockOrder,
+  PartnerStockOrderAdminSummary,
   PartnerStockOrderItem,
   PartnerStockOrderItemInput,
   PartnerStockOrderItemRow,
   PartnerStockOrderRow,
+  PartnerStockOrderStatus,
 } from '../../types/index.js';
 
 let partnerStockOrderSchemaReady: Promise<void> | null = null;
@@ -145,4 +147,66 @@ export async function getPartnerStockOrderWithItems(
   const order = parseStockOrder(row);
   order.items = (itemsResult.results ?? []).map(parseStockOrderItem);
   return order;
+}
+
+export async function listPartnerStockOrders(
+  db: D1Database,
+  limit = 100,
+): Promise<PartnerStockOrderAdminSummary[]> {
+  await ensurePartnerStockOrderSchema(db);
+
+  const rows = await db
+    .prepare(`
+      SELECT partner_stock_orders.*, partners.name AS partner_name, partners.slug AS partner_slug
+      FROM partner_stock_orders
+      JOIN partners ON partners.id = partner_stock_orders.partner_id
+      ORDER BY partner_stock_orders.created_at DESC
+      LIMIT ?
+    `)
+    .bind(limit)
+    .all<PartnerStockOrderRow & { partner_name: string; partner_slug: string }>();
+
+  const orderRows = rows.results ?? [];
+  if (orderRows.length === 0) return [];
+
+  const orderIds = orderRows.map((row) => row.id);
+  const placeholders = orderIds.map(() => '?').join(', ');
+  const itemsResult = await db
+    .prepare(`SELECT * FROM partner_stock_order_items WHERE stock_order_id IN (${placeholders})`)
+    .bind(...orderIds)
+    .all<PartnerStockOrderItemRow>();
+
+  const itemsByOrderId = new Map<string, PartnerStockOrderItem[]>();
+  for (const itemRow of itemsResult.results ?? []) {
+    const item = parseStockOrderItem(itemRow);
+    const list = itemsByOrderId.get(item.stockOrderId) ?? [];
+    list.push(item);
+    itemsByOrderId.set(item.stockOrderId, list);
+  }
+
+  return orderRows.map((row) => ({
+    ...parseStockOrder(row),
+    items: itemsByOrderId.get(row.id) ?? [],
+    partnerName: row.partner_name,
+    partnerSlug: row.partner_slug,
+  }));
+}
+
+export async function updatePartnerStockOrderStatus(
+  db: D1Database,
+  id: string,
+  status: PartnerStockOrderStatus,
+): Promise<boolean> {
+  await ensurePartnerStockOrderSchema(db);
+
+  const result = await db
+    .prepare(`
+      UPDATE partner_stock_orders
+      SET status = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `)
+    .bind(status, id)
+    .run();
+
+  return result.success && (result.meta?.changes ?? 0) > 0;
 }

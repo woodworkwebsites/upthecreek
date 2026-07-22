@@ -131,9 +131,6 @@ export default function PartnersDashboardPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <span className="inline-flex items-center justify-center rounded-full border border-gray-200 bg-gray-50 px-5 py-3 text-sm font-bold uppercase tracking-widest text-gray-600">
-                Internal console
-              </span>
             </div>
           </div>
 
@@ -148,7 +145,7 @@ export default function PartnersDashboardPage() {
 
         <section className="mt-8 grid gap-8">
           <article className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-[0_20px_70px_rgba(5,13,31,0.07)] sm:p-8">
-            <p className="label">Club orders</p>
+            <p className="label">Your Orders</p>
             <h2 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Tracked automatically</h2>
             <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200">
               {recentOrders.length > 0 ? (
@@ -179,7 +176,7 @@ export default function PartnersDashboardPage() {
                 </div>
               ) : (
                 <div className="p-6 text-sm leading-7 text-gray-500">
-                  No attributed orders yet. Once orders are placed through the club code, they will appear here.
+                  Once orders are placed through the club code, they will appear here.
                 </div>
               )}
             </div>
@@ -188,7 +185,7 @@ export default function PartnersDashboardPage() {
           <article className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-[0_20px_70px_rgba(5,13,31,0.07)] sm:p-8">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="label">Club range</p>
+                <p className="label">UTC Range</p>
                 <h2 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Partner Ordering</h2>              </div>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="info">{products.length} products</Badge>

@@ -349,6 +349,11 @@ export interface PartnerStockOrder {
   items: PartnerStockOrderItem[];
 }
 
+export interface PartnerStockOrderAdminSummary extends PartnerStockOrder {
+  partnerName: string;
+  partnerSlug: string;
+}
+
 export interface PartnerStockOrderItemInput {
   printifyId: string;
   variantId: number | null;
