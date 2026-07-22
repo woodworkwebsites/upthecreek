@@ -143,26 +143,17 @@ export default function PartnersFunnelPage() {
         </div>
 
         <div className="mt-10 rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
-          <p className="label">Collaboration drop</p>
-          <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">One-off club x UTC collection</h3>
+          <p className="label">Collaboration opportunity</p>
+          <img
+            src="/Platform26.png"
+            alt="One-off club x UTC collaboration t-shirt design"
+            className="mx-auto mt-4 h-48 w-48 rounded-2xl bg-gray-50 object-contain p-2 sm:h-56 sm:w-56"
+          />
+          <h3 className="mt-4 text-2xl font-black tracking-tight text-navy-900">One-off club x UTC collection</h3>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
-            Partner with Up The Creek and we can produce a limited edition design that combines the club
-            identity with UTC branding.
+            Partner with Up The Creek and we can produce limited edition designs that combine your club
+            identity with UTC flair.
           </p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">Use case</p>
-              <p className="mt-2 text-sm font-semibold text-navy-900">Launch event or seasonal drop</p>
-            </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">Scope</p>
-              <p className="mt-2 text-sm font-semibold text-navy-900">One design, club specific</p>
-            </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">Run</p>
-              <p className="mt-2 text-sm font-semibold text-navy-900">Limited and time boxed</p>
-            </div>
-          </div>
         </div>
 
         <div className="mt-10 rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
@@ -186,9 +177,7 @@ export default function PartnersFunnelPage() {
             <h3 className="mt-3 text-3xl font-black tracking-tight text-navy-900">
               Ready to set up a partner account?
             </h3>
-            <p className="mt-3 text-sm leading-7 text-gray-600">
-              Send the club name and contact details and we’ll set up the partner record, pricing, access and stock ordering.
-            </p>
+
           </div>
           <a
             href="mailto:partners@upthecreekpadel.club?subject=UTC%20Partner%20Programme"
