@@ -5,10 +5,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Order } from '../../../types/index.js';
 
 const navItems = [
+  { path: '/admin/products', label: 'Products' },
   { path: '/admin/orders',   label: 'Orders'   },
   { path: '/admin/partners', label: 'Partners' },
   { path: '/admin/discount-codes', label: 'Discount Codes' },
-  { path: '/admin/products', label: 'Products' },
   { path: '/admin/catalog',  label: 'Catalog'  },
   { path: '/admin/logs',     label: 'Logs'     },
   { path: '/admin/settings', label: 'Settings' },
