@@ -250,16 +250,6 @@ export default function AdminCatalogPage() {
       </div>
 
       <PricingMatrixTable
-        title="In-store pricing (partners)"
-        hint="What clubs pay per garment for stock they sell in the clubhouse. Partner margin is Sale price (RRP) minus partner price — what you're giving up versus a retail sale. Net profit is partner price minus manufacturing cost and delivery — what you actually keep."
-        pricingRows={pricingRows}
-        onAddRow={() => addPricingRow()}
-        onUpdateRow={updatePricingRow}
-        onRemoveRow={removePricingRow}
-        channel="partner"
-      />
-
-      <PricingMatrixTable
         title="Online pricing (retail)"
         hint="What customers pay on the storefront. Margin is Sale price minus manufacturing cost and delivery."
         pricingRows={pricingRows}
@@ -267,6 +257,16 @@ export default function AdminCatalogPage() {
         onUpdateRow={updatePricingRow}
         onRemoveRow={removePricingRow}
         channel="retail"
+      />
+
+      <PricingMatrixTable
+        title="In-store pricing (partners)"
+        hint="What clubs pay per garment for stock they sell in the clubhouse. Partner margin is Sale price (RRP) minus partner price — what you're giving up versus a retail sale. Net profit is partner price minus manufacturing cost and delivery — what you actually keep."
+        pricingRows={pricingRows}
+        onAddRow={() => addPricingRow()}
+        onUpdateRow={updatePricingRow}
+        onRemoveRow={removePricingRow}
+        channel="partner"
       />
     </div>
   );
