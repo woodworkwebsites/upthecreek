@@ -96,15 +96,6 @@ export default function PartnersFunnelPage() {
           </div>
 
           <div className="mx-auto mt-12 max-w-6xl rounded-[2rem] border border-white/10 bg-navy-950/50 p-5 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-6">
-            <div className="flex flex-wrap items-end justify-between gap-4 px-1 pb-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.28em] text-white/50">Featured products</p>
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
-                  Selected Products
-                </h2>
-              </div>
-            </div>
-
             <div className="rounded-[1.5rem] border border-gray-200 bg-[linear-gradient(180deg,_#f7f3eb_0%,_#efe7db_100%)] p-4 sm:p-6">
               {loading ? (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
