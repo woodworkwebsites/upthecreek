@@ -272,7 +272,9 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
   const [query, setQuery] = useState('');
   const [dropActive, setDropActive] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const [activeDraft, setActiveDraft] = useState<BasketLineItem | null>(null);
+  const [draftLines, setDraftLines] = useState<BasketLineItem[]>([]);
+  const [draftColor, setDraftColor] = useState<string | null>(null);
+  const activeDraft = draftLines.find((line) => line.color === draftColor) ?? null;
 
   useEffect(() => {
     setBasket(readBasket());
@@ -305,52 +307,60 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
   const value = useMemo(() => basketTotal(basket), [basket]);
 
   function openDraft(product: Product, color: string) {
-    setActiveDraft(buildLine(product, color));
+    setDraftLines([buildLine(product, color)]);
+    setDraftColor(color);
   }
 
   function switchDraftColor(color: string) {
-    setActiveDraft((current) => {
-      if (!current) return current;
-      const product = products.find((entry) => entry.id === current.productId);
+    setDraftLines((current) => {
+      if (current.some((line) => line.color === color)) return current;
+      const sourceProductId = current[0]?.productId;
+      const product = products.find((entry) => entry.id === sourceProductId);
       if (!product) return current;
-      return buildLine(product, color);
+      return [...current, buildLine(product, color)];
     });
+    setDraftColor(color);
   }
 
   function closeDraft() {
-    setActiveDraft(null);
+    setDraftLines([]);
+    setDraftColor(null);
   }
 
   function commitDraft() {
-    if (!activeDraft) return;
-    if (lineCount(activeDraft) === 0) return;
+    const linesToCommit = draftLines.filter((line) => lineCount(line) > 0);
+    if (linesToCommit.length === 0) return;
     setBasket((current) => {
-      const existingIndex = current.findIndex((item) => item.id === activeDraft.id);
-      if (existingIndex >= 0) {
-        return current.map((item) => (item.id === activeDraft.id ? mergeLine(item, activeDraft) : item));
+      let next = current;
+      for (const draftLine of linesToCommit) {
+        const existingIndex = next.findIndex((item) => item.id === draftLine.id);
+        next = existingIndex >= 0
+          ? next.map((item) => (item.id === draftLine.id ? mergeLine(item, draftLine) : item))
+          : [...next, draftLine];
       }
-      return [...current, activeDraft];
+      return next;
     });
-    setActiveDraft(null);
+    closeDraft();
   }
 
   function updateDraftQuantity(size: string, quantity: number) {
     const next = Number.isFinite(quantity) ? Math.max(0, Math.round(quantity)) : 0;
-    setActiveDraft((current) =>
-      current
-        ? {
-            ...current,
-            sizes: current.sizes.map((entry) => (entry.size === size ? { ...entry, quantity: next } : entry)),
-          }
-        : current,
+    setDraftLines((current) =>
+      current.map((line) =>
+        line.color === draftColor
+          ? { ...line, sizes: line.sizes.map((entry) => (entry.size === size ? { ...entry, quantity: next } : entry)) }
+          : line,
+      ),
     );
   }
 
   function clearDraft() {
-    setActiveDraft((current) =>
-      current
-        ? { ...current, sizes: current.sizes.map((entry) => ({ ...entry, quantity: 0 })) }
-        : current,
+    setDraftLines((current) =>
+      current.map((line) =>
+        line.color === draftColor
+          ? { ...line, sizes: line.sizes.map((entry) => ({ ...entry, quantity: 0 })) }
+          : line,
+      ),
     );
   }
 
@@ -586,6 +596,8 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
       {activeDraft && (() => {
         const draftProduct = products.find((entry) => entry.id === activeDraft.productId);
         const draftColors = draftProduct ? visibleColors(draftProduct) : [];
+        const draftTotalPieces = draftLines.reduce((sum, line) => sum + lineCount(line), 0);
+        const draftTotalValue = draftLines.reduce((sum, line) => sum + lineTotal(line), 0);
         return (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/70 p-4 backdrop-blur-sm"
@@ -620,7 +632,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Select sizes</p>
                     <p className="mt-2 text-sm leading-7 text-gray-500">
-                      Set the quantities for this colour, then add it to the basket.
+                      Set quantities for this colour. Switch colours above to add more, then add everything to the basket at once.
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Badge variant="success">Partner {formatPrice(activeDraft.sizes[0]?.unitPrice ?? 0)}</Badge>
@@ -628,27 +640,41 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                     </div>
                     {draftColors.length > 1 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
-                        {draftColors.map((color) => (
-                          <button
-                            key={color.name}
-                            type="button"
-                            onClick={() => switchDraftColor(color.name)}
-                            aria-pressed={color.name === activeDraft.color}
-                            className={cn(
-                              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
-                              color.name === activeDraft.color
-                                ? 'border-navy-800 bg-navy-800 text-white'
-                                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
-                            )}
-                          >
-                            <span
-                              className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-black/10"
-                              style={{ backgroundColor: color.hex }}
-                              aria-hidden
-                            />
-                            {color.name}
-                          </button>
-                        ))}
+                        {draftColors.map((color) => {
+                          const queuedLine = draftLines.find((line) => line.color === color.name);
+                          const queuedPieces = queuedLine ? lineCount(queuedLine) : 0;
+                          return (
+                            <button
+                              key={color.name}
+                              type="button"
+                              onClick={() => switchDraftColor(color.name)}
+                              aria-pressed={color.name === activeDraft.color}
+                              className={cn(
+                                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+                                color.name === activeDraft.color
+                                  ? 'border-navy-800 bg-navy-800 text-white'
+                                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
+                              )}
+                            >
+                              <span
+                                className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-black/10"
+                                style={{ backgroundColor: color.hex }}
+                                aria-hidden
+                              />
+                              {color.name}
+                              {queuedPieces > 0 && (
+                                <span
+                                  className={cn(
+                                    'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
+                                    color.name === activeDraft.color ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700',
+                                  )}
+                                >
+                                  {queuedPieces}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -713,8 +739,11 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                 <div className="border-t border-gray-100 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="info">{lineCount(activeDraft)} pcs</Badge>
-                      <Badge variant="success">{formatPrice(lineTotal(activeDraft))}</Badge>
+                      <Badge variant="info">{lineCount(activeDraft)} pcs this colour</Badge>
+                      {draftLines.length > 1 && (
+                        <Badge variant="default">{draftTotalPieces} pcs total</Badge>
+                      )}
+                      <Badge variant="success">{formatPrice(draftTotalValue)}</Badge>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -727,7 +756,7 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                       <button
                         type="button"
                         onClick={commitDraft}
-                        disabled={lineCount(activeDraft) === 0}
+                        disabled={draftTotalPieces === 0}
                         className="rounded-full bg-navy-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         Add to basket
