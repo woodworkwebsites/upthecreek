@@ -21,6 +21,7 @@ type BasketLineItem = {
   color: string;
   colorHex: string;
   imageSrc: string;
+  rrp: number;
   sizes: BasketSizeEntry[];
 };
 
@@ -73,6 +74,10 @@ function getPartnerUnitPrice(product: Product, fallback: number): number {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) : fallback;
 }
 
+function getRrp(product: Product): number {
+  return product.minPrice > 0 ? product.minPrice : product.maxPrice > 0 ? product.maxPrice : 0;
+}
+
 function buildSizeEntries(product: Product, color: string): BasketSizeEntry[] {
   const sizes = getProductSizes(product);
   const variants = getColorVariants(product, color);
@@ -120,6 +125,7 @@ function buildLine(product: Product, color: string): BasketLineItem {
     color: colorMeta.name,
     colorHex: colorMeta.hex,
     imageSrc: getImageForColor(product, colorMeta.name),
+    rrp: getRrp(product),
     sizes: buildSizeEntries(product, colorMeta.name),
   };
 }
@@ -167,7 +173,8 @@ function readBasket(): BasketLineItem[] {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as BasketLineItem[];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item) => ({ ...item, rrp: Number.isFinite(item.rrp) ? item.rrp : 0 }));
   } catch {
     return [];
   }
@@ -576,6 +583,10 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                     <p className="mt-2 text-sm leading-7 text-gray-500">
                       Set the quantities for this colour, then add it to the basket.
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge variant="success">Partner {formatPrice(activeDraft.sizes[0]?.unitPrice ?? 0)}</Badge>
+                      <Badge variant="default">RRP {formatPrice(activeDraft.rrp)}</Badge>
+                    </div>
                   </div>
                   <button
                     type="button"
