@@ -481,16 +481,9 @@ export function PartnerOrderWorkspace({ products }: { products: Product[] }) {
                           <div className="min-w-0">
                             <p className="truncate text-xs font-black tracking-tight text-navy-900">{item.title}</p>
                             <p className="mt-0.5 truncate text-[10px] text-gray-500">{item.garment}</p>
-                            <div className="mt-1 flex items-center gap-1.5">
-                              <span
-                                className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-black/10"
-                                style={{ backgroundColor: item.colorHex }}
-                                aria-hidden
-                              />
-                              <span className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
-                                {item.color}
-                              </span>
-                            </div>
+                            <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                              {item.color}
+                            </p>
                           </div>
                         </div>
                       </td>
