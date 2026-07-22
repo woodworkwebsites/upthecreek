@@ -98,8 +98,10 @@ function buildSizeEntries(product: Product, color: string): BasketSizeEntry[] {
 }
 
 function getImageForColor(product: Product, color: string): string {
-  const colorImage = product.images.find((image) => normalizeName(image.color ?? '') === normalizeName(color));
-  if (colorImage) return colorImage.src;
+  const colorImages = product.images.filter((image) => normalizeName(image.color ?? '') === normalizeName(color));
+  // The default image is consistently a lifestyle/model shot; other tagged images are flat product shots.
+  const flatImage = colorImages.find((image) => !image.isDefault) ?? colorImages[0];
+  if (flatImage) return flatImage.src;
 
   const activeVariantIds = product.variants
     .filter((variant) => normalizeName(variant.color) === normalizeName(color))
