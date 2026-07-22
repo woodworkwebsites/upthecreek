@@ -132,7 +132,7 @@ export default function PartnersFunnelPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="mx-auto max-w-2xl">
           <article className="rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
             <p className="label">How it works</p>
             <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Set up, sell, track</h3>
@@ -145,16 +145,6 @@ export default function PartnersFunnelPage() {
                   <p className="pt-1 text-sm leading-7 text-gray-700">{item}</p>
                 </div>
               ))}
-            </div>
-          </article>
-
-          <article className="rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
-            <p className="label">Partner access</p>
-            <h3 className="mt-3 text-2xl font-black tracking-tight text-navy-900">What the portal shows</h3>
-            <div className="mt-6 space-y-4 text-sm leading-7 text-gray-700">
-              <p>Orders are attributed to the club code automatically.</p>
-              <p>Commission due, paid and pending are shown separately.</p>
-              <p>The same portal is used for stock orders.</p>
             </div>
           </article>
         </div>
