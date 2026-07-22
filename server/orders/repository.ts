@@ -192,7 +192,7 @@ export async function createOrder(
          shipping_name, shipping_phone, shipping_address1, shipping_address2,
          shipping_city, shipping_region, shipping_zip, shipping_country,
          created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `)
     .bind(
       data.id,
