@@ -441,6 +441,12 @@ export async function adminUpdatePartnerStockOrderStatus(
   });
 }
 
+export async function adminDeletePartnerStockOrder(token: string, id: string): Promise<void> {
+  await adminFetch(`/api/admin/stock-orders/${id}`, token, {
+    method: 'DELETE',
+  });
+}
+
 // ─── Partner API ─────────────────────────────────────────────────────────────
 
 function partnerFetch<T>(path: string, token: string, options?: RequestInit): Promise<T> {

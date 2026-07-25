@@ -322,7 +322,7 @@ export interface PartnerLoginResponse {
   partner: Partner;
 }
 
-export type PartnerStockOrderStatus = 'submitted' | 'fulfilled' | 'cancelled';
+export type PartnerStockOrderStatus = 'submitted' | 'fulfilled' | 'cancelled' | 'archived';
 
 export interface PartnerStockOrderItem {
   id: string;

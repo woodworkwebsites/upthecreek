@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { PartnerStockOrderAdminSummary, PartnerStockOrderStatus } from '../../../types/index.js';
-import { adminFetchPartnerStockOrders, adminUpdatePartnerStockOrderStatus } from '../../lib/api.js';
+import { adminDeletePartnerStockOrder, adminFetchPartnerStockOrders, adminUpdatePartnerStockOrderStatus } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Badge } from '../../components/ui/Badge.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -11,23 +11,28 @@ const statusVariant: Record<PartnerStockOrderStatus, 'default' | 'success' | 'wa
   submitted: 'warning',
   fulfilled: 'success',
   cancelled: 'error',
+  archived: 'default',
 };
 
-const stockOrderStatuses: PartnerStockOrderStatus[] = ['submitted', 'fulfilled', 'cancelled'];
+const stockOrderStatuses: PartnerStockOrderStatus[] = ['submitted', 'fulfilled', 'cancelled', 'archived'];
 
 function StockOrderRow({
   order,
   token,
   onUpdated,
+  onDeleted,
 }: {
   order: PartnerStockOrderAdminSummary;
   token: string;
   onUpdated: (order: PartnerStockOrderAdminSummary) => void;
+  onDeleted: (orderId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [status, setStatus] = useState<PartnerStockOrderStatus>(order.status);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     setStatus(order.status);
@@ -43,6 +48,34 @@ function StockOrderRow({
       setError(err instanceof Error ? err.message : 'Failed to update status');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleArchiveOrder() {
+    setSaving(true);
+    setError(null);
+    try {
+      await adminUpdatePartnerStockOrderStatus(token, order.id, 'archived');
+      onUpdated({ ...order, status: 'archived' });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to archive stock order');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteOrder() {
+    if (!window.confirm(`Delete stock order for ${order.partnerName}?`)) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await adminDeletePartnerStockOrder(token, order.id);
+      onDeleted(order.id);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete stock order');
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -84,7 +117,27 @@ function StockOrderRow({
             >
               {saving ? 'Saving…' : 'Move status'}
             </button>
+            {order.status !== 'archived' && (
+              <button
+                type="button"
+                onClick={handleArchiveOrder}
+                disabled={saving}
+                className="h-8 rounded-lg border border-amber-200 px-3 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50 transition-colors dark:border-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-950/30"
+              >
+                Archive
+              </button>
+            )}
             {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+            <button
+              type="button"
+              onClick={handleDeleteOrder}
+              disabled={deleting || order.status !== 'archived'}
+              title={order.status !== 'archived' ? 'Archive the stock order before deleting it' : undefined}
+              className="h-8 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50 transition-colors dark:border-red-900/40 dark:text-red-300 dark:hover:bg-red-950/30"
+            >
+              {deleting ? 'Deleting…' : 'Delete archived'}
+            </button>
+            {deleteError && <span className="text-xs text-red-600 dark:text-red-400">{deleteError}</span>}
           </div>
         </td>
         <td className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 align-middle">
@@ -189,6 +242,7 @@ export default function AdminStockOrdersPage() {
                     order={order}
                     token={token!}
                     onUpdated={handleUpdated}
+                    onDeleted={(orderId) => setOrders((current) => current.filter((item) => item.id !== orderId))}
                   />
                 ))}
               </tbody>

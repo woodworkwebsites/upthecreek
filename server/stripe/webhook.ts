@@ -19,6 +19,16 @@ import {
   getPartnerByDiscountCode,
   syncPartnerCommissionStatusByOrderId,
 } from '../partners/repository.js';
+import { getSetting } from '../settings/repository.js';
+
+function isLocalDevHost(request: Request): boolean {
+  const host = new URL(request.url).host.toLowerCase();
+  return (
+    host.includes('localhost') ||
+    host.startsWith('127.0.0.1') ||
+    host.startsWith('[::1]')
+  );
+}
 
 export async function handleStripeWebhook(
   request: Request,
@@ -32,7 +42,8 @@ export async function handleStripeWebhook(
 
   const rawBody = await request.text();
 
-  const { secretKey, webhookSecret } = getStripeKeys(request, env);
+  const stripeTestMode = isLocalDevHost(request) || (await getSetting(env.DB, 'stripe_test_mode')) === 'true';
+  const { secretKey, webhookSecret } = getStripeKeys(request, env, stripeTestMode);
   const stripe = createStripeClient(secretKey);
 
   let event: Stripe.Event;

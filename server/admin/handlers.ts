@@ -49,6 +49,8 @@ import {
 } from '../partners/repository.js';
 import {
   listPartnerStockOrders,
+  deletePartnerStockOrder,
+  getPartnerStockOrderWithItems,
   updatePartnerStockOrderStatus,
 } from '../partner-stock-orders/repository.js';
 import { logger } from '../logging.js';
@@ -1032,7 +1034,19 @@ export async function handleListPartnerStockOrders(env: Env): Promise<Response> 
   return json({ orders });
 }
 
-const validPartnerStockOrderStatuses: PartnerStockOrderStatus[] = ['submitted', 'fulfilled', 'cancelled'];
+export async function handleDeletePartnerStockOrder(env: Env, id: string): Promise<Response> {
+  const existing = await getPartnerStockOrderWithItems(env.DB, id);
+  if (!existing) return json({ error: 'Stock order not found' }, 404);
+  if (existing.status !== 'archived') {
+    return json({ error: 'Archive the stock order before deleting it' }, 400);
+  }
+
+  const deleted = await deletePartnerStockOrder(env.DB, id);
+  if (!deleted) return json({ error: 'Stock order not found' }, 404);
+  return json({ success: true });
+}
+
+const validPartnerStockOrderStatuses: PartnerStockOrderStatus[] = ['submitted', 'fulfilled', 'cancelled', 'archived'];
 
 export async function handleUpdatePartnerStockOrderStatus(
   env: Env,

@@ -210,3 +210,17 @@ export async function updatePartnerStockOrderStatus(
 
   return result.success && (result.meta?.changes ?? 0) > 0;
 }
+
+export async function deletePartnerStockOrder(
+  db: D1Database,
+  id: string,
+): Promise<boolean> {
+  await ensurePartnerStockOrderSchema(db);
+
+  const result = await db.batch([
+    db.prepare('DELETE FROM partner_stock_order_items WHERE stock_order_id = ?').bind(id),
+    db.prepare('DELETE FROM partner_stock_orders WHERE id = ?').bind(id),
+  ]);
+
+  return result[1]?.meta?.changes ? result[1].meta.changes > 0 : false;
+}
