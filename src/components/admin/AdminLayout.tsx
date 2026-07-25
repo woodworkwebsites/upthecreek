@@ -23,6 +23,7 @@ export default function AdminLayout() {
   const location = useLocation();
   const [unseenCount, setUnseenCount] = useState(0);
   const [latestOrders, setLatestOrders] = useState<Order[]>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const seenAtRef = useRef<number>(Number(window.localStorage.getItem(LAST_SEEN_KEY) ?? '0') || 0);
 
   const isOrdersPage = location.pathname === '/admin/orders';
@@ -86,12 +87,16 @@ export default function AdminLayout() {
     }
   }, [isOrdersPage, refreshOrderAlert, token]);
 
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
   if (!token) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {unseenCount > 0 && !isOrdersPage && (
-        <div className="fixed right-4 top-4 z-50 w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-red-200 bg-white px-4 py-3 shadow-2xl shadow-gray-900/10 ring-1 ring-black/5 dark:border-red-900/40 dark:bg-gray-900">
+        <div className="fixed left-4 right-4 top-4 z-50 mx-auto w-auto max-w-md rounded-2xl border border-red-200 bg-white px-4 py-3 shadow-2xl shadow-gray-900/10 ring-1 ring-black/5 dark:border-red-900/40 dark:bg-gray-900 md:left-auto md:right-4 md:w-[min(24rem,calc(100vw-2rem))]">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -112,18 +117,34 @@ export default function AdminLayout() {
       )}
       <header className="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-14 items-center justify-between">
-            <div className="flex items-center gap-6">
-              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
+          <div className="flex flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between md:h-14 md:gap-6 md:py-0">
+            <div className="flex items-center justify-between gap-3 md:justify-start md:gap-6">
+              <span className="text-sm font-semibold tracking-tight text-gray-900 dark:text-gray-100">
                 UTC Admin
               </span>
-              <nav className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen((current) => !current)}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 md:hidden"
+                aria-expanded={mobileMenuOpen}
+                aria-controls="admin-navigation"
+              >
+                Menu
+              </button>
+            </div>
+
+            <nav
+              id="admin-navigation"
+              className={`${
+                mobileMenuOpen ? 'flex' : 'hidden'
+              } flex-col gap-1 overflow-x-auto pb-1 md:flex md:flex-row md:flex-wrap md:gap-1 md:pb-0`}
+            >
                 {navItems.map(({ path, label }) => (
                   <NavLink
                     key={path}
                     to={path}
                     className={({ isActive }) =>
-                      `rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                      `rounded-lg px-3 py-2 text-sm font-medium transition-colors md:py-1.5 ${
                         isActive
                           ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100'
                           : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
@@ -140,18 +161,18 @@ export default function AdminLayout() {
                     </span>
                   </NavLink>
                 ))}
-              </nav>
-            </div>
-            <div className="flex items-center gap-3">
+            </nav>
+
+            <div className="flex items-center gap-3 md:shrink-0">
               <NavLink
                 to="/"
-                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 ← Store
               </NavLink>
               <button
                 onClick={clearToken}
-                className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+                className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
               >
                 Sign out
               </button>
@@ -160,7 +181,7 @@ export default function AdminLayout() {
         </div>
       </header>
 
-      <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
+      <main className="w-full px-3 py-6 sm:px-6 lg:px-8">
         <Outlet />
       </main>
     </div>

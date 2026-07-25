@@ -218,15 +218,17 @@ function ProductMatrixCard({
 
         <div className="mt-2.5 space-y-1.5">
           <div className="flex flex-wrap items-center gap-1.5">
+            <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className={rowLabelClass}>In-store</span>
             <span className={priceChipClass}>{formatPrice(partnerPrice)} partner</span>
-            <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
             <span className={marginChipClass}>{formatPrice(margin)} margin</span>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className={rowLabelClass}>Referral</span>
-            <span className={commissionChipClass}>{formatPrice(commission)} commission</span>
-            <span className={rrpChipClass}>{formatPrice(purchaserPrice)} price</span>
+            <span className={rowLabelClass}>Referral after discount</span>
+            <span className={commissionChipClass}>{formatPrice(commission)} referral</span>
+            <span className={rrpChipClass}>{formatPrice(purchaserPrice)} after discount</span>
           </div>
         </div>
         <p className="mt-2 text-xs text-gray-400">
@@ -695,17 +697,20 @@ export function PartnerOrderWorkspace({
                     </p>
                     <div className="mt-3 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={rowLabelClass}>RRP</span>
+                        <span className={rrpChipClass}>{formatPrice(activeDraft.rrp)} RRP</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <span className={rowLabelClass}>In-store</span>
                         <span className={priceChipClass}>{formatPrice(activeDraft.sizes[0]?.unitPrice ?? 0)} partner</span>
-                        <span className={rrpChipClass}>{formatPrice(activeDraft.rrp)} RRP</span>
                         <span className={marginChipClass}>
                           {formatPrice(activeDraft.rrp - (activeDraft.sizes[0]?.unitPrice ?? 0))} margin
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={rowLabelClass}>Referral</span>
-                        <span className={commissionChipClass}>{formatPrice(draftReferral.commission)} commission</span>
-                        <span className={rrpChipClass}>{formatPrice(draftReferral.purchaserPrice)} price</span>
+                        <span className={rowLabelClass}>Referral after discount</span>
+                        <span className={commissionChipClass}>{formatPrice(draftReferral.commission)} referral</span>
+                        <span className={rrpChipClass}>{formatPrice(draftReferral.purchaserPrice)} after discount</span>
                       </div>
                     </div>
                     {draftColors.length > 1 && (

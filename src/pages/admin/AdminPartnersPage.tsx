@@ -165,7 +165,7 @@ export default function AdminPartnersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Partners</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -187,7 +187,7 @@ export default function AdminPartnersPage() {
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+        <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {editingId ? 'Edit partner' : 'New partner'}
@@ -217,7 +217,7 @@ export default function AdminPartnersPage() {
             />
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block space-y-1">
               <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Discount code</span>
               <input
@@ -273,12 +273,12 @@ export default function AdminPartnersPage() {
 
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button
               type="button"
               onClick={() => void handleSubmit()}
               disabled={saving}
-              className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
+              className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
             >
               {saving ? 'Saving…' : editingId ? 'Update partner' : 'Create partner'}
             </button>
@@ -298,7 +298,8 @@ export default function AdminPartnersPage() {
               <p className="text-sm text-gray-500 dark:text-gray-400">No partners yet.</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+            <div className="overflow-x-auto">
+            <table className="min-w-[820px] divide-y divide-gray-100 dark:divide-gray-800">
               <thead className="bg-gray-50 dark:bg-gray-950">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Partner</th>
@@ -346,6 +347,7 @@ export default function AdminPartnersPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

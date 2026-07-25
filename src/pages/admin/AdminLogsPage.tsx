@@ -74,7 +74,7 @@ export default function AdminLogsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Logs</h1>
         <div className="flex items-center gap-3">
           <button
@@ -92,7 +92,7 @@ export default function AdminLogsPage() {
         </div>
       </div>
 
-      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex gap-1 overflow-x-auto border-b border-gray-200 dark:border-gray-800">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -184,7 +184,7 @@ function LogTable<T>({
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+        <table className="min-w-[760px] divide-y divide-gray-100 dark:divide-gray-800">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-900/50">
               {headers.map((h) => (

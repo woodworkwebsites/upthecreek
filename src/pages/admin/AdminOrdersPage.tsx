@@ -474,7 +474,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="fixed right-4 top-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3 pointer-events-none">
+      <div className="fixed left-4 right-4 top-4 z-50 mx-auto flex w-auto max-w-md flex-col gap-3 pointer-events-none md:left-auto md:right-4 md:w-[min(24rem,calc(100vw-2rem))]">
         {toasts.map((toast) => (
           <div
             key={toast.id}
@@ -498,7 +498,7 @@ export default function AdminOrdersPage() {
         ))}
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Orders</h1>
         <button
           onClick={load}

@@ -52,7 +52,7 @@ export default function AdminSettingsPage() {
     <div className="space-y-8 max-w-lg">
       <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Settings</h1>
 
-      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4">
+      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-6 space-y-4">
         <div>
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Fulfillment</p>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -61,7 +61,7 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4">
+      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-6 space-y-4">
 
         <div>
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Order Fulfilment Mode</p>
@@ -70,7 +70,7 @@ export default function AdminSettingsPage() {
           </p>
         </div>
 
-        <div className="flex items-center justify-between rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 px-4 py-3">
+        <div className="flex flex-col gap-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Live Orders</p>
             <p className={`text-xs font-semibold mt-0.5 ${liveOrders ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
@@ -101,7 +101,7 @@ export default function AdminSettingsPage() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4">
+      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-6 space-y-4">
 
         <div>
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Stripe Mode</p>
@@ -110,7 +110,7 @@ export default function AdminSettingsPage() {
           </p>
         </div>
 
-        <div className="flex items-center justify-between rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 px-4 py-3">
+        <div className="flex flex-col gap-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Stripe Test Mode</p>
             <p className={`text-xs font-semibold mt-0.5 ${stripeTestMode ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>

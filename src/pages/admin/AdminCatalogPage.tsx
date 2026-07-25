@@ -158,14 +158,14 @@ export default function AdminCatalogPage() {
 
   return (
     <div className="space-y-6 max-w-7xl">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Catalog options</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             These lists feed the product admin dropdowns.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <button
             type="button"
             onClick={() => {
@@ -222,8 +222,8 @@ export default function AdminCatalogPage() {
         />
       </div>
 
-      <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-        <div className="flex items-center justify-between gap-3">
+      <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Colours</p>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Name plus hex swatch for the admin table.</p>

@@ -154,7 +154,7 @@ export default function AdminDiscountCodesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Discount Codes</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -170,7 +170,7 @@ export default function AdminDiscountCodesPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <div className="rounded-2xl border border-gray-100 bg-white p-6 dark:border-gray-800 dark:bg-gray-900 space-y-4">
+        <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {editingId ? 'Edit code' : 'New code'}
@@ -190,7 +190,7 @@ export default function AdminDiscountCodesPage() {
             />
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block space-y-1">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</span>
               <select
@@ -263,7 +263,7 @@ export default function AdminDiscountCodesPage() {
             Active
           </label>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
               onClick={handleSubmit}
@@ -294,7 +294,7 @@ export default function AdminDiscountCodesPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+              <table className="min-w-[980px] divide-y divide-gray-100 dark:divide-gray-800">
                 <thead>
                   <tr className="bg-gray-50 dark:bg-gray-950/50">
                     {['Code', 'Type', 'Value', 'Usage', 'Expiry', 'Status', 'Notes', 'Actions'].map((h) => (
