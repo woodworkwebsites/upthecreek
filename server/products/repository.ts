@@ -328,7 +328,7 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     title:          row.title,
     description:    row.description,
     category:       categoryMetadata.baseCategory || row.category || '',
-    rangeId:        row.range_id ?? null,
+    rangeId:        row.range_id?.trim() || 'evergreen',
     audience:       row.audience || categoryMetadata.audience || '',
     productType:    row.product_type || categoryMetadata.productType || '',
     garment:        row.garment || categoryMetadata.garment || '',
@@ -385,8 +385,8 @@ async function filterProductsByChannel(
   channel: 'storefront' | 'partner',
 ): Promise<Product[]> {
   const activeRangeIds = new Set(await listEnabledRangeIds(db, channel));
-  if (activeRangeIds.size === 0) return [];
-  return products.filter((product) => product.rangeId ? activeRangeIds.has(product.rangeId) : false);
+  if (activeRangeIds.size === 0) return products;
+  return products.filter((product) => !product.rangeId || activeRangeIds.has(product.rangeId));
 }
 
 export async function getAllProducts(

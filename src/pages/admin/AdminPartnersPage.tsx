@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PartnerAdmin, PartnerCollaborationDesign } from '../../../types/index.js';
 import {
   adminCreatePartner,
@@ -106,6 +106,7 @@ export default function AdminPartnersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [saved, setSaved] = useState<string | null>(null);
+  const collaborationSectionRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -124,6 +125,11 @@ export default function AdminPartnersPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!editingId) return;
+    collaborationSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [editingId]);
 
   function startCreate() {
     setEditingId(null);
@@ -285,7 +291,8 @@ export default function AdminPartnersPage() {
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
+        <div className="space-y-4">
+          <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {editingId ? 'Edit partner' : 'New partner'}
@@ -360,7 +367,37 @@ export default function AdminPartnersPage() {
             />
           </label>
 
-          <div className="space-y-4 rounded-2xl border border-dashed border-gray-200 p-4 dark:border-gray-700">
+          <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={draft.active}
+              onChange={(e) => setDraft((current) => ({ ...current, active: e.target.checked }))}
+            />
+            Active partner
+          </label>
+
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <button
+              type="button"
+              onClick={() => void handleSubmit()}
+              disabled={saving}
+              className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : editingId ? 'Update partner' : 'Create partner'}
+            </button>
+            <button
+              type="button"
+              onClick={startCreate}
+              className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+
+          <div ref={collaborationSectionRef} className="space-y-4 rounded-2xl border border-dashed border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -478,35 +515,6 @@ export default function AdminPartnersPage() {
               </label>
             </div>
           </div>
-
-          <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-            <input
-              type="checkbox"
-              checked={draft.active}
-              onChange={(e) => setDraft((current) => ({ ...current, active: e.target.checked }))}
-            />
-            Active partner
-          </label>
-
-          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <button
-              type="button"
-              onClick={() => void handleSubmit()}
-              disabled={saving}
-              className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
-            >
-              {saving ? 'Saving…' : editingId ? 'Update partner' : 'Create partner'}
-            </button>
-            <button
-              type="button"
-              onClick={startCreate}
-              className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
-            >
-              Reset
-            </button>
-          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900">
@@ -530,7 +538,13 @@ export default function AdminPartnersPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {partners.map((partner) => (
-                  <tr key={partner.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <tr
+                    key={partner.id}
+                    onClick={() => startEdit(partner)}
+                    className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
+                      editingId === partner.id ? 'bg-gray-50 dark:bg-gray-800/40' : ''
+                    }`}
+                  >
                     <td className="px-4 py-3">
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{partner.name}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">Code {partner.slug}</p>
@@ -552,14 +566,20 @@ export default function AdminPartnersPage() {
                       <div className="flex justify-end gap-2">
                         <button
                           type="button"
-                          onClick={() => startEdit(partner)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            startEdit(partner);
+                          }}
                           className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
                         >
                           Edit
                         </button>
                         <button
                           type="button"
-                          onClick={() => void handleDelete(partner.id)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleDelete(partner.id);
+                          }}
                           className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
                         >
                           Delete

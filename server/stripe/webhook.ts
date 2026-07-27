@@ -48,11 +48,7 @@ export async function handleStripeWebhook(
 
   let event: Stripe.Event;
   try {
-    event = await stripe.webhooks.constructEventAsync(
-      rawBody,
-      signature,
-      webhookSecret,
-    );
+    event = await verifyWebhookEvent(stripe, rawBody, signature, webhookSecret, env, request);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     logger.error('Webhook signature verification failed', { error: message });
@@ -81,6 +77,30 @@ export async function handleStripeWebhook(
 
   await writeWebhookLog(env.DB, event.type, session.id, 'processed', null, null).catch(() => {});
   return new Response('OK', { status: 200 });
+}
+
+async function verifyWebhookEvent(
+  stripe: Stripe,
+  rawBody: string,
+  signature: string,
+  preferredSecret: string,
+  env: Env,
+  request: Request,
+): Promise<Stripe.Event> {
+  const { webhookSecret: fallbackSecret } = getStripeKeys(request, env, !isLocalDevHost(request));
+  const secrets = Array.from(new Set([preferredSecret, fallbackSecret]));
+
+  let lastError: unknown = null;
+  for (const secret of secrets) {
+    try {
+      return await stripe.webhooks.constructEventAsync(rawBody, signature, secret);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  if (lastError instanceof Error) throw lastError;
+  throw new Error(String(lastError ?? 'Unable to verify webhook signature'));
 }
 
 export async function processCompletedSession(
