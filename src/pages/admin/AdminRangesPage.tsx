@@ -180,7 +180,9 @@ export default function AdminRangesPage() {
   }
 
   function getRangeThumbnail(rangeId: string): string | null {
-    const product = products.find((item) => item.rangeId === rangeId && item.images.length > 0);
+    const product = getRangeProducts(rangeId)
+      .filter((item) => item.images.length > 0)
+      .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0];
     if (!product) return null;
     return product.images.find((image) => image.isDefault)?.src ?? product.images[0]?.src ?? null;
   }
@@ -228,109 +230,121 @@ export default function AdminRangesPage() {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {ranges.map((range) => (
                   <Fragment key={range.id}>
-                    <tr className="align-top hover:bg-gray-50 dark:hover:bg-gray-800/40">
-                      <td className="px-4 py-4 sm:px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="h-14 w-14 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950">
-                            {getRangeThumbnail(range.id) ? (
-                              <img
-                                src={getRangeThumbnail(range.id) ?? undefined}
-                                alt={range.name}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400 dark:text-gray-500">
-                                No image
-                              </div>
-                            )}
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{range.name}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">{range.sortOrder}</td>
-                      <td className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">{formatDate(range.updatedAt)}</td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <RangeToggle
-                            label="Storefront"
-                            value={range.storefrontEnabled}
-                            disabled={saving}
-                            onToggle={() => { void handleToggleVisibility(range, 'storefrontEnabled'); }}
-                          />
-                          <RangeToggle
-                            label="Partner"
-                            value={range.partnerEnabled}
-                            disabled={saving}
-                            onToggle={() => { void handleToggleVisibility(range, 'partnerEnabled'); }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => startEdit(range)}
-                            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => { void handleDelete(range.id); }}
-                            disabled={saving}
-                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-100 bg-gray-50/60 dark:border-gray-800 dark:bg-gray-950/40">
-                      <td colSpan={4} className="px-4 pb-4 pt-2 sm:px-6">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
-                              Selected products
-                            </p>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              {getRangeProducts(range.id).length} product{getRangeProducts(range.id).length === 1 ? '' : 's'}
-                            </span>
-                          </div>
-                          {getRangeProducts(range.id).length > 0 ? (
-                            <div className="flex gap-3 overflow-x-auto pb-1">
-                              {getRangeProducts(range.id).map((product) => (
-                                <div
-                                  key={product.id}
-                                  className="w-40 flex-shrink-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
-                                >
-                                  <div className="aspect-[4/5] bg-gray-50 dark:bg-gray-950">
-                                    {product.images[0]?.src ? (
-                                      <img
-                                        src={product.images[0].src}
-                                        alt={product.title}
-                                        className="h-full w-full object-cover"
-                                      />
-                                    ) : (
-                                      <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400 dark:text-gray-500">
-                                        No image
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="space-y-1 p-3">
-                                    <p className="line-clamp-2 text-xs font-semibold text-gray-900 dark:text-gray-100">
-                                      {product.title}
-                                    </p>
-                                    <p className="text-[10px] uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
-                                      {product.garment || 'Product'}
-                                    </p>
-                                  </div>
+                    {(() => {
+                      const rangeProducts = getRangeProducts(range.id);
+                      const sortedRangeProducts = [...rangeProducts].sort(
+                        (left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt),
+                      );
+                      const thumbnailProduct = sortedRangeProducts.find((product) => product.images.length > 0) ?? null;
+
+                      return (
+                        <>
+                          <tr className="align-top hover:bg-gray-50 dark:hover:bg-gray-800/40">
+                            <td className="px-4 py-4 sm:px-6">
+                              <div className="flex items-center gap-3">
+                                <div className="h-14 w-14 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950">
+                                  {thumbnailProduct ? (
+                                    <img
+                                      src={thumbnailProduct.images.find((image) => image.isDefault)?.src ?? thumbnailProduct.images[0]?.src ?? undefined}
+                                      alt={range.name}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400 dark:text-gray-500">
+                                      No image
+                                    </div>
+                                  )}
                                 </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-gray-500 dark:text-gray-400">No products assigned to this range.</p>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                                <div className="space-y-1">
+                                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{range.name}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">{range.sortOrder}</td>
+                            <td className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">{formatDate(range.updatedAt)}</td>
+                            <td className="px-4 py-4">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <RangeToggle
+                                  label="Storefront"
+                                  value={range.storefrontEnabled}
+                                  disabled={saving}
+                                  onToggle={() => { void handleToggleVisibility(range, 'storefrontEnabled'); }}
+                                />
+                                <RangeToggle
+                                  label="Partner"
+                                  value={range.partnerEnabled}
+                                  disabled={saving}
+                                  onToggle={() => { void handleToggleVisibility(range, 'partnerEnabled'); }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => startEdit(range)}
+                                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { void handleDelete(range.id); }}
+                                  disabled={saving}
+                                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-100 bg-gray-50/60 dark:border-gray-800 dark:bg-gray-950/40">
+                            <td colSpan={4} className="px-4 pb-4 pt-2 sm:px-6">
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
+                                    Selected products
+                                  </p>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {rangeProducts.length} product{rangeProducts.length === 1 ? '' : 's'}
+                                  </span>
+                                </div>
+                                {sortedRangeProducts.length > 0 ? (
+                                  <div className="flex gap-3 overflow-x-auto pb-1">
+                                    {sortedRangeProducts.map((product) => (
+                                      <div
+                                        key={product.id}
+                                        className="w-40 flex-shrink-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+                                      >
+                                        <div className="aspect-[4/5] bg-gray-50 dark:bg-gray-950">
+                                          {product.images[0]?.src ? (
+                                            <img
+                                              src={product.images[0].src}
+                                              alt={product.title}
+                                              className="h-full w-full object-cover"
+                                            />
+                                          ) : (
+                                            <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400 dark:text-gray-500">
+                                              No image
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className="space-y-1 p-3">
+                                          <p className="line-clamp-2 text-xs font-semibold text-gray-900 dark:text-gray-100">
+                                            {product.title}
+                                          </p>
+                                          <p className="text-[10px] uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+                                            {product.garment || 'Product'}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-gray-500 dark:text-gray-400">No products assigned to this range.</p>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        </>
+                      );
+                    })()}
                   </Fragment>
                 ))}
                 {ranges.length === 0 && (

@@ -445,7 +445,6 @@ function ProductRow({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
-  const [sizesModalOpen, setSizesModalOpen] = useState(false);
   const [sizeGuideUploading, setSizeGuideUploading] = useState(false);
   const [sizeGuideUploadError, setSizeGuideUploadError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -732,7 +731,7 @@ function ProductRow({
           </div>
 
           <div className="min-w-0 space-y-3 p-4 sm:p-5">
-            <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_220px] xl:items-start">
+            <div className="space-y-3 min-w-0">
               <div className="min-w-0 space-y-3">
                 <div className="space-y-2">
                   <input
@@ -744,29 +743,31 @@ function ProductRow({
                   />
                 </div>
 
-                <div className="grid gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60 xl:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Range</p>
-                    {isEnabled ? (
-                      <select value={rangeId} onChange={(e) => setRangeId(e.target.value)} className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                        <option value="">Select range</option>
-                        {ranges.map((range) => (
-                          <option key={range.id} value={range.id}>{range.name}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="inline-flex w-full items-center rounded-full border border-dashed border-gray-200 px-3 py-1.5 text-[11px] text-gray-500 dark:border-gray-700 dark:text-gray-400">Hidden until live</span>
-                    )}
+                <div className="grid gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60 xl:grid-cols-[minmax(220px,240px)_minmax(0,1fr)] xl:items-start">
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Range</p>
+                      {isEnabled ? (
+                        <select value={rangeId} onChange={(e) => setRangeId(e.target.value)} className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                          <option value="">Select range</option>
+                          {ranges.map((range) => (
+                            <option key={range.id} value={range.id}>{range.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="inline-flex w-full items-center rounded-full border border-dashed border-gray-200 px-3 py-1.5 text-[11px] text-gray-500 dark:border-gray-700 dark:text-gray-400">Hidden until live</span>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Catalog</p>
+                      <button type="button" onClick={() => setDetailOpen(true)} className="inline-flex w-full items-center justify-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                        Edit description
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Catalog</p>
-                    <button type="button" onClick={() => setDetailOpen(true)} className="inline-flex w-full items-center justify-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                      Edit description
-                    </button>
-                  </div>
-                  <div className="space-y-1.5 xl:col-span-2">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Classification</p>
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-2">
                       <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full min-w-0 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
                         <option value="">Audience</option>
                         {catalog.audiences.map((option) => (
@@ -792,10 +793,25 @@ function ProductRow({
                 <div className="space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60">
                   <ColorMultiSelect colors={allColors} selected={visibleColors.map((color) => color.name)} onToggle={(color) => toggleColor(color.name)} />
                 </div>
-              </div>
 
-              <div className="flex w-full flex-wrap gap-2 xl:w-[220px] xl:flex-col xl:items-stretch">
-                <div className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900/40 dark:bg-amber-900/10">
+                <div className="space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Sizes</p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{product.sizes.length} sizes</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {product.sizes.map((size) => (
+                      <span key={size} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                        {size}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs leading-6 text-gray-500 dark:text-gray-400">
+                    These sizes come from the synced product data and are shown here for reference only.
+                  </p>
+                </div>
+
+                <div className="w-full max-w-[28rem] rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900/40 dark:bg-amber-900/10">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">Pricing</p>
                     <span className="inline-flex items-center rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950 dark:text-amber-200">
@@ -813,27 +829,12 @@ function ProductRow({
                     >
                       Edit
                     </button>
-                    <button
-                      type="button"
-                      onClick={resetPricingToCatalog}
-                      className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
-                    >
-                      Catalog
-                    </button>
                   </div>
                 </div>
-
               </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
-              <button
-                type="button"
-                onClick={() => setSizesModalOpen(true)}
-                className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                Sizes ({product.sizes.length})
-              </button>
               {saved && <span className="self-center text-[11px] text-green-600 dark:text-green-400">Saved</span>}
               {error && <span className="self-center text-[11px] text-red-600 dark:text-red-400">{error}</span>}
               <button onClick={() => void handleSaveRow()} className="rounded-full bg-navy-800 px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-navy-700 transition-colors">
@@ -1157,61 +1158,6 @@ function ProductRow({
         </div>
       )}
 
-      {sizesModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
-          <div className="flex w-full max-w-2xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Sizes</h2>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{product.title}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSizesModalOpen(false)}
-                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="mt-5 flex-1 overflow-y-auto pr-1">
-              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">Available sizes</p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {product.sizes.map((size) => (
-                    <span key={size} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                      {size}
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                  These sizes come from the synced product data and are displayed here for reference only.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setSizesModalOpen(false)}
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSizesModalOpen(false);
-                  void handleSaveRow(true);
-                }}
-                className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-700 transition-colors"
-              >
-                {saving ? 'Saving…' : 'Save changes'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

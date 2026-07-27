@@ -13,6 +13,11 @@ import type {
   PartnerPayoutRow,
 } from '../../types/index.js';
 import { ensureOrderSchema, getOrderWithItems } from '../orders/repository.js';
+import {
+  createDiscountCode,
+  getDiscountCodeByCode,
+  updateDiscountCode,
+} from '../discount-codes/repository.js';
 
 type PartnerRow = {
   id: string;
@@ -158,6 +163,35 @@ function commissionStatusFromOrderStatus(status: Order['status']): PartnerCommis
     default:
       return 'pending';
   }
+}
+
+const PARTNER_DISCOUNT_CODE_PERCENT = 10;
+
+async function syncPartnerDiscountCode(
+  db: D1Database,
+  code: string | null | undefined,
+  notes: string,
+): Promise<void> {
+  const trimmed = code?.trim() || '';
+  if (!trimmed) return;
+
+  const payload = {
+    code: trimmed,
+    kind: 'percent' as const,
+    value: PARTNER_DISCOUNT_CODE_PERCENT,
+    usageLimit: null,
+    active: true,
+    expiresAt: null,
+    notes,
+  };
+
+  const existing = await getDiscountCodeByCode(db, trimmed);
+  if (existing) {
+    await updateDiscountCode(db, existing.id, payload);
+    return;
+  }
+
+  await createDiscountCode(db, payload);
 }
 
 export function parsePartnerRow(row: {
@@ -412,6 +446,8 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
   }
 
   const id = crypto.randomUUID();
+  const collaborationDesigns = data.collaborationDesigns ?? (data.collaborationDesign ? [data.collaborationDesign] : []);
+  const collaborationEnabled = Boolean(data.collaborationEnabled ?? false) || collaborationDesigns.length > 0;
   await db
     .prepare(`
       INSERT INTO partners
@@ -427,10 +463,8 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
       Math.max(0, Math.round(data.commissionRate)),
       data.description?.trim() || null,
       data.active === false ? 0 : 1,
-      data.collaborationEnabled ? 1 : 0,
-      serializeCollaborationDesigns(
-        data.collaborationDesigns ?? (data.collaborationDesign ? [data.collaborationDesign] : []),
-      ),
+      collaborationEnabled ? 1 : 0,
+      serializeCollaborationDesigns(collaborationDesigns),
     )
     .run();
 
@@ -438,6 +472,12 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
   if (!created) {
     throw new Error('Failed to create partner');
   }
+
+  await syncPartnerDiscountCode(
+    db,
+    created.discountCode,
+    `Partner code for ${created.name} (${created.slug})`,
+  );
 
   return created;
 }
@@ -453,12 +493,12 @@ export async function updatePartner(
   if (!existing) return null;
 
   const accessToken = data.accessToken?.trim() || existing.accessToken;
-  const collaborationEnabled = data.collaborationEnabled ?? existing.collaborationEnabled;
   const collaborationDesigns = data.collaborationDesigns !== undefined
     ? data.collaborationDesigns
     : data.collaborationDesign !== undefined
       ? (data.collaborationDesign ? [data.collaborationDesign] : [])
       : existing.collaborationDesigns;
+  const collaborationEnabled = (data.collaborationEnabled ?? existing.collaborationEnabled) || collaborationDesigns.length > 0;
 
   const result = await db
     .prepare(`
@@ -490,7 +530,16 @@ export async function updatePartner(
     .run();
 
   if (!result.success) return null;
-  return getPartnerById(db, id);
+  const updated = await getPartnerById(db, id);
+  if (!updated) return null;
+
+  await syncPartnerDiscountCode(
+    db,
+    updated.discountCode,
+    `Partner code for ${updated.name} (${updated.slug})`,
+  );
+
+  return updated;
 }
 
 export async function deletePartner(db: D1Database, id: string): Promise<boolean> {
