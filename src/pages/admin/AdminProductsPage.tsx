@@ -717,6 +717,13 @@ function ProductRow({
             >
               Images
             </button>
+            <label className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+              <span className={`inline-flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                <span className={`h-3 w-3 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-3.5' : 'translate-x-0'}`} />
+              </span>
+              <input type="checkbox" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} className="sr-only" />
+              Enabled
+            </label>
           </div>
 
           <div className="min-w-0 space-y-3 p-4 sm:p-5">
@@ -732,17 +739,7 @@ function ProductRow({
                   />
                 </div>
 
-                <div className="grid gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60 sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Status</p>
-                    <label className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                      <span className={`inline-flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                        <span className={`h-3 w-3 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-3.5' : 'translate-x-0'}`} />
-                      </span>
-                      <input type="checkbox" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} className="sr-only" />
-                      Enabled
-                    </label>
-                  </div>
+                <div className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60">
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Range</p>
                     {isEnabled ? (
@@ -764,7 +761,7 @@ function ProductRow({
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Classification</p>
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                    <div className="space-y-2">
                       <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
                         <option value="">Audience</option>
                         {catalog.audiences.map((option) => (
@@ -789,10 +786,6 @@ function ProductRow({
 
                 <div className="space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60">
                   <ColorMultiSelect colors={allColors} selected={visibleColors.map((color) => color.name)} onToggle={(color) => toggleColor(color.name)} />
-                  <div className="flex items-center justify-between gap-3 text-[11px] text-gray-500 dark:text-gray-400">
-                    <span>Range: {ranges.find((range) => range.id === rangeId)?.name ?? 'Unassigned'}</span>
-                    <span>{visibleColors.length} colours</span>
-                  </div>
                 </div>
               </div>
 

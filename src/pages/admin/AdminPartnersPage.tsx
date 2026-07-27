@@ -23,10 +23,7 @@ type Draft = {
   collaborationEnabled: boolean;
   collaborationTitle: string;
   collaborationDescription: string;
-  collaborationImages: CollaborationImageRow[];
-  collaborationGarment: string;
-  collaborationColorName: string;
-  collaborationColorHex: string;
+  collaborationImage: CollaborationImageRow | null;
   collaborationSizes: string;
   collaborationPrice: string;
 };
@@ -49,10 +46,7 @@ function emptyDraft(): Draft {
     collaborationEnabled: false,
     collaborationTitle: '',
     collaborationDescription: '',
-    collaborationImages: [],
-    collaborationGarment: 'Collaboration Shirt',
-    collaborationColorName: 'Collaboration',
-    collaborationColorHex: '#111827',
+    collaborationImage: null,
     collaborationSizes: DEFAULT_SIZE_OPTIONS.join(', '),
     collaborationPrice: '',
   };
@@ -61,13 +55,6 @@ function emptyDraft(): Draft {
 function formatPoundsInput(value: number | undefined | null): string {
   if (!Number.isFinite(value ?? NaN)) return '';
   return ((value ?? 0) / 100).toFixed(2);
-}
-
-function createCollaborationImageRows(urls: string[]): CollaborationImageRow[] {
-  return urls.map((url, index) => ({
-    previewUrl: url,
-    isDefault: index === 0,
-  }));
 }
 
 export default function AdminPartnersPage() {
@@ -80,7 +67,7 @@ export default function AdminPartnersPage() {
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [saved, setSaved] = useState<string | null>(null);
   const collaborationSectionRef = useRef<HTMLDivElement | null>(null);
-  const collaborationImagesRef = useRef<CollaborationImageRow[]>([]);
+  const collaborationImageInputRef = useRef<HTMLInputElement | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -105,20 +92,6 @@ export default function AdminPartnersPage() {
     collaborationSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [editingId]);
 
-  useEffect(() => {
-    collaborationImagesRef.current = draft.collaborationImages;
-  }, [draft.collaborationImages]);
-
-  useEffect(() => {
-    return () => {
-      collaborationImagesRef.current.forEach((image) => {
-        if (image.previewUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(image.previewUrl);
-        }
-      });
-    };
-  }, []);
-
   function startCreate() {
     setEditingId(null);
     setDraft(emptyDraft());
@@ -139,12 +112,10 @@ export default function AdminPartnersPage() {
       collaborationEnabled: partner.collaborationEnabled,
       collaborationTitle: collaboration?.title ?? '',
       collaborationDescription: collaboration?.description ?? '',
-      collaborationImages: createCollaborationImageRows(
-        collaboration?.imageUrls?.length ? collaboration.imageUrls : collaboration?.imageUrl ? [collaboration.imageUrl] : [],
-      ),
-      collaborationGarment: collaboration?.garment ?? 'Collaboration Shirt',
-      collaborationColorName: collaboration?.colorName ?? 'Collaboration',
-      collaborationColorHex: collaboration?.colorHex ?? '#111827',
+      collaborationImage: (() => {
+        const imageUrl = collaboration?.imageUrls?.[0] ?? collaboration?.imageUrl ?? null;
+        return imageUrl ? { previewUrl: imageUrl, isDefault: true } : null;
+      })(),
       collaborationSizes: (collaboration?.sizes ?? DEFAULT_SIZE_OPTIONS).join(', '),
       collaborationPrice: formatPoundsInput(collaboration?.partnerPrice),
     });
@@ -153,46 +124,25 @@ export default function AdminPartnersPage() {
 
   function handleCollaborationFilesSelected(fileList: FileList | null) {
     if (!fileList) return;
-
-    const hasDefault = draft.collaborationImages.some((image) => image.isDefault);
-    const newRows: CollaborationImageRow[] = Array.from(fileList).map((file, index) => ({
-      file,
-      previewUrl: URL.createObjectURL(file),
-      isDefault: !hasDefault && draft.collaborationImages.length === 0 && index === 0,
-    }));
-
+    const file = fileList[0];
+    const previous = draft.collaborationImage;
+    if (previous?.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previous.previewUrl);
+    }
     setDraft((current) => ({
       ...current,
-      collaborationImages: [...current.collaborationImages, ...newRows],
+      collaborationImage: {
+        file,
+        previewUrl: URL.createObjectURL(file),
+        isDefault: true,
+      },
     }));
   }
 
-  function removeCollaborationImage(index: number) {
-    setDraft((current) => {
-      const row = current.collaborationImages[index];
-      if (row?.previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(row.previewUrl);
-      }
-
-      const next = current.collaborationImages.filter((_, i) => i !== index);
-      if (next.length > 0 && !next.some((image) => image.isDefault)) {
-        next[0].isDefault = true;
-      }
-
-      return {
-        ...current,
-        collaborationImages: next,
-      };
-    });
-  }
-
-  function setDefaultCollaborationImage(index: number) {
+  function removeCollaborationImage() {
     setDraft((current) => ({
       ...current,
-      collaborationImages: current.collaborationImages.map((image, i) => ({
-        ...image,
-        isDefault: i === index,
-      })),
+      collaborationImage: null,
     }));
   }
 
@@ -235,38 +185,13 @@ export default function AdminPartnersPage() {
       form.append('collaborationEnabled', String(draft.collaborationEnabled));
       form.append('collaborationTitle', draft.collaborationTitle.trim());
       form.append('collaborationDescription', draft.collaborationDescription.trim());
-      form.append('collaborationGarment', draft.collaborationGarment.trim());
-      form.append('collaborationColorName', draft.collaborationColorName.trim());
-      form.append('collaborationColorHex', draft.collaborationColorHex.trim());
       form.append('collaborationSizes', draft.collaborationSizes.trim());
       form.append('collaborationPrice', draft.collaborationPrice.trim());
-
-      const collaborationImagesMeta: Array<
-        | { type: 'file'; fileIndex: number; isDefault?: boolean }
-        | { type: 'url'; url: string; isDefault?: boolean }
-      > = [];
-      let fileIndex = 0;
-
-      draft.collaborationImages.forEach((image) => {
-        if (image.file) {
-          form.append('collaborationImages', image.file, image.file.name);
-          collaborationImagesMeta.push({
-            type: 'file',
-            fileIndex,
-            isDefault: image.isDefault,
-          });
-          fileIndex += 1;
-          return;
-        }
-
-        collaborationImagesMeta.push({
-          type: 'url',
-          url: image.previewUrl,
-          isDefault: image.isDefault,
-        });
-      });
-
-      form.append('collaborationImagesMeta', JSON.stringify(collaborationImagesMeta));
+      if (draft.collaborationImage?.file) {
+        form.append('collaborationImages', draft.collaborationImage.file, draft.collaborationImage.file.name);
+      } else if (draft.collaborationImage?.previewUrl) {
+        form.append('collaborationImageUrls', draft.collaborationImage.previewUrl);
+      }
 
       if (editingId) {
         if (accessToken) form.append('accessToken', accessToken);
@@ -306,20 +231,15 @@ export default function AdminPartnersPage() {
   }
 
   function clearCollaborationDraft() {
-    collaborationImagesRef.current.forEach((image) => {
-      if (image.previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(image.previewUrl);
-      }
-    });
+    if (draft.collaborationImage?.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(draft.collaborationImage.previewUrl);
+    }
     setDraft((current) => ({
       ...current,
       collaborationEnabled: false,
       collaborationTitle: '',
       collaborationDescription: '',
-      collaborationImages: [],
-      collaborationGarment: 'Collaboration Shirt',
-      collaborationColorName: 'Collaboration',
-      collaborationColorHex: '#111827',
+      collaborationImage: null,
       collaborationSizes: DEFAULT_SIZE_OPTIONS.join(', '),
       collaborationPrice: '',
     }));
@@ -536,14 +456,14 @@ export default function AdminPartnersPage() {
             )}
           </div>
 
-          <div ref={collaborationSectionRef} className="space-y-4 rounded-2xl border border-dashed border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+          <div ref={collaborationSectionRef} className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   Partner-only product
                 </p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  This uses the same sectioned workflow as manual catalog creation, but stays attached to this club.
+                  Behaves like the product create card, but stays tied to this club.
                 </p>
               </div>
               <button
@@ -556,166 +476,87 @@ export default function AdminPartnersPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Identity</p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Keep the club-only product aligned with the same workflow as manual catalog creation.</p>
-                  </div>
-                  <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                    <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${draft.collaborationEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                      <span className={`h-4 w-4 rounded-full bg-white transition-transform ${draft.collaborationEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={draft.collaborationEnabled}
-                      onChange={(e) => setDraft((current) => ({ ...current, collaborationEnabled: e.target.checked }))}
-                      className="sr-only"
-                    />
-                    Enabled
-                  </label>
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  <label className="block space-y-1">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Title</span>
-                    <input
-                      value={draft.collaborationTitle}
-                      onChange={(e) => setDraft((current) => ({ ...current, collaborationTitle: e.target.value }))}
-                      placeholder="Oxford Park x UTC"
-                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                    />
-                  </label>
-
-                  <label className="block space-y-1">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
-                    <textarea
-                      value={draft.collaborationDescription}
-                      onChange={(e) => setDraft((current) => ({ ...current, collaborationDescription: e.target.value }))}
-                      rows={3}
-                      placeholder="What makes the shirt special?"
-                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                    />
-                  </label>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="block space-y-1">
-                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Garment</span>
-                      <input
-                        value={draft.collaborationGarment}
-                        onChange={(e) => setDraft((current) => ({ ...current, collaborationGarment: e.target.value }))}
-                        placeholder="Performance T-Shirt"
-                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+              <div className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950/60">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => collaborationImageInputRef.current?.click()}
+                    className="flex min-h-[18rem] w-full items-center justify-center bg-white p-4 text-left dark:bg-gray-950"
+                  >
+                    {draft.collaborationImage ? (
+                      <img
+                        src={draft.collaborationImage.previewUrl}
+                        alt=""
+                        className="h-[18rem] w-full rounded-xl object-contain"
                       />
-                    </label>
-
-                    <label className="block space-y-1">
-                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Partner price</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={draft.collaborationPrice}
-                        onChange={(e) => setDraft((current) => ({ ...current, collaborationPrice: e.target.value }))}
-                        placeholder="18.00"
-                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                      />
-                    </label>
-                  </div>
+                    ) : (
+                      <div className="flex h-[18rem] w-full flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 px-6 text-center dark:border-gray-700">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Upload image</p>
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Single preview image for the collaboration shirt.</p>
+                      </div>
+                    )}
+                  </button>
+                  {draft.collaborationImage && (
+                    <button
+                      type="button"
+                      onClick={removeCollaborationImage}
+                      className="absolute right-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-black"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
-              </div>
-
-              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Colours</p>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Set the colour token and size split for the club-only shirt.</p>
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="block space-y-1">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour name</span>
-                    <input
-                      value={draft.collaborationColorName}
-                      onChange={(e) => setDraft((current) => ({ ...current, collaborationColorName: e.target.value }))}
-                      placeholder="Collaboration"
-                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                    />
-                  </label>
-
-                  <label className="block space-y-1">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour hex</span>
-                    <input
-                      value={draft.collaborationColorHex}
-                      onChange={(e) => setDraft((current) => ({ ...current, collaborationColorHex: e.target.value }))}
-                      placeholder="#111827"
-                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                    />
-                  </label>
-                </div>
-
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="block space-y-1">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Sizes</span>
-                    <input
-                      value={draft.collaborationSizes}
-                      onChange={(e) => setDraft((current) => ({ ...current, collaborationSizes: e.target.value }))}
-                      placeholder={DEFAULT_SIZE_OPTIONS.join(', ')}
-                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Images</p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Upload the club shirt images here. The default image sits first.</p>
-                  </div>
-                </div>
-
                 <input
+                  ref={collaborationImageInputRef}
                   type="file"
                   accept="image/*"
-                  multiple
                   onChange={(e) => handleCollaborationFilesSelected(e.target.files)}
-                  className="mt-4 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 file:mr-3 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700"
+                  className="sr-only"
                 />
+              </div>
 
-                {draft.collaborationImages.length > 0 ? (
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {draft.collaborationImages.map((image, index) => (
-                      <div key={`${image.previewUrl}-${index}`} className="rounded-xl border border-gray-100 bg-white p-2 dark:border-gray-800 dark:bg-gray-900">
-                        <img src={image.previewUrl} alt="" className="h-32 w-full rounded-lg object-cover" />
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setDefaultCollaborationImage(index)}
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                              image.isDefault
-                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                                : 'border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'
-                            }`}
-                          >
-                            {image.isDefault ? 'Default' : 'Set default'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeCollaborationImage(index)}
-                            aria-label="Remove image"
-                            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
-                          >
-                            X
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-4 rounded-xl border border-dashed border-gray-200 px-4 py-6 text-center text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                    Add one or more images to match the main product card layout.
-                  </div>
-                )}
+              <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${draft.collaborationEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                  <span className={`h-4 w-4 rounded-full bg-white transition-transform ${draft.collaborationEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                </span>
+                <input
+                  type="checkbox"
+                  checked={draft.collaborationEnabled}
+                  onChange={(e) => setDraft((current) => ({ ...current, collaborationEnabled: e.target.checked }))}
+                  className="sr-only"
+                />
+                Enabled
+              </label>
+
+              <input
+                value={draft.collaborationTitle}
+                onChange={(e) => setDraft((current) => ({ ...current, collaborationTitle: e.target.value }))}
+                placeholder="Oxford Park x UTC"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+              />
+              <textarea
+                value={draft.collaborationDescription}
+                onChange={(e) => setDraft((current) => ({ ...current, collaborationDescription: e.target.value }))}
+                rows={3}
+                placeholder="What makes the shirt special?"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={draft.collaborationPrice}
+                  onChange={(e) => setDraft((current) => ({ ...current, collaborationPrice: e.target.value }))}
+                  placeholder="18.00"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                />
+                <input
+                  value={draft.collaborationSizes}
+                  onChange={(e) => setDraft((current) => ({ ...current, collaborationSizes: e.target.value }))}
+                  placeholder={DEFAULT_SIZE_OPTIONS.join(', ')}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                />
               </div>
 
               {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}

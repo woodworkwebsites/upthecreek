@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CatalogRange } from '../../../types/index.js';
+import type { CatalogRange, Product } from '../../../types/index.js';
 import {
   adminCreateRange,
   adminDeleteRange,
   adminFetchRanges,
+  adminFetchProducts,
   adminUpdateRange,
 } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
@@ -41,6 +42,7 @@ function startDraft(range?: CatalogRange): Draft {
 export default function AdminRangesPage() {
   const { token } = useAdminToken();
   const [ranges, setRanges] = useState<CatalogRange[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,8 +55,12 @@ export default function AdminRangesPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminFetchRanges(token);
-      setRanges(data);
+      const [rangeData, productData] = await Promise.all([
+        adminFetchRanges(token),
+        adminFetchProducts(token),
+      ]);
+      setRanges(rangeData);
+      setProducts(productData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load ranges');
     } finally {
@@ -158,6 +164,12 @@ export default function AdminRangesPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function getRangeThumbnail(rangeId: string): string | null {
+    const product = products.find((item) => item.rangeId === rangeId && item.images.length > 0);
+    if (!product) return null;
+    return product.images.find((image) => image.isDefault)?.src ?? product.images[0]?.src ?? null;
   }
 
   if (loading) return <PageLoader />;
@@ -265,9 +277,23 @@ export default function AdminRangesPage() {
                 {ranges.map((range) => (
                   <tr key={range.id} className="align-top hover:bg-gray-50 dark:hover:bg-gray-800/40">
                     <td className="px-4 py-4 sm:px-6">
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{range.name}</p>
-                        <p className="font-mono text-[11px] text-gray-400 dark:text-gray-500">{range.id}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="h-14 w-14 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950">
+                          {getRangeThumbnail(range.id) ? (
+                            <img
+                              src={getRangeThumbnail(range.id) ?? undefined}
+                              alt={range.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400 dark:text-gray-500">
+                              No image
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{range.name}</p>
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">{range.sortOrder}</td>
