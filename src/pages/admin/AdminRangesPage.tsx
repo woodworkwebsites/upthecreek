@@ -49,6 +49,7 @@ export default function AdminRangesPage() {
   const [saved, setSaved] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
+  const [rangeModalOpen, setRangeModalOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -77,12 +78,18 @@ export default function AdminRangesPage() {
       sortOrder: String(ranges.length),
     });
     setSaved(null);
+    setRangeModalOpen(true);
   }
 
   function startEdit(range: CatalogRange) {
     setEditingId(range.id);
     setDraft(startDraft(range));
     setSaved(null);
+    setRangeModalOpen(true);
+  }
+
+  function closeRangeModal() {
+    setRangeModalOpen(false);
   }
 
   async function handleSubmit() {
@@ -115,6 +122,7 @@ export default function AdminRangesPage() {
       await load();
       setEditingId(null);
       setDraft(emptyDraft());
+      setRangeModalOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save range');
     } finally {
@@ -132,7 +140,12 @@ export default function AdminRangesPage() {
       await adminDeleteRange(token, id);
       await load();
       if (editingId === id) {
-        startCreate();
+        setEditingId(null);
+        setDraft({
+          ...emptyDraft(),
+          sortOrder: String(ranges.length),
+        });
+        setRangeModalOpen(false);
       }
       setSaved('Range deleted');
     } catch (err) {
@@ -200,72 +213,7 @@ export default function AdminRangesPage() {
       {saved && <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{saved}</p>}
       {error && <ErrorMessage message={error} />}
 
-      <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-          <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {editingId ? 'Edit range' : 'New range'}
-            </p>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Use this to group products into drops and decide where they are live.
-            </p>
-          </div>
-
-          <label className="block space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</span>
-            <input
-              value={draft.name}
-              onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
-              placeholder="Spring Drop 01"
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-            />
-          </label>
-
-          <label className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300">
-            <span>Storefront live</span>
-            <input
-              type="checkbox"
-              checked={draft.storefrontEnabled}
-              onChange={(e) => setDraft((current) => ({ ...current, storefrontEnabled: e.target.checked }))}
-              className="h-4 w-4 rounded border-gray-300 text-navy-800 focus:ring-navy-500"
-            />
-          </label>
-
-          <label className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300">
-            <span>Partner live</span>
-            <input
-              type="checkbox"
-              checked={draft.partnerEnabled}
-              onChange={(e) => setDraft((current) => ({ ...current, partnerEnabled: e.target.checked }))}
-              className="h-4 w-4 rounded border-gray-300 text-navy-800 focus:ring-navy-500"
-            />
-          </label>
-
-          <label className="block space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Sort order</span>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={draft.sortOrder}
-              onChange={(e) => setDraft((current) => ({ ...current, sortOrder: e.target.value }))}
-              placeholder="0"
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-            />
-          </label>
-
-          <div className="flex gap-3">
-            <Button variant="primary" size="sm" onClick={() => { void handleSubmit(); }} disabled={saving}>
-              {saving ? 'Saving…' : editingId ? 'Update range' : 'Create range'}
-            </Button>
-            {editingId && (
-              <Button variant="secondary" size="sm" onClick={startCreate} disabled={saving}>
-                Cancel
-              </Button>
-            )}
-          </div>
-        </div>
-
+      <div className="grid gap-6">
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-100 text-left dark:divide-gray-800">
@@ -397,6 +345,88 @@ export default function AdminRangesPage() {
           </div>
         </div>
       </div>
+
+      {rangeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
+          <div className="flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900 max-h-[calc(100vh-2rem)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {editingId ? 'Edit range' : 'New range'}
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Use this to group products into drops and decide where they are live.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeRangeModal}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 flex-1 overflow-y-auto pr-1 space-y-4">
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</span>
+                <input
+                  value={draft.name}
+                  onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
+                  placeholder="Spring Drop 01"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+
+              <label className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300">
+                <span>Storefront live</span>
+                <input
+                  type="checkbox"
+                  checked={draft.storefrontEnabled}
+                  onChange={(e) => setDraft((current) => ({ ...current, storefrontEnabled: e.target.checked }))}
+                  className="h-4 w-4 rounded border-gray-300 text-navy-800 focus:ring-navy-500"
+                />
+              </label>
+
+              <label className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300">
+                <span>Partner live</span>
+                <input
+                  type="checkbox"
+                  checked={draft.partnerEnabled}
+                  onChange={(e) => setDraft((current) => ({ ...current, partnerEnabled: e.target.checked }))}
+                  className="h-4 w-4 rounded border-gray-300 text-navy-800 focus:ring-navy-500"
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Sort order</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={draft.sortOrder}
+                  onChange={(e) => setDraft((current) => ({ ...current, sortOrder: e.target.value }))}
+                  placeholder="0"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeRangeModal}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <Button variant="primary" size="sm" onClick={() => { void handleSubmit(); }} disabled={saving}>
+                {saving ? 'Saving…' : editingId ? 'Update range' : 'Create range'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
