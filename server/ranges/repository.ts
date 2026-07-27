@@ -1,6 +1,16 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type { CatalogRange, CatalogRangeRow } from '../../types/index.js';
 
+const DEFAULT_RANGE: CatalogRange = {
+  id: 'evergreen',
+  name: 'Evergreen',
+  storefrontEnabled: true,
+  partnerEnabled: true,
+  sortOrder: 0,
+  createdAt: new Date(0).toISOString(),
+  updatedAt: new Date(0).toISOString(),
+};
+
 function parseRangeRow(row: CatalogRangeRow): CatalogRange {
   return {
     id: row.id,
@@ -14,26 +24,40 @@ function parseRangeRow(row: CatalogRangeRow): CatalogRange {
 }
 
 export async function listRanges(db: D1Database): Promise<CatalogRange[]> {
-  const result = await db
-    .prepare('SELECT * FROM ranges ORDER BY sort_order ASC, created_at ASC, name ASC')
-    .all<CatalogRangeRow>();
-  return (result.results ?? []).map(parseRangeRow);
+  try {
+    const result = await db
+      .prepare('SELECT * FROM ranges ORDER BY sort_order ASC, created_at ASC, name ASC')
+      .all<CatalogRangeRow>();
+    const ranges = (result.results ?? []).map(parseRangeRow);
+    return ranges.length > 0 ? ranges : [DEFAULT_RANGE];
+  } catch {
+    return [DEFAULT_RANGE];
+  }
 }
 
 export async function listEnabledRangeIds(db: D1Database, channel: 'storefront' | 'partner'): Promise<string[]> {
   const column = channel === 'storefront' ? 'storefront_enabled' : 'partner_enabled';
-  const result = await db
-    .prepare(`SELECT id FROM ranges WHERE ${column} = 1 ORDER BY sort_order ASC, created_at ASC`)
-    .all<{ id: string }>();
-  return (result.results ?? []).map((row) => row.id);
+  try {
+    const result = await db
+      .prepare(`SELECT id FROM ranges WHERE ${column} = 1 ORDER BY sort_order ASC, created_at ASC`)
+      .all<{ id: string }>();
+    const ids = (result.results ?? []).map((row) => row.id);
+    return ids.length > 0 ? ids : [DEFAULT_RANGE.id];
+  } catch {
+    return [DEFAULT_RANGE.id];
+  }
 }
 
 export async function getRangeById(db: D1Database, id: string): Promise<CatalogRange | null> {
-  const row = await db
-    .prepare('SELECT * FROM ranges WHERE id = ?')
-    .bind(id)
-    .first<CatalogRangeRow>();
-  return row ? parseRangeRow(row) : null;
+  try {
+    const row = await db
+      .prepare('SELECT * FROM ranges WHERE id = ?')
+      .bind(id)
+      .first<CatalogRangeRow>();
+    return row ? parseRangeRow(row) : null;
+  } catch {
+    return id === DEFAULT_RANGE.id ? DEFAULT_RANGE : null;
+  }
 }
 
 export async function createRange(
