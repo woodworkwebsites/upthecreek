@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button.js';
 import { Badge } from '../../components/ui/Badge.js';
@@ -22,81 +22,88 @@ function StatCard({ label, value, tone = 'text-navy-900' }: { label: string; val
   );
 }
 
-function buildCollaborationProduct(partner: PartnerDashboard['partner']): Product | null {
-  if (!partner.collaborationEnabled || !partner.collaborationDesign) return null;
+function buildCollaborationProducts(partner: PartnerDashboard['partner']): Product[] {
+  if (!partner.collaborationEnabled) return [];
 
-  const design = partner.collaborationDesign;
-  const sizes = design.sizes.length > 0 ? design.sizes : DEFAULT_SIZE_OPTIONS.slice();
-  const price = Math.max(0, design.partnerPrice);
-  const pricePounds = (price / 100).toFixed(2);
-  const colorName = design.colorName.trim() || 'Collaboration';
-  const imageUrls = design.imageUrls.length > 0
-    ? design.imageUrls
-    : design.imageUrl
-      ? [design.imageUrl]
+  const designs = partner.collaborationDesigns.length > 0
+    ? partner.collaborationDesigns
+    : partner.collaborationDesign
+      ? [partner.collaborationDesign]
       : [];
 
-  return {
-    id: `partner-collab:${partner.slug}`,
-    printifyId: `partner-collab:${partner.slug}`,
-    title: design.title.trim() || `${partner.name} collaboration`,
-    description: design.description ?? '',
-    category: 'partner-collaboration',
-    rangeId: null,
-    audience: 'Partner',
-    productType: 'Collaboration',
-    garment: design.garment?.trim() || 'Collaboration Shirt',
-    pricingMatrix: {
+  return designs.map((design, index) => {
+    const sizes = design.sizes.length > 0 ? design.sizes : DEFAULT_SIZE_OPTIONS.slice();
+    const price = Math.max(0, design.partnerPrice);
+    const pricePounds = (price / 100).toFixed(2);
+    const colorName = design.colorName.trim() || 'Collaboration';
+    const imageUrls = design.imageUrls.length > 0
+      ? design.imageUrls
+      : design.imageUrl
+        ? [design.imageUrl]
+        : [];
+
+    return {
+      id: `partner-collab:${partner.slug}:${index}`,
+      printifyId: `partner-collab:${partner.slug}:${index}`,
+      title: design.title.trim() || `${partner.name} collaboration`,
+      description: design.description ?? '',
+      category: 'partner-collaboration',
+      rangeId: null,
       audience: 'Partner',
-      product: 'Collaboration',
+      productType: 'Collaboration',
       garment: design.garment?.trim() || 'Collaboration Shirt',
-      printSurface: 'Partner exclusive',
-      manufacturingCost: '',
-      saleCost: '',
-      deliveryRetail: '',
-      deliveryPartner: '',
-      deliveryOnlinePartnership: '',
-      salePrice: pricePounds,
-      partnerPrice: pricePounds,
-    },
-    images: imageUrls.length > 0
-      ? imageUrls.map((src, index) => ({
-        src: src.trim() || '/UTC_Logo.png',
-        isDefault: index === 0,
-        variantIds: sizes.map((_, variantIndex) => variantIndex + 1),
-        color: colorName,
-      }))
-      : [
-        {
-          src: '/UTC_Logo.png',
-          isDefault: true,
-          variantIds: [1],
+      pricingMatrix: {
+        audience: 'Partner',
+        product: 'Collaboration',
+        garment: design.garment?.trim() || 'Collaboration Shirt',
+        printSurface: 'Partner exclusive',
+        manufacturingCost: '',
+        saleCost: '',
+        deliveryRetail: '',
+        deliveryPartner: '',
+        deliveryOnlinePartnership: '',
+        salePrice: pricePounds,
+        partnerPrice: pricePounds,
+      },
+      images: imageUrls.length > 0
+        ? imageUrls.map((src, imageIndex) => ({
+          src: src.trim() || '/UTC_Logo.png',
+          isDefault: imageIndex === 0,
+          variantIds: sizes.map((_, variantIndex) => variantIndex + 1),
           color: colorName,
+        }))
+        : [
+          {
+            src: '/UTC_Logo.png',
+            isDefault: true,
+            variantIds: [1],
+            color: colorName,
+          },
+        ],
+      variants: sizes.map((size, sizeIndex) => ({
+        id: sizeIndex + 1,
+        color: colorName,
+        size,
+        price,
+        available: true,
+      })),
+      colors: [
+        {
+          name: colorName,
+          hex: design.colorHex?.trim() || '#111827',
         },
       ],
-    variants: sizes.map((size, index) => ({
-      id: index + 1,
-      color: colorName,
-      size,
-      price,
-      available: true,
-    })),
-    colors: [
-      {
-        name: colorName,
-        hex: design.colorHex?.trim() || '#111827',
-      },
-    ],
-    hiddenColors: [],
-    sizes,
-    minPrice: price,
-    maxPrice: price,
-    isEnabled: true,
-    sizeGuideImage: null,
-    syncedAt: partner.updatedAt,
-    createdAt: partner.createdAt,
-    updatedAt: partner.updatedAt,
-  };
+      hiddenColors: [],
+      sizes,
+      minPrice: price,
+      maxPrice: price,
+      isEnabled: true,
+      sizeGuideImage: null,
+      syncedAt: partner.updatedAt,
+      createdAt: partner.createdAt,
+      updatedAt: partner.updatedAt,
+    };
+  });
 }
 
 export default function PartnersDashboardPage() {
@@ -172,7 +179,7 @@ export default function PartnersDashboardPage() {
   }
 
   const { partner, summary, recentOrders } = dashboard;
-  const collaborationProduct = buildCollaborationProduct(partner);
+  const collaborationProducts = useMemo(() => buildCollaborationProducts(partner), [partner]);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,_#06122c_0%,_#0a1736_18%,_#f8f7f3_18%,_#f8f7f3_100%)] text-navy-900">
@@ -288,7 +295,7 @@ export default function PartnersDashboardPage() {
               ) : (
                 <PartnerOrderWorkspace
                   products={products}
-                  collaborationProduct={collaborationProduct}
+                  collaborationProducts={collaborationProducts}
                   ranges={ranges}
                   slug={session.slug}
                   accessToken={session.accessToken}

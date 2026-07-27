@@ -314,13 +314,13 @@ function ProductMatrixCard({
 
 export function PartnerOrderWorkspace({
   products,
-  collaborationProduct,
+  collaborationProducts = [],
   ranges,
   slug,
   accessToken,
 }: {
   products: Product[];
-  collaborationProduct?: Product | null;
+  collaborationProducts?: Product[];
   ranges: CatalogRange[];
   slug: string;
   accessToken: string;
@@ -530,16 +530,21 @@ export function PartnerOrderWorkspace({
           />
         </div>
 
-        {collaborationProduct && (
+        {collaborationProducts.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Badge variant="info">Pinned first</Badge>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">Collaboration design</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">Collaboration designs</p>
             </div>
-            <ProductMatrixCard
-              product={collaborationProduct}
-              onOpenDraft={openDraft}
-            />
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {collaborationProducts.map((product) => (
+                <ProductMatrixCard
+                  key={product.id}
+                  product={product}
+                  onOpenDraft={openDraft}
+                />
+              ))}
+            </div>
           </div>
         )}
 

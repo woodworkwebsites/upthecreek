@@ -261,6 +261,7 @@ export interface Partner {
   active: boolean;
   collaborationEnabled: boolean;
   collaborationDesign: PartnerCollaborationDesign | null;
+  collaborationDesigns: PartnerCollaborationDesign[];
   createdAt: string;
   updatedAt: string;
 }
@@ -321,6 +322,7 @@ export interface PartnerInput {
   active?: boolean;
   collaborationEnabled?: boolean;
   collaborationDesign?: PartnerCollaborationDesign | null;
+  collaborationDesigns?: PartnerCollaborationDesign[] | null;
 }
 
 export interface PartnerOrderSummary {

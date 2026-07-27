@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { PartnerAdmin } from '../../../types/index.js';
+import type { PartnerAdmin, PartnerCollaborationDesign } from '../../../types/index.js';
 import {
   adminCreatePartner,
   adminDeletePartner,
@@ -21,18 +21,41 @@ type Draft = {
   description: string;
   active: boolean;
   collaborationEnabled: boolean;
-  collaborationTitle: string;
-  collaborationDescription: string;
-  collaborationFrontImage: CollaborationImageRow | null;
-  collaborationBackImage: CollaborationImageRow | null;
-  collaborationSizes: string;
-  collaborationPrice: string;
+  collaborationDesigns: CollaborationDesignDraft[];
 };
 
 interface CollaborationImageRow {
   file?: File;
   previewUrl: string;
   isDefault: boolean;
+}
+
+interface CollaborationDesignDraft {
+  id: string;
+  title: string;
+  description: string;
+  garment: string;
+  colorName: string;
+  colorHex: string;
+  frontImage: CollaborationImageRow | null;
+  backImage: CollaborationImageRow | null;
+  sizes: string;
+  price: string;
+}
+
+function emptyCollaborationDesignDraft(): CollaborationDesignDraft {
+  return {
+    id: crypto.randomUUID(),
+    title: '',
+    description: '',
+    garment: 'Collaboration Shirt',
+    colorName: 'Collaboration',
+    colorHex: '#111827',
+    frontImage: null,
+    backImage: null,
+    sizes: DEFAULT_SIZE_OPTIONS.join(', '),
+    price: '',
+  };
 }
 
 function emptyDraft(): Draft {
@@ -45,18 +68,37 @@ function emptyDraft(): Draft {
     description: '',
     active: true,
     collaborationEnabled: false,
-    collaborationTitle: '',
-    collaborationDescription: '',
-    collaborationFrontImage: null,
-    collaborationBackImage: null,
-    collaborationSizes: DEFAULT_SIZE_OPTIONS.join(', '),
-    collaborationPrice: '',
+    collaborationDesigns: [emptyCollaborationDesignDraft()],
   };
 }
 
 function formatPoundsInput(value: number | undefined | null): string {
   if (!Number.isFinite(value ?? NaN)) return '';
   return ((value ?? 0) / 100).toFixed(2);
+}
+
+function imageFromUrl(url: string | null | undefined, isDefault: boolean): CollaborationImageRow | null {
+  const trimmed = url?.trim() || '';
+  if (!trimmed) return null;
+  return {
+    previewUrl: trimmed,
+    isDefault,
+  };
+}
+
+function designDraftFromApi(design: PartnerCollaborationDesign | null | undefined): CollaborationDesignDraft {
+  return {
+    id: crypto.randomUUID(),
+    title: design?.title ?? '',
+    description: design?.description ?? '',
+    garment: design?.garment ?? 'Collaboration Shirt',
+    colorName: design?.colorName ?? 'Collaboration',
+    colorHex: design?.colorHex ?? '#111827',
+    frontImage: imageFromUrl(design?.imageUrls?.[0] ?? design?.imageUrl, true),
+    backImage: imageFromUrl(design?.imageUrls?.[1] ?? null, false),
+    sizes: (design?.sizes ?? DEFAULT_SIZE_OPTIONS).join(', '),
+    price: formatPoundsInput(design?.partnerPrice),
+  };
 }
 
 export default function AdminPartnersPage() {
@@ -69,8 +111,6 @@ export default function AdminPartnersPage() {
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [saved, setSaved] = useState<string | null>(null);
   const collaborationSectionRef = useRef<HTMLDivElement | null>(null);
-  const collaborationFrontImageInputRef = useRef<HTMLInputElement | null>(null);
-  const collaborationBackImageInputRef = useRef<HTMLInputElement | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -102,7 +142,11 @@ export default function AdminPartnersPage() {
   }
 
   function startEdit(partner: PartnerAdmin) {
-    const collaboration = partner.collaborationDesign;
+    const collaboration = partner.collaborationDesigns.length > 0
+      ? partner.collaborationDesigns
+      : partner.collaborationDesign
+        ? [partner.collaborationDesign]
+        : [];
     setEditingId(partner.id);
     setDraft({
       slug: partner.slug,
@@ -113,18 +157,9 @@ export default function AdminPartnersPage() {
       description: partner.description ?? '',
       active: partner.active,
       collaborationEnabled: partner.collaborationEnabled,
-      collaborationTitle: collaboration?.title ?? '',
-      collaborationDescription: collaboration?.description ?? '',
-      collaborationFrontImage: (() => {
-        const imageUrl = collaboration?.imageUrls?.[0] ?? collaboration?.imageUrl ?? null;
-        return imageUrl ? { previewUrl: imageUrl, isDefault: true } : null;
-      })(),
-      collaborationBackImage: (() => {
-        const imageUrl = collaboration?.imageUrls?.[1] ?? null;
-        return imageUrl ? { previewUrl: imageUrl, isDefault: false } : null;
-      })(),
-      collaborationSizes: (collaboration?.sizes ?? DEFAULT_SIZE_OPTIONS).join(', '),
-      collaborationPrice: formatPoundsInput(collaboration?.partnerPrice),
+      collaborationDesigns: collaboration.length > 0
+        ? collaboration.map((entry) => designDraftFromApi(entry))
+        : [emptyCollaborationDesignDraft()],
     });
     setSaved(null);
   }
@@ -135,40 +170,81 @@ export default function AdminPartnersPage() {
     }
   }
 
-  function handleCollaborationFilesSelected(side: 'front' | 'back', fileList: FileList | null) {
+  function updateCollaborationDesign(
+    designId: string,
+    updater: (design: CollaborationDesignDraft) => CollaborationDesignDraft,
+  ) {
+    setDraft((current) => ({
+      ...current,
+      collaborationDesigns: current.collaborationDesigns.map((design) =>
+        design.id === designId ? updater(design) : design,
+      ),
+    }));
+  }
+
+  function addCollaborationDesign() {
+    setDraft((current) => ({
+      ...current,
+      collaborationEnabled: true,
+      collaborationDesigns: [...current.collaborationDesigns, emptyCollaborationDesignDraft()],
+    }));
+  }
+
+  function removeCollaborationDesign(designId: string) {
+    setDraft((current) => {
+      const target = current.collaborationDesigns.find((design) => design.id === designId);
+      revokeCollaborationPreview(target?.frontImage ?? null);
+      revokeCollaborationPreview(target?.backImage ?? null);
+      const next = current.collaborationDesigns.filter((design) => design.id !== designId);
+      return {
+        ...current,
+        collaborationDesigns: next.length > 0 ? next : [emptyCollaborationDesignDraft()],
+      };
+    });
+  }
+
+  function handleCollaborationFilesSelected(designId: string, side: 'front' | 'back', fileList: FileList | null) {
     if (!fileList) return;
     const file = fileList[0];
     if (!file) return;
 
-    setDraft((current) => {
-      const previous = side === 'front' ? current.collaborationFrontImage : current.collaborationBackImage;
-      if (previous?.previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(previous.previewUrl);
-      }
+    setDraft((current) => ({
+      ...current,
+      collaborationDesigns: current.collaborationDesigns.map((design) => {
+        if (design.id !== designId) return design;
+        const previous = side === 'front' ? design.frontImage : design.backImage;
+        if (previous?.previewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(previous.previewUrl);
+        }
 
-      const nextImage: CollaborationImageRow = {
-        file,
-        previewUrl: URL.createObjectURL(file),
-        isDefault: side === 'front',
-      };
+        const nextImage: CollaborationImageRow = {
+          file,
+          previewUrl: URL.createObjectURL(file),
+          isDefault: side === 'front',
+        };
 
-      return side === 'front'
-        ? { ...current, collaborationFrontImage: nextImage }
-        : { ...current, collaborationBackImage: nextImage };
-    });
+        return side === 'front'
+          ? { ...design, frontImage: nextImage }
+          : { ...design, backImage: nextImage };
+      }),
+    }));
   }
 
-  function removeCollaborationImage(side: 'front' | 'back') {
-    setDraft((current) => {
-      const previous = side === 'front' ? current.collaborationFrontImage : current.collaborationBackImage;
-      if (previous?.previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(previous.previewUrl);
-      }
+  function removeCollaborationImage(designId: string, side: 'front' | 'back') {
+    setDraft((current) => ({
+      ...current,
+      collaborationDesigns: current.collaborationDesigns.map((design) => {
+        if (design.id !== designId) return design;
+        const previous = side === 'front' ? design.frontImage : design.backImage;
+        if (previous?.previewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(previous.previewUrl);
+        }
 
-      return side === 'front'
-        ? { ...current, collaborationFrontImage: null }
-        : { ...current, collaborationBackImage: null };
-    });
+        return side === 'front'
+          ? { ...design, frontImage: null }
+          : { ...design, backImage: null };
+      }),
+    }));
   }
 
   async function handleSubmit() {
@@ -208,29 +284,52 @@ export default function AdminPartnersPage() {
       form.append('description', draft.description.trim());
       form.append('active', String(draft.active));
       form.append('collaborationEnabled', String(draft.collaborationEnabled));
-      form.append('collaborationTitle', draft.collaborationTitle.trim());
-      form.append('collaborationDescription', draft.collaborationDescription.trim());
-      form.append('collaborationSizes', draft.collaborationSizes.trim());
-      form.append('collaborationPrice', draft.collaborationPrice.trim());
-      const collaborationImages = [
-        { side: 'front', image: draft.collaborationFrontImage },
-        { side: 'back', image: draft.collaborationBackImage },
-      ] as const;
+      const collaborationDesignsMeta: Array<{
+        title: string;
+        description: string;
+        garment: string;
+        colorName: string;
+        colorHex: string;
+        sizes: string[];
+        partnerPrice: number;
+        images: Array<
+          | { type: 'file'; fileIndex: number; isDefault: boolean }
+          | { type: 'url'; url: string; isDefault: boolean }
+        >;
+      }> = [];
       let fileIndex = 0;
-      collaborationImages.forEach(({ side, image }) => {
-        if (image?.file) {
-          form.append('collaborationImages', image.file, image.file.name);
-          form.append(
-            'collaborationImagesMeta',
-            JSON.stringify({ type: 'file', fileIndex: fileIndex++, isDefault: side === 'front' }),
-          );
-        } else if (image?.previewUrl) {
-          form.append(
-            'collaborationImagesMeta',
-            JSON.stringify({ type: 'url', url: image.previewUrl, isDefault: side === 'front' }),
-          );
-        }
+      draft.collaborationDesigns.forEach((design, designIndex) => {
+        const images: Array<
+          | { type: 'file'; fileIndex: number; isDefault: boolean }
+          | { type: 'url'; url: string; isDefault: boolean }
+        > = [];
+
+        const imageRows: Array<[CollaborationImageRow | null, boolean]> = [
+          [design.frontImage, true],
+          [design.backImage, false],
+        ];
+
+        imageRows.forEach(([image, isDefault]) => {
+          if (image?.file) {
+            form.append('collaborationDesignFiles', image.file, image.file.name);
+            images.push({ type: 'file', fileIndex: fileIndex++, isDefault });
+          } else if (image?.previewUrl) {
+            images.push({ type: 'url', url: image.previewUrl, isDefault });
+          }
+        });
+
+        collaborationDesignsMeta.push({
+          title: design.title.trim(),
+          description: design.description.trim(),
+          garment: design.garment.trim(),
+          colorName: design.colorName.trim(),
+          colorHex: design.colorHex.trim(),
+          sizes: design.sizes.split(',').map((size) => size.trim()).filter(Boolean),
+          partnerPrice: Math.max(0, Math.round((Number(design.price) || 0) * 100)),
+          images,
+        });
       });
+      form.append('collaborationDesignsMeta', JSON.stringify(collaborationDesignsMeta));
 
       if (editingId) {
         if (accessToken) form.append('accessToken', accessToken);
@@ -270,17 +369,14 @@ export default function AdminPartnersPage() {
   }
 
   function clearCollaborationDraft() {
-    revokeCollaborationPreview(draft.collaborationFrontImage);
-    revokeCollaborationPreview(draft.collaborationBackImage);
+    draft.collaborationDesigns.forEach((design) => {
+      revokeCollaborationPreview(design.frontImage);
+      revokeCollaborationPreview(design.backImage);
+    });
     setDraft((current) => ({
       ...current,
       collaborationEnabled: false,
-      collaborationTitle: '',
-      collaborationDescription: '',
-      collaborationFrontImage: null,
-      collaborationBackImage: null,
-      collaborationSizes: DEFAULT_SIZE_OPTIONS.join(', '),
-      collaborationPrice: '',
+      collaborationDesigns: [emptyCollaborationDesignDraft()],
     }));
   }
 
@@ -499,146 +595,209 @@ export default function AdminPartnersPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  Partner-only product
+                  Partner-only products
                 </p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Behaves like the product create card, but stays tied to this club.
+                  Each design card becomes a separate collaboration product on the partner dashboard.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={clearCollaborationDraft}
-                className="text-xs font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-              >
-                Reset collab
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={addCollaborationDesign}
+                  className="rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Create new design
+                </button>
+                <button
+                  type="button"
+                  onClick={clearCollaborationDraft}
+                  className="text-xs font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                >
+                  Reset collab
+                </button>
+              </div>
             </div>
 
+            <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+              <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${draft.collaborationEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                <span className={`h-4 w-4 rounded-full bg-white transition-transform ${draft.collaborationEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+              </span>
+              <input
+                type="checkbox"
+                checked={draft.collaborationEnabled}
+                onChange={(e) => setDraft((current) => ({ ...current, collaborationEnabled: e.target.checked }))}
+                className="sr-only"
+              />
+              Enabled
+            </label>
+
             <div className="space-y-4">
-              <div className="grid gap-4 lg:grid-cols-2">
-                {[
-                  {
-                    side: 'front' as const,
-                    label: 'Front image',
-                    inputRef: collaborationFrontImageInputRef,
-                    image: draft.collaborationFrontImage,
-                    emptyCopy: 'Upload the front of the collaboration shirt.',
-                  },
-                  {
-                    side: 'back' as const,
-                    label: 'Back image',
-                    inputRef: collaborationBackImageInputRef,
-                    image: draft.collaborationBackImage,
-                    emptyCopy: 'Upload the back of the collaboration shirt.',
-                  },
-                ].map(({ side, label, inputRef, image, emptyCopy }) => (
-                  <div
-                    key={side}
-                    className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950/60"
-                  >
-                    <div className="relative">
+              {draft.collaborationDesigns.map((design, index) => (
+                <div key={design.id} className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Design {index + 1}</p>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Add the images and fields for this collaboration shirt.
+                      </p>
+                    </div>
+                    {draft.collaborationDesigns.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => inputRef.current?.click()}
-                        className="flex min-h-[15rem] w-full items-center justify-center bg-white p-4 text-left dark:bg-gray-950"
+                        onClick={() => removeCollaborationDesign(design.id)}
+                        className="text-xs font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                       >
-                        {image ? (
-                          <img
-                            src={image.previewUrl}
-                            alt={label}
-                            className="h-[15rem] w-full rounded-xl object-contain"
-                          />
-                        ) : (
-                          <div className="flex h-[15rem] w-full flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 px-6 text-center dark:border-gray-700">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{label}</p>
-                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{emptyCopy}</p>
-                          </div>
-                        )}
+                        Remove design
                       </button>
-                      {image && (
-                        <button
-                          type="button"
-                          onClick={() => removeCollaborationImage(side)}
-                          className="absolute right-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-black"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                    <input
-                      ref={inputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleCollaborationFilesSelected(side, e.target.files)}
-                      className="sr-only"
-                    />
+                    )}
                   </div>
-                ))}
-              </div>
 
-              <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${draft.collaborationEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                  <span className={`h-4 w-4 rounded-full bg-white transition-transform ${draft.collaborationEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                </span>
-                <input
-                  type="checkbox"
-                  checked={draft.collaborationEnabled}
-                  onChange={(e) => setDraft((current) => ({ ...current, collaborationEnabled: e.target.checked }))}
-                  className="sr-only"
-                />
-                Enabled
-              </label>
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    {[
+                      { side: 'front' as const, label: 'Front image', image: design.frontImage, emptyCopy: 'Upload the front image.' },
+                      { side: 'back' as const, label: 'Back image', image: design.backImage, emptyCopy: 'Upload the back image.' },
+                    ].map(({ side, label, image, emptyCopy }) => (
+                      <label
+                        key={side}
+                        className="relative block overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950"
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleCollaborationFilesSelected(design.id, side, e.target.files)}
+                          className="sr-only"
+                        />
+                        <div className="relative">
+                          <div className="flex min-h-[15rem] w-full items-center justify-center bg-white p-4 dark:bg-gray-950">
+                            {image ? (
+                              <img
+                                src={image.previewUrl}
+                                alt={label}
+                                className="h-[15rem] w-full rounded-xl object-contain"
+                              />
+                            ) : (
+                              <div className="flex h-[15rem] w-full flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 px-6 text-center dark:border-gray-700">
+                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{label}</p>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{emptyCopy}</p>
+                              </div>
+                            )}
+                          </div>
+                          {image && (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                removeCollaborationImage(design.id, side);
+                              }}
+                              className="absolute right-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-black"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
 
-              <input
-                value={draft.collaborationTitle}
-                onChange={(e) => setDraft((current) => ({ ...current, collaborationTitle: e.target.value }))}
-                placeholder="Oxford Park x UTC"
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-              />
-              <textarea
-                value={draft.collaborationDescription}
-                onChange={(e) => setDraft((current) => ({ ...current, collaborationDescription: e.target.value }))}
-                rows={3}
-                placeholder="What makes the shirt special?"
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-              />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={draft.collaborationPrice}
-                  onChange={(e) => setDraft((current) => ({ ...current, collaborationPrice: e.target.value }))}
-                  placeholder="18.00"
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                />
-                <input
-                  value={draft.collaborationSizes}
-                  onChange={(e) => setDraft((current) => ({ ...current, collaborationSizes: e.target.value }))}
-                  placeholder={DEFAULT_SIZE_OPTIONS.join(', ')}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                />
-              </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Title</span>
+                      <input
+                        value={design.title}
+                        onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, title: e.target.value }))}
+                        placeholder="Oxford Park x UTC"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </label>
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Garment</span>
+                      <input
+                        value={design.garment}
+                        onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, garment: e.target.value }))}
+                        placeholder="Collaboration Shirt"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </label>
+                  </div>
 
-              {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour name</span>
+                      <input
+                        value={design.colorName}
+                        onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, colorName: e.target.value }))}
+                        placeholder="Collaboration"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </label>
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour hex</span>
+                      <input
+                        value={design.colorHex}
+                        onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, colorHex: e.target.value }))}
+                        placeholder="#111827"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </label>
+                  </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => void handleSubmit()}
-                  disabled={saving}
-                  className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
-                >
-                  {saving ? 'Saving…' : editingId ? 'Update partner' : 'Create partner'}
-                </button>
-                <button
-                  type="button"
-                  onClick={startCreate}
-                  className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
-                >
-                  Reset
-                </button>
-              </div>
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
+                    <textarea
+                      value={design.description}
+                      onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, description: e.target.value }))}
+                      rows={3}
+                      placeholder="What makes the shirt special?"
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </label>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Sizes</span>
+                      <input
+                        value={design.sizes}
+                        onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, sizes: e.target.value }))}
+                        placeholder={DEFAULT_SIZE_OPTIONS.join(', ')}
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </label>
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Price</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={design.price}
+                        onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, price: e.target.value }))}
+                        placeholder="18.00"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <button
+                type="button"
+                onClick={() => void handleSubmit()}
+                disabled={saving}
+                className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
+              >
+                {saving ? 'Saving…' : editingId ? 'Update partner' : 'Create partner'}
+              </button>
+              <button
+                type="button"
+                onClick={startCreate}
+                className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+              >
+                Reset
+              </button>
             </div>
           </div>
         </div>

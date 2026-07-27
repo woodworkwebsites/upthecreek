@@ -64,42 +64,61 @@ function normalizeCollaborationImages(value: unknown): string[] {
   );
 }
 
-function parseCollaborationDesign(raw: string | null): PartnerCollaborationDesign | null {
-  if (!raw) return null;
+function normalizeCollaborationDesign(design: Partial<PartnerCollaborationDesign> | null | undefined): PartnerCollaborationDesign | null {
+  if (!design || typeof design !== 'object') return null;
+
+  const partnerPrice = typeof design.partnerPrice === 'number'
+    ? design.partnerPrice
+    : typeof design.partnerPrice === 'string'
+      ? Number(design.partnerPrice)
+      : NaN;
+  const imageUrls = normalizeCollaborationImages(
+    design.imageUrls ?? (typeof design.imageUrl === 'string' ? [design.imageUrl] : []),
+  );
+
+  return {
+    title: typeof design.title === 'string' ? design.title.trim() : '',
+    description: typeof design.description === 'string' ? design.description.trim() || null : null,
+    imageUrl: imageUrls[0] ?? (typeof design.imageUrl === 'string' ? design.imageUrl.trim() || null : null),
+    imageUrls,
+    garment: typeof design.garment === 'string' ? design.garment.trim() || null : null,
+    colorName: typeof design.colorName === 'string' ? design.colorName.trim() || 'Collaboration' : 'Collaboration',
+    colorHex: typeof design.colorHex === 'string' ? design.colorHex.trim() || '#111827' : '#111827',
+    sizes: normalizeCollaborationSizes(design.sizes),
+    partnerPrice: Number.isFinite(partnerPrice) && partnerPrice >= 0 ? Math.round(partnerPrice) : 0,
+  };
+}
+
+function parseCollaborationDesigns(raw: string | null): PartnerCollaborationDesign[] {
+  if (!raw) return [];
 
   try {
-    const parsed = JSON.parse(raw) as Partial<PartnerCollaborationDesign> | null;
-    if (!parsed || typeof parsed !== 'object') return null;
-
-    const partnerPrice = typeof parsed.partnerPrice === 'number'
-      ? parsed.partnerPrice
-      : typeof parsed.partnerPrice === 'string'
-        ? Number(parsed.partnerPrice)
-        : NaN;
-    const imageUrls = normalizeCollaborationImages(
-      parsed.imageUrls ?? (typeof parsed.imageUrl === 'string' ? [parsed.imageUrl] : []),
-    );
-
-    return {
-      title: typeof parsed.title === 'string' ? parsed.title.trim() : '',
-      description: typeof parsed.description === 'string' ? parsed.description.trim() || null : null,
-      imageUrl: imageUrls[0] ?? (typeof parsed.imageUrl === 'string' ? parsed.imageUrl.trim() || null : null),
-      imageUrls,
-      garment: typeof parsed.garment === 'string' ? parsed.garment.trim() || null : null,
-      colorName: typeof parsed.colorName === 'string' ? parsed.colorName.trim() || 'Collaboration' : 'Collaboration',
-      colorHex: typeof parsed.colorHex === 'string' ? parsed.colorHex.trim() || '#111827' : '#111827',
-      sizes: normalizeCollaborationSizes(parsed.sizes),
-      partnerPrice: Number.isFinite(partnerPrice) && partnerPrice >= 0 ? Math.round(partnerPrice) : 0,
-    };
+    const parsed = JSON.parse(raw) as unknown;
+    const entries = Array.isArray(parsed) ? parsed : [parsed];
+    return entries
+      .map((entry) => normalizeCollaborationDesign(entry as Partial<PartnerCollaborationDesign> | null))
+      .filter((entry): entry is PartnerCollaborationDesign => Boolean(entry));
   } catch {
-    return null;
+    return [];
   }
+}
+
+function parseCollaborationDesign(raw: string | null): PartnerCollaborationDesign | null {
+  return parseCollaborationDesigns(raw)[0] ?? null;
 }
 
 function serializeCollaborationDesign(design: PartnerCollaborationDesign | null | undefined): string | null {
   if (!design) return null;
+  return serializeCollaborationDesigns([design]);
+}
 
-  return JSON.stringify({
+function serializeCollaborationDesigns(designs: PartnerCollaborationDesign[] | null | undefined): string | null {
+  const normalized = (designs ?? [])
+    .map((design) => normalizeCollaborationDesign(design))
+    .filter((entry): entry is PartnerCollaborationDesign => Boolean(entry));
+  if (normalized.length === 0) return null;
+
+  return JSON.stringify(normalized.map((design) => ({
     title: design.title.trim(),
     description: design.description?.trim() || null,
     imageUrl: design.imageUrls[0]?.trim() || design.imageUrl?.trim() || null,
@@ -109,7 +128,7 @@ function serializeCollaborationDesign(design: PartnerCollaborationDesign | null 
     colorHex: design.colorHex.trim() || '#111827',
     sizes: normalizeCollaborationSizes(design.sizes),
     partnerPrice: Math.max(0, Math.round(design.partnerPrice)),
-  });
+  })));
 }
 
 function calcItemTotal(items: OrderItem[]): number {
@@ -153,6 +172,7 @@ export function parsePartnerRow(row: {
     description: row.description,
     active: row.active === 1,
     collaborationEnabled: row.collaboration_enabled === 1,
+    collaborationDesigns: parseCollaborationDesigns(row.collaboration_design),
     collaborationDesign: parseCollaborationDesign(row.collaboration_design),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -398,7 +418,9 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
       data.description?.trim() || null,
       data.active === false ? 0 : 1,
       data.collaborationEnabled ? 1 : 0,
-      serializeCollaborationDesign(data.collaborationDesign ?? null),
+      serializeCollaborationDesigns(
+        data.collaborationDesigns ?? (data.collaborationDesign ? [data.collaborationDesign] : []),
+      ),
     )
     .run();
 
@@ -422,9 +444,11 @@ export async function updatePartner(
 
   const accessToken = data.accessToken?.trim() || existing.accessToken;
   const collaborationEnabled = data.collaborationEnabled ?? existing.collaborationEnabled;
-  const collaborationDesign = data.collaborationDesign !== undefined
-    ? data.collaborationDesign
-    : existing.collaborationDesign;
+  const collaborationDesigns = data.collaborationDesigns !== undefined
+    ? data.collaborationDesigns
+    : data.collaborationDesign !== undefined
+      ? (data.collaborationDesign ? [data.collaborationDesign] : [])
+      : existing.collaborationDesigns;
 
   const result = await db
     .prepare(`
@@ -450,7 +474,7 @@ export async function updatePartner(
       data.description?.trim() || null,
       data.active === false ? 0 : 1,
       collaborationEnabled ? 1 : 0,
-      serializeCollaborationDesign(collaborationDesign),
+      serializeCollaborationDesigns(collaborationDesigns),
       id,
     )
     .run();
