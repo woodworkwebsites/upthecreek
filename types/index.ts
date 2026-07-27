@@ -34,7 +34,9 @@ export interface PricingMatrixRow {
   printSurface: string;
   manufacturingCost: string;
   saleCost: string;
-  delivery: string;
+  deliveryRetail: string;
+  deliveryPartner: string;
+  deliveryOnlinePartnership: string;
   salePrice: string;
   partnerPrice: string;
 }
@@ -47,6 +49,7 @@ export interface ProductRow {
   title: string;
   description: string;
   category: string;
+  range_id: string | null;
   audience: string;
   product_type: string;
   garment: string;
@@ -154,6 +157,7 @@ export interface Product {
   title: string;
   description: string;
   category: string;
+  rangeId: string | null;
   audience: string;
   productType: string;
   garment: string;
@@ -227,6 +231,26 @@ export interface DiscountCode {
   updatedAt: string;
 }
 
+export interface CatalogRange {
+  id: string;
+  name: string;
+  storefrontEnabled: boolean;
+  partnerEnabled: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CatalogRangeRow {
+  id: string;
+  name: string;
+  storefront_enabled: number;
+  partner_enabled: number;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Partner {
   id: string;
   slug: string;
@@ -235,12 +259,25 @@ export interface Partner {
   commissionRate: number;
   description: string | null;
   active: boolean;
+  collaborationEnabled: boolean;
+  collaborationDesign: PartnerCollaborationDesign | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface PartnerAdmin extends Partner {
   accessToken?: string;
+}
+
+export interface PartnerCollaborationDesign {
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  garment: string | null;
+  colorName: string;
+  colorHex: string;
+  sizes: string[];
+  partnerPrice: number;
 }
 
 export type PartnerCommissionStatus = 'pending' | 'paid' | 'void';
@@ -281,6 +318,8 @@ export interface PartnerInput {
   commissionRate: number;
   description?: string | null;
   active?: boolean;
+  collaborationEnabled?: boolean;
+  collaborationDesign?: PartnerCollaborationDesign | null;
 }
 
 export interface PartnerOrderSummary {

@@ -3,6 +3,7 @@ import type {
   PrintifyVariant,
   PrintifyProductImage,
   OrderStatus,
+  PartnerInput,
   PartnerStockOrderStatus,
 } from '../../types/index.js';
 import {
@@ -47,6 +48,13 @@ import {
   getPartnerById,
   syncPartnerCommissionStatusByOrderId,
 } from '../partners/repository.js';
+import {
+  listRanges,
+  createRange,
+  updateRange,
+  deleteRange,
+  getRangeById,
+} from '../ranges/repository.js';
 import {
   listPartnerStockOrders,
   deletePartnerStockOrder,
@@ -155,6 +163,87 @@ export async function handleListProducts(env: Env): Promise<Response> {
   return json({ products });
 }
 
+export async function handleListRanges(env: Env): Promise<Response> {
+  const ranges = await listRanges(env.DB);
+  return json({ ranges });
+}
+
+export async function handleCreateRange(env: Env, request: Request): Promise<Response> {
+  let body: {
+    name?: string;
+    storefrontEnabled?: boolean;
+    partnerEnabled?: boolean;
+    sortOrder?: number | string;
+  };
+
+  try {
+    body = await request.json().catch(() => ({})) as typeof body;
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const name = body.name?.trim();
+  if (!name) return json({ error: 'Range name is required' }, 400);
+
+  try {
+    const range = await createRange(env.DB, {
+      name,
+      storefrontEnabled: body.storefrontEnabled,
+      partnerEnabled: body.partnerEnabled,
+      sortOrder: parseOptionalInt(body.sortOrder ?? null) ?? 0,
+    });
+    return json({ range }, 201);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ error: message }, 400);
+  }
+}
+
+export async function handleUpdateRange(env: Env, id: string, request: Request): Promise<Response> {
+  let body: {
+    name?: string;
+    storefrontEnabled?: boolean;
+    partnerEnabled?: boolean;
+    sortOrder?: number | string;
+  };
+
+  try {
+    body = await request.json().catch(() => ({})) as typeof body;
+  } catch {
+    return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const existing = await getRangeById(env.DB, id);
+  if (!existing) return json({ error: 'Range not found' }, 404);
+
+  const nextSortOrder = body.sortOrder !== undefined ? parseOptionalInt(body.sortOrder) ?? existing.sortOrder : undefined;
+  const range = await updateRange(env.DB, id, {
+    name: body.name?.trim() || undefined,
+    storefrontEnabled: body.storefrontEnabled ?? existing.storefrontEnabled,
+    partnerEnabled: body.partnerEnabled ?? existing.partnerEnabled,
+    sortOrder: nextSortOrder,
+  });
+
+  if (!range) return json({ error: 'Range not found' }, 404);
+  return json({ range });
+}
+
+export async function handleDeleteRange(env: Env, id: string): Promise<Response> {
+  const existing = await getRangeById(env.DB, id);
+  if (!existing) return json({ error: 'Range not found' }, 404);
+
+  const inUse = await env.DB
+    .prepare('SELECT COUNT(*) AS count FROM products WHERE range_id = ?')
+    .bind(id)
+    .first<{ count: number }>();
+  if ((inUse?.count ?? 0) > 0) {
+    return json({ error: 'Move products off this range before deleting it' }, 400);
+  }
+
+  await deleteRange(env.DB, id);
+  return json({ success: true });
+}
+
 export async function handleDeleteProduct(
   env: Env,
   printifyId: string,
@@ -194,7 +283,9 @@ interface ManualPricingMatrix {
   printSurface: string;
   manufacturingCost: string;
   saleCost: string;
-  delivery: string;
+  deliveryRetail: string;
+  deliveryPartner: string;
+  deliveryOnlinePartnership: string;
   salePrice: string;
   partnerPrice: string;
 }
@@ -277,6 +368,7 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
   const title = (form.get('title') as string | null)?.trim() ?? '';
   const description = (form.get('description') as string | null)?.trim() ?? '';
   const category = (form.get('category') as string | null)?.trim() || 'apparel';
+  const rangeIdRaw = (form.get('rangeId') as string | null)?.trim() || '';
   const audience = (form.get('audience') as string | null)?.trim() || '';
   const productType = (form.get('productType') as string | null)?.trim() || '';
   const garment = (form.get('garment') as string | null)?.trim() || '';
@@ -314,7 +406,9 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
           printSurface: parsed.printSurface?.trim() ?? '',
           manufacturingCost: parsed.manufacturingCost?.trim() ?? '',
           saleCost: parsed.saleCost?.trim() ?? '',
-          delivery: parsed.delivery?.trim() ?? '',
+          deliveryRetail: parsed.deliveryRetail?.trim() ?? parsed.delivery?.trim() ?? '',
+          deliveryPartner: parsed.deliveryPartner?.trim() ?? parsed.delivery?.trim() ?? '',
+          deliveryOnlinePartnership: parsed.deliveryOnlinePartnership?.trim() ?? parsed.delivery?.trim() ?? '',
           salePrice: parsed.salePrice?.trim() ?? '',
           partnerPrice: parsed.partnerPrice?.trim() ?? '',
         };
@@ -331,6 +425,13 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
   const imageFiles = form.getAll('images').filter((v): v is File => v instanceof File);
   if (variantRows.length === 0) {
     return json({ error: 'Select at least one colour' }, 400);
+  }
+
+  const ranges = await listRanges(env.DB);
+  const defaultRange = ranges.find((range) => range.storefrontEnabled && range.partnerEnabled) ?? ranges[0] ?? null;
+  const rangeId = rangeIdRaw || defaultRange?.id || null;
+  if (rangeId && !(await getRangeById(env.DB, rangeId))) {
+    return json({ error: 'Selected range not found' }, 400);
   }
 
   const colorSource = variantRows
@@ -397,6 +498,7 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
     title,
     description,
     category,
+    rangeId,
     audience,
     productType,
     garment,
@@ -464,6 +566,7 @@ export async function handleUpdateProduct(
     title?: string;
     description?: string;
     category?: string;
+    rangeId?: string | null;
     audience?: string;
     productType?: string;
     garment?: string;
@@ -488,6 +591,7 @@ export async function handleUpdateProduct(
       title?: string;
       description?: string;
       category?: string;
+      rangeId?: string | null;
       audience?: string;
       productType?: string;
       garment?: string;
@@ -500,6 +604,7 @@ export async function handleUpdateProduct(
         saleCost?: string;
         delivery?: string;
         salePrice?: string;
+        partnerPrice?: string;
       } | null;
       isEnabled?: boolean;
       sizeGuideImage?: string | null;
@@ -514,6 +619,7 @@ export async function handleUpdateProduct(
     !('title' in body) &&
     !('description' in body) &&
     !('category' in body) &&
+    !('rangeId' in body) &&
     !('audience' in body) &&
     !('productType' in body) &&
     !('garment' in body) &&
@@ -533,6 +639,7 @@ export async function handleUpdateProduct(
 
   const description = body.description !== undefined ? body.description.trim() : undefined;
   const category = body.category !== undefined ? body.category.trim() : undefined;
+  const rangeId = body.rangeId !== undefined ? body.rangeId?.trim() || null : undefined;
   const audience = body.audience !== undefined ? body.audience.trim() : undefined;
   const productType = body.productType !== undefined ? body.productType.trim() : undefined;
   const garment = body.garment !== undefined ? body.garment.trim() : undefined;
@@ -547,7 +654,9 @@ export async function handleUpdateProduct(
           printSurface: body.pricingMatrix.printSurface?.trim() || '',
           manufacturingCost: body.pricingMatrix.manufacturingCost?.trim() || '',
           saleCost: body.pricingMatrix.saleCost?.trim() || '',
-          delivery: body.pricingMatrix.delivery?.trim() || '',
+          deliveryRetail: body.pricingMatrix.deliveryRetail?.trim() || body.pricingMatrix.delivery?.trim() || '',
+          deliveryPartner: body.pricingMatrix.deliveryPartner?.trim() || body.pricingMatrix.delivery?.trim() || '',
+          deliveryOnlinePartnership: body.pricingMatrix.deliveryOnlinePartnership?.trim() || body.pricingMatrix.delivery?.trim() || '',
           salePrice: body.pricingMatrix.salePrice?.trim() || '',
           partnerPrice: body.pricingMatrix.partnerPrice?.trim() || '',
         }
@@ -562,10 +671,16 @@ export async function handleUpdateProduct(
         .filter((color) => color.name.length > 0)
     : undefined;
 
+  if (rangeId !== undefined && rangeId !== null) {
+    const range = await getRangeById(env.DB, rangeId);
+    if (!range) return json({ error: 'Selected range not found' }, 400);
+  }
+
   let updated = await updateProductFields(env.DB, printifyId, {
     title,
     description,
     category,
+    rangeId,
     audience,
     productType,
     garment,
@@ -934,6 +1049,8 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
     commissionRate?: number | string;
     description?: string | null;
     active?: boolean;
+    collaborationEnabled?: boolean;
+    collaborationDesign?: PartnerInput['collaborationDesign'];
   };
 
   try {
@@ -963,6 +1080,8 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
       commissionRate,
       description: body.description?.trim() || null,
       active: body.active !== false,
+      collaborationEnabled: body.collaborationEnabled === true,
+      collaborationDesign: body.collaborationDesign ?? null,
     });
     return json({ partner }, 201);
   } catch (err) {
@@ -980,6 +1099,8 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
     commissionRate?: number | string;
     description?: string | null;
     active?: boolean;
+    collaborationEnabled?: boolean;
+    collaborationDesign?: PartnerInput['collaborationDesign'];
   };
 
   try {
@@ -1011,6 +1132,8 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
       commissionRate,
       description: body.description?.trim() || null,
       active: body.active ?? existing.active,
+      collaborationEnabled: body.collaborationEnabled ?? existing.collaborationEnabled,
+      collaborationDesign: body.collaborationDesign === undefined ? undefined : body.collaborationDesign,
     });
 
     if (!partner) return json({ error: 'Partner not found' }, 404);

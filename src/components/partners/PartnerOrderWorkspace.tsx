@@ -75,7 +75,7 @@ function getRrp(product: Product): number {
 
 function getReferralPricing(product: Product): { purchaserPrice: number; commission: number } {
   const saleCost = parseFloat(product.pricingMatrix?.saleCost?.trim() || '0');
-  const delivery = parseFloat(product.pricingMatrix?.delivery?.trim() || '0');
+  const delivery = parseFloat(product.pricingMatrix?.deliveryOnlinePartnership?.trim() || '0');
   const purchaserPricePounds = (Number.isFinite(saleCost) ? saleCost : 0) + (Number.isFinite(delivery) ? delivery : 0);
   const discountedPounds = purchaserPricePounds * 0.9;
   const commissionPounds = discountedPounds * 0.1;
@@ -192,6 +192,7 @@ function ProductMatrixCard({
   const rrp = getRrp(product);
   const margin = rrp - partnerPrice;
   const { purchaserPrice, commission } = getReferralPricing(product);
+  const isCollaboration = product.category === 'partner-collaboration';
 
   return (
     <article className="overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_40px_rgba(5,13,31,0.05)]">
@@ -213,23 +214,40 @@ function ProductMatrixCard({
       )}
 
       <div className="p-4">
+        {isCollaboration && (
+          <div className="mb-2">
+            <Badge variant="info">Partner collaboration</Badge>
+          </div>
+        )}
         <h2 className="text-base font-black leading-snug tracking-tight text-navy-900">{product.title}</h2>
         <p className="mt-0.5 text-xs font-semibold text-gray-500">{product.garment}</p>
+        {product.description && (
+          <p className="mt-2 text-sm leading-6 text-gray-500">{product.description}</p>
+        )}
 
         <div className="mt-2.5 space-y-1.5">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className={rowLabelClass}>In-store</span>
-            <span className={priceChipClass}>{formatPrice(partnerPrice)} partner</span>
-            <span className={marginChipClass}>{formatPrice(margin)} margin</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className={rowLabelClass}>Referral after discount</span>
-            <span className={commissionChipClass}>{formatPrice(commission)} referral</span>
-            <span className={rrpChipClass}>{formatPrice(purchaserPrice)} after discount</span>
-          </div>
+          {isCollaboration ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className={priceChipClass}>{formatPrice(partnerPrice)} partner</span>
+              <span className={rrpChipClass}>Partner only</span>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={rowLabelClass}>In-store</span>
+                <span className={priceChipClass}>{formatPrice(partnerPrice)} partner</span>
+                <span className={marginChipClass}>{formatPrice(margin)} margin</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={rowLabelClass}>Referral after discount</span>
+                <span className={commissionChipClass}>{formatPrice(commission)} referral</span>
+                <span className={rrpChipClass}>{formatPrice(purchaserPrice)} after discount</span>
+              </div>
+            </>
+          )}
         </div>
         <p className="mt-2 text-xs text-gray-400">
           {colors.length} colours · {getProductSizes(product).length} sizes
@@ -265,10 +283,12 @@ function ProductMatrixCard({
 
 export function PartnerOrderWorkspace({
   products,
+  collaborationProduct,
   slug,
   accessToken,
 }: {
   products: Product[];
+  collaborationProduct?: Product | null;
   slug: string;
   accessToken: string;
 }) {
@@ -437,6 +457,19 @@ export function PartnerOrderWorkspace({
             />
           </div>
         </div>
+
+        {collaborationProduct && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Badge variant="info">Pinned first</Badge>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">Collaboration design</p>
+            </div>
+            <ProductMatrixCard
+              product={collaborationProduct}
+              onOpenDraft={openDraft}
+            />
+          </div>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filteredProducts.map((product) => (

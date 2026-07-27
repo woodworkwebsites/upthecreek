@@ -3,7 +3,11 @@ import { getAllProducts } from '../../../server/products/repository.js';
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const products = await getAllProducts(context.env.DB);
+    const channel = context.request.url ? new URL(context.request.url).searchParams.get('channel') : null;
+    const products = await getAllProducts(
+      context.env.DB,
+      channel === 'partner' ? 'partner' : 'storefront',
+    );
     return new Response(JSON.stringify({ products }), {
       headers: { 'Content-Type': 'application/json' },
     });

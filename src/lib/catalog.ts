@@ -12,7 +12,9 @@ export interface PricingRowOption {
   printSurface: string;
   manufacturingCost: string;
   saleCost: string;
-  delivery: string;
+  deliveryRetail: string;
+  deliveryPartner: string;
+  deliveryOnlinePartnership: string;
   salePrice: string;
   partnerPrice: string;
 }
@@ -25,7 +27,9 @@ export function createEmptyPricingRow(overrides: Partial<PricingRowOption> = {})
     printSurface: '',
     manufacturingCost: '',
     saleCost: '',
-    delivery: '',
+    deliveryRetail: '',
+    deliveryPartner: '',
+    deliveryOnlinePartnership: '',
     salePrice: '',
     partnerPrice: '',
     ...overrides,
@@ -71,7 +75,9 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       printSurface: 'Double',
       manufacturingCost: '8.30',
       saleCost: '22.00',
-      delivery: '2.99',
+      deliveryRetail: '2.99',
+      deliveryPartner: '2.99',
+      deliveryOnlinePartnership: '2.99',
       salePrice: '24.99',
       partnerPrice: '11.29',
     },
@@ -82,7 +88,9 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       printSurface: 'Double',
       manufacturingCost: '8.11',
       saleCost: '22.00',
-      delivery: '2.99',
+      deliveryRetail: '2.99',
+      deliveryPartner: '2.99',
+      deliveryOnlinePartnership: '2.99',
       salePrice: '24.99',
       partnerPrice: '11.10',
     },
@@ -93,7 +101,9 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       printSurface: 'Single',
       manufacturingCost: '6.18',
       saleCost: '12.00',
-      delivery: '2.99',
+      deliveryRetail: '2.99',
+      deliveryPartner: '2.99',
+      deliveryOnlinePartnership: '2.99',
       salePrice: '14.99',
       partnerPrice: '9.17',
     },
@@ -104,7 +114,9 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       printSurface: 'Double',
       manufacturingCost: '12.65',
       saleCost: '27.00',
-      delivery: '2.99',
+      deliveryRetail: '2.99',
+      deliveryPartner: '2.99',
+      deliveryOnlinePartnership: '2.99',
       salePrice: '29.99',
       partnerPrice: '15.64',
     },
@@ -115,7 +127,9 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       printSurface: 'Double',
       manufacturingCost: '12.65',
       saleCost: '27.00',
-      delivery: '2.99',
+      deliveryRetail: '2.99',
+      deliveryPartner: '2.99',
+      deliveryOnlinePartnership: '2.99',
       salePrice: '29.99',
       partnerPrice: '15.64',
     },
@@ -126,7 +140,9 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       printSurface: 'Double',
       manufacturingCost: '12.69',
       saleCost: '29.00',
-      delivery: '2.99',
+      deliveryRetail: '2.99',
+      deliveryPartner: '2.99',
+      deliveryOnlinePartnership: '2.99',
       salePrice: '31.99',
       partnerPrice: '15.68',
     },
@@ -137,7 +153,9 @@ export const DEFAULT_CATALOG_OPTIONS: CatalogOptions = {
       printSurface: 'Double',
       manufacturingCost: '15.99',
       saleCost: '30.00',
-      delivery: '2.99',
+      deliveryRetail: '2.99',
+      deliveryPartner: '2.99',
+      deliveryOnlinePartnership: '2.99',
       salePrice: '33.99',
       partnerPrice: '18.98',
     },
@@ -279,7 +297,9 @@ export function serializeCatalogSettings(options: CatalogOptions): Record<string
         printSurface: row.printSurface.trim(),
         manufacturingCost: row.manufacturingCost.trim(),
         saleCost: row.saleCost.trim(),
-        delivery: row.delivery.trim(),
+        deliveryRetail: row.deliveryRetail.trim(),
+        deliveryPartner: row.deliveryPartner.trim(),
+        deliveryOnlinePartnership: row.deliveryOnlinePartnership.trim(),
         salePrice: row.salePrice.trim(),
         partnerPrice: row.partnerPrice.trim(),
       })),
@@ -300,12 +320,11 @@ function parsePricingRows(raw: string | null | undefined, fallback: PricingRowOp
           typeof value.audience === 'string' &&
           typeof value.product === 'string' &&
           typeof value.garment === 'string' &&
-          typeof value.printSurface === 'string' &&
-          typeof value.manufacturingCost === 'string' &&
-          typeof value.saleCost === 'string' &&
-          typeof value.delivery === 'string' &&
-          typeof value.salePrice === 'string',
-        );
+      typeof value.printSurface === 'string' &&
+      typeof value.manufacturingCost === 'string' &&
+      typeof value.saleCost === 'string' &&
+      typeof value.salePrice === 'string',
+      );
       })
       .map((value) => ({
         audience: value.audience.trim(),
@@ -314,7 +333,9 @@ function parsePricingRows(raw: string | null | undefined, fallback: PricingRowOp
         printSurface: value.printSurface.trim(),
         manufacturingCost: value.manufacturingCost.trim(),
         saleCost: value.saleCost.trim(),
-        delivery: value.delivery.trim(),
+        deliveryRetail: typeof value.deliveryRetail === 'string' ? value.deliveryRetail.trim() : typeof value.delivery === 'string' ? value.delivery.trim() : '',
+        deliveryPartner: typeof value.deliveryPartner === 'string' ? value.deliveryPartner.trim() : typeof value.delivery === 'string' ? value.delivery.trim() : '',
+        deliveryOnlinePartnership: typeof value.deliveryOnlinePartnership === 'string' ? value.deliveryOnlinePartnership.trim() : typeof value.delivery === 'string' ? value.delivery.trim() : '',
         salePrice: value.salePrice.trim(),
         partnerPrice: typeof value.partnerPrice === 'string' ? value.partnerPrice.trim() : '',
       }));

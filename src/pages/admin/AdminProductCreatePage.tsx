@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminCreateProduct, adminGetSettings } from '../../lib/api.js';
+import { adminCreateProduct, adminFetchRanges, adminGetSettings } from '../../lib/api.js';
 import { ColorMultiSelect } from '../../components/admin/ColorMultiSelect.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { DEFAULT_CATALOG_OPTIONS, DEFAULT_SIZE_OPTIONS, findPricingPresetRow, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
+import type { CatalogRange } from '../../../types/index.js';
 
 interface ImageRow {
   file: File;
@@ -26,7 +27,9 @@ export default function AdminProductCreatePage() {
   const [productType, setProductType] = useState(DEFAULT_CATALOG_OPTIONS.products[0] ?? '');
   const [garmentType, setGarmentType] = useState(DEFAULT_CATALOG_OPTIONS.garments[0] ?? '');
   const [printSurface, setPrintSurface] = useState('');
+  const [rangeId, setRangeId] = useState('');
   const [catalog, setCatalog] = useState(DEFAULT_CATALOG_OPTIONS);
+  const [ranges, setRanges] = useState<CatalogRange[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [images, setImages] = useState<ImageRow[]>([]);
   const [isEnabled, setIsEnabled] = useState(true);
@@ -46,9 +49,14 @@ export default function AdminProductCreatePage() {
       if (!token) return;
       try {
         const settings = await adminGetSettings(token);
+        const rangeList = await adminFetchRanges(token);
         if (!mounted) return;
         const nextCatalog = parseCatalogSettings(settings);
         setCatalog(nextCatalog);
+        setRanges(rangeList);
+        const evergreen = rangeList.find((range) => range.name.toLowerCase() === 'evergreen');
+        const defaultRange = evergreen ?? rangeList.find((range) => range.storefrontEnabled && range.partnerEnabled) ?? rangeList[0] ?? null;
+        setRangeId((current) => current || defaultRange?.id || '');
         setCategory((current) => current || nextCatalog.audiences[0] || '');
         setProductType((current) => current || nextCatalog.products[0] || '');
         setGarmentType((current) => current || nextCatalog.garments[0] || '');
@@ -123,6 +131,7 @@ export default function AdminProductCreatePage() {
       form.append('audience', category.trim() || catalog.audiences[0] || '');
       form.append('productType', productType.trim() || catalog.products[0] || '');
       form.append('garment', garmentType.trim() || catalog.garments[0] || '');
+      form.append('rangeId', rangeId.trim() || ranges[0]?.id || '');
       const pricingPreset = findPricingPresetRow(catalog.pricingRows, category, productType, garmentType)
         ?? catalog.pricingRows[0]
         ?? null;
@@ -137,7 +146,9 @@ export default function AdminProductCreatePage() {
         printSurface: pricingPreset.printSurface.trim(),
         manufacturingCost: pricingPreset.manufacturingCost.trim(),
         saleCost: pricingPreset.saleCost.trim(),
-        delivery: pricingPreset.delivery.trim(),
+        deliveryRetail: pricingPreset.deliveryRetail.trim(),
+        deliveryPartner: pricingPreset.deliveryPartner.trim(),
+        deliveryOnlinePartnership: pricingPreset.deliveryOnlinePartnership.trim(),
         salePrice: pricingPreset.salePrice.trim(),
         partnerPrice: pricingPreset.partnerPrice.trim(),
       } : {
@@ -147,7 +158,9 @@ export default function AdminProductCreatePage() {
         printSurface: printSurface.trim(),
         manufacturingCost: '',
         saleCost: '',
-        delivery: '',
+        deliveryRetail: '',
+        deliveryPartner: '',
+        deliveryOnlinePartnership: '',
         salePrice,
         partnerPrice: '',
       }));
@@ -203,6 +216,16 @@ export default function AdminProductCreatePage() {
             className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-navy-400 focus:outline-none"
           />
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <select
+              value={rangeId}
+              onChange={(e) => setRangeId(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-navy-400 focus:outline-none"
+            >
+              <option value="">Range</option>
+              {ranges.map((range) => (
+                <option key={range.id} value={range.id}>{range.name}</option>
+              ))}
+            </select>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}

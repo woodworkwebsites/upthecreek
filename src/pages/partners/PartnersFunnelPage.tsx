@@ -47,7 +47,7 @@ const faqs = [
 ];
 
 export default function PartnersFunnelPage() {
-  const { products, loading, error } = useProducts();
+  const { products, loading, error } = useProducts('partner');
   const featuredProducts = products.slice(0, 4);
 
   return (

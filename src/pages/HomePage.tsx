@@ -6,7 +6,7 @@ import { PageLoader } from '../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../components/ui/ErrorMessage.js';
 
 export default function HomePage() {
-  const { products, loading, error } = useProducts();
+  const { products, loading, error } = useProducts('storefront');
   const { hash } = useLocation();
 
   useEffect(() => {

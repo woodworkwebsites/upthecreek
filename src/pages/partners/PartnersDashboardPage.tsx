@@ -9,7 +9,8 @@ import { partnerFetchDashboard } from '../../lib/api.js';
 import { useProducts } from '../../hooks/useProducts.js';
 import { PartnerOrderWorkspace } from '../../components/partners/PartnerOrderWorkspace.js';
 import { usePartnerSession } from '../../hooks/usePartner.js';
-import type { PartnerDashboard } from '../../../types/index.js';
+import type { PartnerDashboard, Product } from '../../../types/index.js';
+import { DEFAULT_SIZE_OPTIONS } from '../../../types/catalog.js';
 
 function StatCard({ label, value, tone = 'text-navy-900' }: { label: string; value: string; tone?: string }) {
   return (
@@ -20,10 +21,75 @@ function StatCard({ label, value, tone = 'text-navy-900' }: { label: string; val
   );
 }
 
+function buildCollaborationProduct(partner: PartnerDashboard['partner']): Product | null {
+  if (!partner.collaborationEnabled || !partner.collaborationDesign) return null;
+
+  const design = partner.collaborationDesign;
+  const sizes = design.sizes.length > 0 ? design.sizes : DEFAULT_SIZE_OPTIONS.slice();
+  const price = Math.max(0, design.partnerPrice);
+  const pricePounds = (price / 100).toFixed(2);
+  const colorName = design.colorName.trim() || 'Collaboration';
+
+  return {
+    id: `partner-collab:${partner.slug}`,
+    printifyId: `partner-collab:${partner.slug}`,
+    title: design.title.trim() || `${partner.name} collaboration`,
+    description: design.description ?? '',
+    category: 'partner-collaboration',
+    rangeId: null,
+    audience: 'Partner',
+    productType: 'Collaboration',
+    garment: design.garment?.trim() || 'Collaboration Shirt',
+    pricingMatrix: {
+      audience: 'Partner',
+      product: 'Collaboration',
+      garment: design.garment?.trim() || 'Collaboration Shirt',
+      printSurface: 'Partner exclusive',
+      manufacturingCost: '',
+      saleCost: '',
+      deliveryRetail: '',
+      deliveryPartner: '',
+      deliveryOnlinePartnership: '',
+      salePrice: pricePounds,
+      partnerPrice: pricePounds,
+    },
+    images: [
+      {
+        src: design.imageUrl?.trim() || '/UTC_Logo.png',
+        isDefault: true,
+        variantIds: [1],
+        color: colorName,
+      },
+    ],
+    variants: sizes.map((size, index) => ({
+      id: index + 1,
+      color: colorName,
+      size,
+      price,
+      available: true,
+    })),
+    colors: [
+      {
+        name: colorName,
+        hex: design.colorHex?.trim() || '#111827',
+      },
+    ],
+    hiddenColors: [],
+    sizes,
+    minPrice: price,
+    maxPrice: price,
+    isEnabled: true,
+    sizeGuideImage: null,
+    syncedAt: partner.updatedAt,
+    createdAt: partner.createdAt,
+    updatedAt: partner.updatedAt,
+  };
+}
+
 export default function PartnersDashboardPage() {
   const navigate = useNavigate();
   const { session, clearSession } = usePartnerSession();
-  const { products, loading: productsLoading, error: productsError } = useProducts();
+  const { products, loading: productsLoading, error: productsError } = useProducts('partner');
   const [dashboard, setDashboard] = useState<PartnerDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +158,7 @@ export default function PartnersDashboardPage() {
   }
 
   const { partner, summary, recentOrders } = dashboard;
+  const collaborationProduct = buildCollaborationProduct(partner);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,_#06122c_0%,_#0a1736_18%,_#f8f7f3_18%,_#f8f7f3_100%)] text-navy-900">
@@ -203,7 +270,12 @@ export default function PartnersDashboardPage() {
               ) : productsError ? (
                 <p className="text-sm text-red-600">{productsError}</p>
               ) : (
-                <PartnerOrderWorkspace products={products} slug={session.slug} accessToken={session.accessToken} />
+                <PartnerOrderWorkspace
+                  products={products}
+                  collaborationProduct={collaborationProduct}
+                  slug={session.slug}
+                  accessToken={session.accessToken}
+                />
               )}
             </div>
           </article>

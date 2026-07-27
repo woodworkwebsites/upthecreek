@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { PartnerAdmin } from '../../../types/index.js';
+import type { PartnerAdmin, PartnerCollaborationDesign } from '../../../types/index.js';
 import {
   adminCreatePartner,
   adminDeletePartner,
   adminFetchPartners,
   adminUpdatePartner,
 } from '../../lib/api.js';
+import { DEFAULT_SIZE_OPTIONS } from '../../../types/catalog.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Badge } from '../../components/ui/Badge.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -20,6 +21,15 @@ type Draft = {
   commissionRate: string;
   description: string;
   active: boolean;
+  collaborationEnabled: boolean;
+  collaborationTitle: string;
+  collaborationDescription: string;
+  collaborationImageUrl: string;
+  collaborationGarment: string;
+  collaborationColorName: string;
+  collaborationColorHex: string;
+  collaborationSizes: string;
+  collaborationPrice: string;
 };
 
 function emptyDraft(): Draft {
@@ -31,6 +41,59 @@ function emptyDraft(): Draft {
     commissionRate: '10',
     description: '',
     active: true,
+    collaborationEnabled: false,
+    collaborationTitle: '',
+    collaborationDescription: '',
+    collaborationImageUrl: '',
+    collaborationGarment: 'Collaboration Shirt',
+    collaborationColorName: 'Collaboration',
+    collaborationColorHex: '#111827',
+    collaborationSizes: DEFAULT_SIZE_OPTIONS.join(', '),
+    collaborationPrice: '',
+  };
+}
+
+function formatPoundsInput(value: number | undefined | null): string {
+  if (!Number.isFinite(value ?? NaN)) return '';
+  return ((value ?? 0) / 100).toFixed(2);
+}
+
+function buildCollaborationDesign(draft: Draft): PartnerCollaborationDesign | null {
+  const hasCustomContent =
+    draft.collaborationTitle.trim().length > 0 ||
+    draft.collaborationDescription.trim().length > 0 ||
+    draft.collaborationImageUrl.trim().length > 0 ||
+    draft.collaborationGarment.trim() !== 'Collaboration Shirt' ||
+    draft.collaborationColorName.trim() !== 'Collaboration' ||
+    draft.collaborationColorHex.trim() !== '#111827' ||
+    draft.collaborationSizes.trim() !== DEFAULT_SIZE_OPTIONS.join(', ') ||
+    draft.collaborationPrice.trim().length > 0;
+
+  if (!draft.collaborationEnabled && !hasCustomContent) return null;
+
+  const pounds = Number(draft.collaborationPrice);
+  if (!Number.isFinite(pounds) || pounds < 0) {
+    throw new Error('Collaboration shirt price must be zero or greater');
+  }
+
+  const sizes = Array.from(
+    new Set(
+      draft.collaborationSizes
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    ),
+  );
+
+  return {
+    title: draft.collaborationTitle.trim() || 'Collaboration Shirt',
+    description: draft.collaborationDescription.trim() || null,
+    imageUrl: draft.collaborationImageUrl.trim() || null,
+    garment: draft.collaborationGarment.trim() || null,
+    colorName: draft.collaborationColorName.trim() || 'Collaboration',
+    colorHex: draft.collaborationColorHex.trim() || '#111827',
+    sizes: sizes.length > 0 ? sizes : DEFAULT_SIZE_OPTIONS.slice(),
+    partnerPrice: Math.round(pounds * 100),
   };
 }
 
@@ -69,6 +132,7 @@ export default function AdminPartnersPage() {
   }
 
   function startEdit(partner: PartnerAdmin) {
+    const collaboration = partner.collaborationDesign;
     setEditingId(partner.id);
     setDraft({
       slug: partner.slug,
@@ -78,6 +142,15 @@ export default function AdminPartnersPage() {
       commissionRate: String(partner.commissionRate),
       description: partner.description ?? '',
       active: partner.active,
+      collaborationEnabled: partner.collaborationEnabled,
+      collaborationTitle: collaboration?.title ?? '',
+      collaborationDescription: collaboration?.description ?? '',
+      collaborationImageUrl: collaboration?.imageUrl ?? '',
+      collaborationGarment: collaboration?.garment ?? 'Collaboration Shirt',
+      collaborationColorName: collaboration?.colorName ?? 'Collaboration',
+      collaborationColorHex: collaboration?.colorHex ?? '#111827',
+      collaborationSizes: (collaboration?.sizes ?? DEFAULT_SIZE_OPTIONS).join(', '),
+      collaborationPrice: formatPoundsInput(collaboration?.partnerPrice),
     });
     setSaved(null);
   }
@@ -106,6 +179,14 @@ export default function AdminPartnersPage() {
       return;
     }
 
+    let collaborationDesign: PartnerCollaborationDesign | null;
+    try {
+      collaborationDesign = buildCollaborationDesign(draft);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid collaboration shirt');
+      return;
+    }
+
     setSaving(true);
     setError(null);
     setSaved(null);
@@ -118,6 +199,8 @@ export default function AdminPartnersPage() {
         commissionRate,
         description: draft.description.trim() || null,
         active: draft.active,
+        collaborationEnabled: draft.collaborationEnabled,
+        collaborationDesign,
       };
 
       if (editingId) {
@@ -159,6 +242,21 @@ export default function AdminPartnersPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function clearCollaborationDraft() {
+    setDraft((current) => ({
+      ...current,
+      collaborationEnabled: false,
+      collaborationTitle: '',
+      collaborationDescription: '',
+      collaborationImageUrl: '',
+      collaborationGarment: 'Collaboration Shirt',
+      collaborationColorName: 'Collaboration',
+      collaborationColorHex: '#111827',
+      collaborationSizes: DEFAULT_SIZE_OPTIONS.join(', '),
+      collaborationPrice: '',
+    }));
   }
 
   if (loading) return <PageLoader />;
@@ -262,6 +360,125 @@ export default function AdminPartnersPage() {
             />
           </label>
 
+          <div className="space-y-4 rounded-2xl border border-dashed border-gray-200 p-4 dark:border-gray-700">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Collaboration shirt
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Optional partner-only shirt that appears at the top of the ordering view.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={clearCollaborationDraft}
+                className="text-xs font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+              >
+                Remove collab
+              </button>
+            </div>
+
+            <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={draft.collaborationEnabled}
+                onChange={(e) => setDraft((current) => ({ ...current, collaborationEnabled: e.target.checked }))}
+              />
+              Show collaboration shirt in partner ordering
+            </label>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Title</span>
+                <input
+                  value={draft.collaborationTitle}
+                  onChange={(e) => setDraft((current) => ({ ...current, collaborationTitle: e.target.value }))}
+                  placeholder="Oxford Park x UTC"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Partner price</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={draft.collaborationPrice}
+                  onChange={(e) => setDraft((current) => ({ ...current, collaborationPrice: e.target.value }))}
+                  placeholder="18.00"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+            </div>
+
+            <label className="block space-y-1">
+              <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
+              <textarea
+                value={draft.collaborationDescription}
+                onChange={(e) => setDraft((current) => ({ ...current, collaborationDescription: e.target.value }))}
+                rows={3}
+                placeholder="What makes the shirt special?"
+                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+              />
+            </label>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Image URL</span>
+                <input
+                  value={draft.collaborationImageUrl}
+                  onChange={(e) => setDraft((current) => ({ ...current, collaborationImageUrl: e.target.value }))}
+                  placeholder="/partner-collab.jpg"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Garment</span>
+                <input
+                  value={draft.collaborationGarment}
+                  onChange={(e) => setDraft((current) => ({ ...current, collaborationGarment: e.target.value }))}
+                  placeholder="Performance T-Shirt"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour name</span>
+                <input
+                  value={draft.collaborationColorName}
+                  onChange={(e) => setDraft((current) => ({ ...current, collaborationColorName: e.target.value }))}
+                  placeholder="Collaboration"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour hex</span>
+                <input
+                  value={draft.collaborationColorHex}
+                  onChange={(e) => setDraft((current) => ({ ...current, collaborationColorHex: e.target.value }))}
+                  placeholder="#111827"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Sizes</span>
+                <input
+                  value={draft.collaborationSizes}
+                  onChange={(e) => setDraft((current) => ({ ...current, collaborationSizes: e.target.value }))}
+                  placeholder={DEFAULT_SIZE_OPTIONS.join(', ')}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+            </div>
+          </div>
+
           <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
             <input
               type="checkbox"
@@ -306,6 +523,7 @@ export default function AdminPartnersPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Code</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Commission</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Collab</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Updated</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</th>
                 </tr>
@@ -322,6 +540,11 @@ export default function AdminPartnersPage() {
                     <td className="px-4 py-3">
                       <Badge variant={partner.active ? 'success' : 'default'}>
                         {partner.active ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant={partner.collaborationEnabled ? 'info' : 'default'}>
+                        {partner.collaborationEnabled ? 'Live' : 'Off'}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(partner.updatedAt)}</td>

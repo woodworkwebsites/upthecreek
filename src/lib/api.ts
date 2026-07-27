@@ -9,6 +9,7 @@ import type {
   PartnerAdmin,
   PartnerDashboard,
   PartnerLoginResponse,
+  PartnerInput,
   PartnerStockOrder,
   PartnerStockOrderAdminSummary,
   PartnerStockOrderInput,
@@ -17,6 +18,7 @@ import type {
   WebhookLogRow,
   DiscountCode,
   DiscountCodeInput,
+  CatalogRange,
 } from '../../types/index.js';
 
 async function apiFetch<T>(
@@ -51,8 +53,12 @@ function adminFetch<T>(path: string, token: string, options?: RequestInit): Prom
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function fetchProducts(): Promise<Product[]> {
-  const data = await apiFetch<{ products: Product[] }>('/api/products', {
+export async function fetchProducts(channel: 'storefront' | 'partner' = 'storefront'): Promise<Product[]> {
+  const url = new URL('/api/products', window.location.origin);
+  if (channel === 'partner') {
+    url.searchParams.set('channel', channel);
+  }
+  const data = await apiFetch<{ products: Product[] }>(url.pathname + url.search, {
     cache: 'no-store',
   });
   return data.products;
@@ -173,6 +179,7 @@ export async function adminUpdateProduct(
     title?: string;
     description?: string;
     category?: string;
+    rangeId?: string | null;
     audience?: string;
     productType?: string;
     garment?: string;
@@ -382,15 +389,7 @@ export async function adminFetchPartners(token: string): Promise<PartnerAdmin[]>
 
 export async function adminCreatePartner(
   token: string,
-  data: {
-    slug: string;
-    name: string;
-    discountCode?: string | null;
-    accessToken: string;
-    commissionRate: number;
-    description?: string | null;
-    active?: boolean;
-  },
+  data: PartnerInput,
 ): Promise<PartnerAdmin> {
   const response = await adminFetch<{ partner: PartnerAdmin }>('/api/admin/partners', token, {
     method: 'POST',
@@ -399,18 +398,54 @@ export async function adminCreatePartner(
   return response.partner;
 }
 
-export async function adminUpdatePartner(
+export async function adminFetchRanges(token: string): Promise<CatalogRange[]> {
+  const data = await adminFetch<{ ranges: CatalogRange[] }>('/api/admin/ranges', token);
+  return data.ranges;
+}
+
+export async function adminCreateRange(
+  token: string,
+  data: {
+    name: string;
+    storefrontEnabled?: boolean;
+    partnerEnabled?: boolean;
+    sortOrder?: number;
+  },
+): Promise<CatalogRange> {
+  const response = await adminFetch<{ range: CatalogRange }>('/api/admin/ranges', token, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return response.range;
+}
+
+export async function adminUpdateRange(
   token: string,
   id: string,
   data: {
-    slug?: string;
     name?: string;
-    discountCode?: string | null;
-    accessToken?: string;
-    commissionRate?: number;
-    description?: string | null;
-    active?: boolean;
+    storefrontEnabled?: boolean;
+    partnerEnabled?: boolean;
+    sortOrder?: number;
   },
+): Promise<CatalogRange> {
+  const response = await adminFetch<{ range: CatalogRange }>(`/api/admin/ranges/${id}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  return response.range;
+}
+
+export async function adminDeleteRange(token: string, id: string): Promise<void> {
+  await adminFetch(`/api/admin/ranges/${id}`, token, {
+    method: 'DELETE',
+  });
+}
+
+export async function adminUpdatePartner(
+  token: string,
+  id: string,
+  data: Partial<PartnerInput>,
 ): Promise<PartnerAdmin> {
   const response = await adminFetch<{ partner: PartnerAdmin }>(`/api/admin/partners/${id}`, token, {
     method: 'PATCH',

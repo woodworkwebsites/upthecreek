@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect, type Ref } from 'react';
-import type { Product } from '../../../types/index.js';
-import { adminCreateProduct, adminDeleteProduct, adminDeleteProductImage, adminFetchProducts, adminGetSettings, adminReorderProductImages, adminUpdateProduct, adminUpdateProductImage, adminUpdateSettings, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
+import type { Product, PricingMatrixRow, CatalogRange } from '../../../types/index.js';
+import { adminCreateProduct, adminDeleteProduct, adminDeleteProductImage, adminFetchProducts, adminFetchRanges, adminGetSettings, adminReorderProductImages, adminUpdateProduct, adminUpdateProductImage, adminUpdateSettings, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -18,12 +18,14 @@ interface DraftImageRow {
 function InlineDraftProductRow({
   token,
   catalog,
+  ranges,
   onCreated,
   onCancel,
   rowRef,
 }: {
   token: string;
   catalog: CatalogOptions;
+  ranges: CatalogRange[];
   onCreated: () => Promise<void> | void;
   onCancel: () => void;
   rowRef?: Ref<HTMLTableRowElement>;
@@ -34,6 +36,7 @@ function InlineDraftProductRow({
   const [category, setCategory] = useState(catalog.audiences[0] ?? '');
   const [productType, setProductType] = useState(catalog.products[0] ?? '');
   const [garmentType, setGarmentType] = useState(catalog.garments[0] ?? '');
+  const [rangeId, setRangeId] = useState(ranges[0]?.id ?? '');
   const [isEnabled, setIsEnabled] = useState(true);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [images, setImages] = useState<DraftImageRow[]>([]);
@@ -111,6 +114,7 @@ function InlineDraftProductRow({
       form.append('audience', category.trim() || catalog.audiences[0] || '');
       form.append('productType', productType.trim() || catalog.products[0] || '');
       form.append('garment', garmentType.trim() || catalog.garments[0] || '');
+      form.append('rangeId', rangeId.trim() || ranges[0]?.id || '');
       const pricingPreset = matchPricingPresetBySelection(category, productType, garmentType, catalog)
         ?? catalog.pricingRows[0]
         ?? null;
@@ -125,7 +129,9 @@ function InlineDraftProductRow({
         printSurface: printSurface.trim(),
         manufacturingCost: '',
         saleCost: '',
-        delivery: '',
+        deliveryRetail: '',
+        deliveryPartner: '',
+        deliveryOnlinePartnership: '',
         salePrice,
       }));
       form.append('isEnabled', String(isEnabled));
@@ -211,6 +217,12 @@ function InlineDraftProductRow({
             <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Publication</p>
               <div className="mt-3 space-y-3">
+                <select value={rangeId} onChange={(e) => setRangeId(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                  <option value="">Range</option>
+                  {ranges.map((range) => (
+                    <option key={range.id} value={range.id}>{range.name}</option>
+                  ))}
+                </select>
                 <button
                   type="button"
                   onClick={() => setIsEnabled((current) => !current)}
@@ -298,7 +310,9 @@ function pricingMatrixSignature(matrix: {
   printSurface: string;
   manufacturingCost: string;
   saleCost: string;
-  delivery: string;
+  deliveryRetail: string;
+  deliveryPartner: string;
+  deliveryOnlinePartnership: string;
   salePrice: string;
   partnerPrice: string;
 } | null): string {
@@ -312,7 +326,9 @@ function normalizePricingMatrix(matrix: {
   printSurface: string;
   manufacturingCost: string;
   saleCost: string;
-  delivery: string;
+  deliveryRetail: string;
+  deliveryPartner: string;
+  deliveryOnlinePartnership: string;
   salePrice: string;
   partnerPrice: string;
 }) {
@@ -323,7 +339,9 @@ function normalizePricingMatrix(matrix: {
     printSurface: matrix.printSurface.trim(),
     manufacturingCost: matrix.manufacturingCost.trim(),
     saleCost: matrix.saleCost.trim(),
-    delivery: matrix.delivery.trim(),
+    deliveryRetail: matrix.deliveryRetail.trim(),
+    deliveryPartner: matrix.deliveryPartner.trim(),
+    deliveryOnlinePartnership: matrix.deliveryOnlinePartnership.trim(),
     salePrice: matrix.salePrice.trim(),
     partnerPrice: matrix.partnerPrice.trim(),
   };
@@ -337,7 +355,9 @@ function emptyPricingMatrix() {
     printSurface: '',
     manufacturingCost: '',
     saleCost: '',
-    delivery: '',
+    deliveryRetail: '',
+    deliveryPartner: '',
+    deliveryOnlinePartnership: '',
     salePrice: '',
     partnerPrice: '',
   };
@@ -353,7 +373,9 @@ function matchPricingPreset(
   printSurface: string;
   manufacturingCost: string;
   saleCost: string;
-  delivery: string;
+  deliveryRetail: string;
+  deliveryPartner: string;
+  deliveryOnlinePartnership: string;
   salePrice: string;
   partnerPrice: string;
 } | null {
@@ -375,7 +397,9 @@ function matchPricingPresetBySelection(
   printSurface: string;
   manufacturingCost: string;
   saleCost: string;
-  delivery: string;
+  deliveryRetail: string;
+  deliveryPartner: string;
+  deliveryOnlinePartnership: string;
   salePrice: string;
   partnerPrice: string;
 } | null {
@@ -387,12 +411,14 @@ function ProductRow({
   product,
   token,
   catalog,
+  ranges,
   onCatalogRefreshed,
   onDeleted,
 }: {
   product: Product;
   token: string;
   catalog: CatalogOptions;
+  ranges: CatalogRange[];
   onCatalogRefreshed: () => Promise<void>;
   onDeleted: (id: string) => void;
 }) {
@@ -402,6 +428,7 @@ function ProductRow({
   const [category, setCategory] = useState(product.audience || '');
   const [productType, setProductType] = useState(product.productType || '');
   const [garmentType, setGarmentType] = useState(product.garment || '');
+  const [rangeId, setRangeId] = useState(product.rangeId ?? ranges[0]?.id ?? '');
   const initialPricingMatrix = {
     ...emptyPricingMatrix(),
     ...(product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? {}),
@@ -439,12 +466,13 @@ function ProductRow({
     setCategory(product.audience || '');
     setProductType(product.productType || '');
     setGarmentType(product.garment || '');
+    setRangeId(product.rangeId ?? ranges[0]?.id ?? '');
     setPricingMatrix(product.pricingMatrix ?? nextPreset);
     pricingCustomRef.current = Boolean(product.pricingMatrix);
     setHiddenColors(product.hiddenColors ?? []);
     setIsEnabled(product.isEnabled);
     setImages(product.images);
-  }, [product]);
+  }, [product, ranges]);
 
   useLayoutEffect(() => {
     const el = titleRef.current;
@@ -647,6 +675,7 @@ function ProductRow({
     || category.trim() !== (product.audience || '').trim()
     || productType.trim() !== (product.productType || '').trim()
     || garmentType.trim() !== (product.garment || '').trim()
+    || rangeId.trim() !== (product.rangeId ?? '').trim()
     || isEnabled !== product.isEnabled
     || currentPricingSignature !== originalPricingSignature
     || hiddenColors.length !== (product.hiddenColors ?? []).length
@@ -670,6 +699,7 @@ function ProductRow({
         audience: category.trim(),
         productType: productType.trim(),
         garment: garmentType.trim(),
+        rangeId: rangeId.trim() || null,
         pricingMatrix: normalizePricingMatrix(pricingMatrix),
         colors: visibleColors,
         hiddenColors,
@@ -777,6 +807,16 @@ function ProductRow({
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>
+            <select
+              value={rangeId}
+              onChange={(e) => setRangeId(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            >
+              <option value="">Range</option>
+              {ranges.map((range) => (
+                <option key={range.id} value={range.id}>{range.name}</option>
+              ))}
+            </select>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -846,6 +886,9 @@ function ProductRow({
           <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             {visibleColors.length} visible, {hiddenCount} hidden
           </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Range: {ranges.find((range) => range.id === rangeId)?.name ?? 'Unassigned'}
+          </div>
         </td>
 
         <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
@@ -878,6 +921,30 @@ function ProductRow({
                 <input
                   value={pricingMatrix.saleCost}
                   onChange={(e) => updatePricingMatrix({ saleCost: e.target.value })}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Retail delivery</span>
+                <input
+                  value={pricingMatrix.deliveryRetail}
+                  onChange={(e) => updatePricingMatrix({ deliveryRetail: e.target.value })}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Partner delivery</span>
+                <input
+                  value={pricingMatrix.deliveryPartner}
+                  onChange={(e) => updatePricingMatrix({ deliveryPartner: e.target.value })}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Online delivery</span>
+                <input
+                  value={pricingMatrix.deliveryOnlinePartnership}
+                  onChange={(e) => updatePricingMatrix({ deliveryOnlinePartnership: e.target.value })}
                   className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 />
               </label>
@@ -1338,6 +1405,7 @@ function ProductRow({
 export default function AdminProductsPage() {
   const { token } = useAdminToken();
   const [products, setProducts] = useState<Product[]>([]);
+  const [ranges, setRanges] = useState<CatalogRange[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
   const [draftOpen, setDraftOpen] = useState(false);
@@ -1350,6 +1418,12 @@ export default function AdminProductsPage() {
     setCatalog(parseCatalogSettings(settings));
   }, [token]);
 
+  const refreshRanges = useCallback(async () => {
+    if (!token) return;
+    const data = await adminFetchRanges(token);
+    setRanges(data);
+  }, [token]);
+
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
@@ -1358,6 +1432,7 @@ export default function AdminProductsPage() {
       const [data] = await Promise.all([
         adminFetchProducts(token),
         refreshCatalog(),
+        refreshRanges(),
       ]);
       setProducts(data);
     } catch (err) {
@@ -1365,7 +1440,7 @@ export default function AdminProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [refreshCatalog, token]);
+  }, [refreshCatalog, refreshRanges, token]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -1436,6 +1511,7 @@ export default function AdminProductsPage() {
                     product={product}
                     token={token!}
                     catalog={catalog}
+                    ranges={ranges}
                     onCatalogRefreshed={refreshCatalog}
                     onDeleted={(id) => setProducts((current) => current.filter((item) => item.id !== id))}
                   />
@@ -1444,6 +1520,7 @@ export default function AdminProductsPage() {
                   <InlineDraftProductRow
                     token={token!}
                     catalog={catalog}
+                    ranges={ranges}
                     rowRef={draftRowRef}
                     onCancel={() => setDraftOpen(false)}
                     onCreated={async () => {

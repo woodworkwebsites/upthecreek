@@ -11,6 +11,7 @@ import { DEFAULT_SIZE_OPTIONS } from '../../types/catalog.js';
 import { DEFAULT_CATALOG_OPTIONS, findPricingPresetRow, parseCatalogSettings } from '../../src/lib/catalog.js';
 import { deriveProductAggregates } from './aggregates.js';
 import { getAllSettings } from '../settings/repository.js';
+import { listEnabledRangeIds } from '../ranges/repository.js';
 
 const DEFAULT_FALLBACK_COLORS: PrintifyColor[] = [
   { name: 'Black', hex: '#111827' },
@@ -173,6 +174,17 @@ function buildVariantMatrix(colors: PrintifyColor[], salePrice: number, seedPref
   return variants;
 }
 
+function normalizeDeliveryFields(pricingMatrix: PricingMatrixRow | null | undefined): PricingMatrixRow | null {
+  if (!pricingMatrix) return pricingMatrix ?? null;
+  const legacyDelivery = (pricingMatrix as PricingMatrixRow & { delivery?: string }).delivery?.trim() ?? '';
+  return {
+    ...pricingMatrix,
+    deliveryRetail: pricingMatrix.deliveryRetail?.trim() || legacyDelivery,
+    deliveryPartner: pricingMatrix.deliveryPartner?.trim() || legacyDelivery,
+    deliveryOnlinePartnership: pricingMatrix.deliveryOnlinePartnership?.trim() || legacyDelivery,
+  };
+}
+
 interface ProductMetadata {
   baseCategory?: string;
   audience?: string;
@@ -249,7 +261,9 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
   const rawSizes = normalizeSizes(parseJsonArray<string>(row.sizes));
   const pricingMatrix = parseJsonObject<PricingMatrixRow>(row.pricing_matrix);
   const categoryMetadata = parseProductMetadata(row.category);
-  const effectivePricingMatrix = isEmptyObject(pricingMatrix) ? (categoryMetadata.pricingMatrix ?? null) : pricingMatrix;
+  const effectivePricingMatrix = normalizeDeliveryFields(
+    isEmptyObject(pricingMatrix) ? (categoryMetadata.pricingMatrix ?? null) : pricingMatrix,
+  );
 
   const colorSource = mergeColors(
     rawColors,
@@ -314,6 +328,7 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     title:          row.title,
     description:    row.description,
     category:       categoryMetadata.baseCategory || row.category || '',
+    rangeId:        row.range_id ?? null,
     audience:       row.audience || categoryMetadata.audience || '',
     productType:    row.product_type || categoryMetadata.productType || '',
     garment:        row.garment || categoryMetadata.garment || '',
@@ -348,7 +363,9 @@ function applyEffectivePartnerPrice(product: Product, pricingRows: ReturnType<ty
       printSurface: '',
       manufacturingCost: '',
       saleCost: '',
-      delivery: '',
+      deliveryRetail: '',
+      deliveryPartner: '',
+      deliveryOnlinePartnership: '',
       salePrice: '',
       ...product.pricingMatrix,
       partnerPrice: preset.partnerPrice,
@@ -362,21 +379,42 @@ async function withEffectivePartnerPricing(db: D1Database, products: Product[]):
   return products.map((product) => applyEffectivePartnerPrice(product, pricingRows));
 }
 
-export async function getAllProducts(db: D1Database): Promise<Product[]> {
+async function filterProductsByChannel(
+  db: D1Database,
+  products: Product[],
+  channel: 'storefront' | 'partner',
+): Promise<Product[]> {
+  const activeRangeIds = new Set(await listEnabledRangeIds(db, channel));
+  if (activeRangeIds.size === 0) return [];
+  return products.filter((product) => product.rangeId ? activeRangeIds.has(product.rangeId) : false);
+}
+
+export async function getAllProducts(
+  db: D1Database,
+  channel: 'storefront' | 'partner' = 'storefront',
+): Promise<Product[]> {
   const result = await db
     .prepare('SELECT * FROM products WHERE is_enabled = 1 ORDER BY title')
     .all<ProductRow>();
   const products = (result.results ?? []).map((row) => parseProduct(row, 'public'));
-  return withEffectivePartnerPricing(db, products);
+  const visibleProducts = await filterProductsByChannel(db, products, channel);
+  return withEffectivePartnerPricing(db, visibleProducts);
 }
 
-export async function getProductById(db: D1Database, id: string): Promise<Product | null> {
+export async function getProductById(
+  db: D1Database,
+  id: string,
+  channel: 'storefront' | 'partner' = 'storefront',
+): Promise<Product | null> {
   const row = await db
     .prepare('SELECT * FROM products WHERE id = ? AND is_enabled = 1')
     .bind(id)
     .first<ProductRow>();
   if (!row) return null;
-  const [product] = await withEffectivePartnerPricing(db, [parseProduct(row, 'public')]);
+  const [product] = await withEffectivePartnerPricing(
+    db,
+    await filterProductsByChannel(db, [parseProduct(row, 'public')], channel),
+  );
   return product;
 }
 
@@ -469,6 +507,7 @@ export interface UpsertProductData {
   title: string;
   description: string;
   category: string;
+  rangeId: string | null;
   audience: string;
   productType: string;
   garment: string;
@@ -547,6 +586,7 @@ export interface UpdateProductFields {
   title?: string;
   description?: string;
   category?: string;
+  rangeId?: string | null;
   audience?: string;
   productType?: string;
   garment?: string;
@@ -563,10 +603,11 @@ export async function updateProductFields(
   fields: UpdateProductFields,
 ): Promise<boolean> {
   const current = await db
-    .prepare('SELECT category, variants, colors, pricing_matrix FROM products WHERE printify_id = ?')
+    .prepare('SELECT category, range_id, variants, colors, pricing_matrix FROM products WHERE printify_id = ?')
     .bind(printifyId)
     .first<{
       category: string;
+      range_id: string | null;
       variants: string;
       colors: string | null;
       pricing_matrix: string | null;
@@ -620,6 +661,11 @@ export async function updateProductFields(
   if (nextCategory !== undefined) {
     sets.push('category = ?');
     values.push(nextCategory);
+  }
+
+  if (fields.rangeId !== undefined) {
+    sets.push('range_id = ?');
+    values.push(fields.rangeId);
   }
 
   if (fields.isEnabled !== undefined) {
@@ -701,14 +747,15 @@ export async function upsertProduct(
   await db
     .prepare(`
       INSERT INTO products
-        (id, printify_id, title, description, category, images, variants, colors, pricing_matrix, hidden_colors, sizes,
+        (id, printify_id, title, description, category, range_id, images, variants, colors, pricing_matrix, hidden_colors, sizes,
          min_price, max_price, is_enabled, size_guide_image, synced_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, datetime('now'), datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, datetime('now'), datetime('now'), datetime('now'))
       ON CONFLICT(printify_id) DO UPDATE SET
         is_enabled     = excluded.is_enabled,
         title          = excluded.title,
         description    = excluded.description,
         category       = excluded.category,
+        range_id       = excluded.range_id,
         images         = excluded.images,
         variants       = excluded.variants,
         colors         = excluded.colors,
@@ -726,6 +773,7 @@ export async function upsertProduct(
       data.title,
       data.description,
       category,
+      data.rangeId,
       JSON.stringify(data.images),
       JSON.stringify(data.variants),
       JSON.stringify(nextColors),

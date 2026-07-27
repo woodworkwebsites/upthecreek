@@ -4,6 +4,7 @@ import type {
   OrderItem,
   Partner,
   PartnerAdmin,
+  PartnerCollaborationDesign,
   PartnerCommissionRow,
   PartnerCommissionStatus,
   PartnerDashboard,
@@ -21,6 +22,8 @@ type PartnerRow = {
   commission_rate: number;
   description: string | null;
   active: number;
+  collaboration_enabled: number;
+  collaboration_design: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -35,6 +38,61 @@ function normalizeSlug(value: string): string {
 
 function normalizeToken(value: string): string {
   return value.trim();
+}
+
+function normalizeCollaborationSizes(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(
+    new Set(
+      value
+        .filter((entry): entry is string => typeof entry === 'string')
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function parseCollaborationDesign(raw: string | null): PartnerCollaborationDesign | null {
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<PartnerCollaborationDesign> | null;
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const partnerPrice = typeof parsed.partnerPrice === 'number'
+      ? parsed.partnerPrice
+      : typeof parsed.partnerPrice === 'string'
+        ? Number(parsed.partnerPrice)
+        : NaN;
+
+    return {
+      title: typeof parsed.title === 'string' ? parsed.title.trim() : '',
+      description: typeof parsed.description === 'string' ? parsed.description.trim() || null : null,
+      imageUrl: typeof parsed.imageUrl === 'string' ? parsed.imageUrl.trim() || null : null,
+      garment: typeof parsed.garment === 'string' ? parsed.garment.trim() || null : null,
+      colorName: typeof parsed.colorName === 'string' ? parsed.colorName.trim() || 'Collaboration' : 'Collaboration',
+      colorHex: typeof parsed.colorHex === 'string' ? parsed.colorHex.trim() || '#111827' : '#111827',
+      sizes: normalizeCollaborationSizes(parsed.sizes),
+      partnerPrice: Number.isFinite(partnerPrice) && partnerPrice >= 0 ? Math.round(partnerPrice) : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function serializeCollaborationDesign(design: PartnerCollaborationDesign | null | undefined): string | null {
+  if (!design) return null;
+
+  return JSON.stringify({
+    title: design.title.trim(),
+    description: design.description?.trim() || null,
+    imageUrl: design.imageUrl?.trim() || null,
+    garment: design.garment?.trim() || null,
+    colorName: design.colorName.trim() || 'Collaboration',
+    colorHex: design.colorHex.trim() || '#111827',
+    sizes: normalizeCollaborationSizes(design.sizes),
+    partnerPrice: Math.max(0, Math.round(design.partnerPrice)),
+  });
 }
 
 function calcItemTotal(items: OrderItem[]): number {
@@ -64,6 +122,8 @@ export function parsePartnerRow(row: {
   commission_rate: number;
   description: string | null;
   active: number;
+  collaboration_enabled: number;
+  collaboration_design: string | null;
   created_at: string;
   updated_at: string;
 }): Partner {
@@ -75,6 +135,8 @@ export function parsePartnerRow(row: {
     commissionRate: row.commission_rate,
     description: row.description,
     active: row.active === 1,
+    collaborationEnabled: row.collaboration_enabled === 1,
+    collaborationDesign: parseCollaborationDesign(row.collaboration_design),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -154,6 +216,8 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
       commission_rate INTEGER NOT NULL DEFAULT 10,
       description     TEXT,
       active          INTEGER NOT NULL DEFAULT 1,
+      collaboration_enabled INTEGER NOT NULL DEFAULT 0,
+      collaboration_design   TEXT,
       created_at      TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
     )
@@ -197,6 +261,15 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_commissions_partner_id ON partner_commissions(partner_id)').run();
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_commissions_status ON partner_commissions(status)').run();
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_payouts_partner_id ON partner_payouts(partner_id)').run();
+
+  const columns = await db.prepare('PRAGMA table_info(partners)').all<{ name: string }>();
+  const columnNames = new Set((columns.results ?? []).map((column) => column.name));
+  if (!columnNames.has('collaboration_enabled')) {
+    await db.prepare('ALTER TABLE partners ADD COLUMN collaboration_enabled INTEGER NOT NULL DEFAULT 0').run();
+  }
+  if (!columnNames.has('collaboration_design')) {
+    await db.prepare('ALTER TABLE partners ADD COLUMN collaboration_design TEXT').run();
+  }
 }
 
 export async function getPartnerByDiscountCode(db: D1Database, discountCode: string): Promise<Partner | null> {
@@ -204,7 +277,7 @@ export async function getPartnerByDiscountCode(db: D1Database, discountCode: str
 
   const row = await db
     .prepare(
-      'SELECT id, slug, name, discount_code, commission_rate, description, active, created_at, updated_at FROM partners WHERE discount_code IS NOT NULL AND UPPER(discount_code) = UPPER(?)',
+      'SELECT id, slug, name, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners WHERE discount_code IS NOT NULL AND UPPER(discount_code) = UPPER(?)',
     )
     .bind(discountCode.trim())
     .first<PartnerRow>();
@@ -217,7 +290,7 @@ export async function getPartnerBySlug(db: D1Database, slug: string): Promise<Pa
 
   const row = await db
     .prepare(
-      'SELECT id, slug, name, discount_code, commission_rate, description, active, created_at, updated_at FROM partners WHERE slug = ?',
+      'SELECT id, slug, name, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners WHERE slug = ?',
     )
     .bind(normalizeSlug(slug))
     .first<PartnerRow>();
@@ -234,7 +307,7 @@ export async function getPartnerBySlugAndToken(
 
   const row = await db
     .prepare(
-      'SELECT id, slug, name, discount_code, commission_rate, description, active, created_at, updated_at FROM partners WHERE slug = ? AND access_token = ?',
+      'SELECT id, slug, name, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners WHERE slug = ? AND access_token = ?',
     )
     .bind(normalizeSlug(slug), normalizeToken(accessToken))
     .first<PartnerRow>();
@@ -247,7 +320,7 @@ export async function listPartners(db: D1Database): Promise<PartnerAdmin[]> {
 
   const result = await db
     .prepare(
-      'SELECT id, slug, name, discount_code, commission_rate, description, active, created_at, updated_at FROM partners ORDER BY created_at DESC',
+      'SELECT id, slug, name, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners ORDER BY created_at DESC',
     )
     .all<PartnerRow>();
 
@@ -259,7 +332,7 @@ export async function getPartnerById(db: D1Database, id: string): Promise<Partne
 
   const row = await db
     .prepare(
-      'SELECT id, slug, name, discount_code, commission_rate, description, active, created_at, updated_at FROM partners WHERE id = ?',
+      'SELECT id, slug, name, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners WHERE id = ?',
     )
     .bind(id)
     .first<PartnerRow>();
@@ -295,8 +368,8 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
   await db
     .prepare(`
       INSERT INTO partners
-        (id, slug, name, discount_code, access_token, commission_rate, description, active, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        (id, slug, name, discount_code, access_token, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `)
     .bind(
       id,
@@ -307,6 +380,8 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
       Math.max(0, Math.round(data.commissionRate)),
       data.description?.trim() || null,
       data.active === false ? 0 : 1,
+      data.collaborationEnabled ? 1 : 0,
+      serializeCollaborationDesign(data.collaborationDesign ?? null),
     )
     .run();
 
@@ -329,6 +404,10 @@ export async function updatePartner(
   if (!existing) return null;
 
   const accessToken = data.accessToken?.trim() || existing.accessToken;
+  const collaborationEnabled = data.collaborationEnabled ?? existing.collaborationEnabled;
+  const collaborationDesign = data.collaborationDesign !== undefined
+    ? data.collaborationDesign
+    : existing.collaborationDesign;
 
   const result = await db
     .prepare(`
@@ -340,6 +419,8 @@ export async function updatePartner(
           commission_rate = ?,
           description = ?,
           active = ?,
+          collaboration_enabled = ?,
+          collaboration_design = ?,
           updated_at = datetime('now')
       WHERE id = ?
     `)
@@ -351,6 +432,8 @@ export async function updatePartner(
       Math.max(0, Math.round(data.commissionRate)),
       data.description?.trim() || null,
       data.active === false ? 0 : 1,
+      collaborationEnabled ? 1 : 0,
+      serializeCollaborationDesign(collaborationDesign),
       id,
     )
     .run();

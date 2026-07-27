@@ -16,6 +16,7 @@ import AdminStockOrdersPage from './pages/admin/AdminStockOrdersPage.js';
 import AdminDiscountCodesPage from './pages/admin/AdminDiscountCodesPage.js';
 import AdminProductsPage from './pages/admin/AdminProductsPage.js';
 import AdminProductCreatePage from './pages/admin/AdminProductCreatePage.js';
+import AdminRangesPage from './pages/admin/AdminRangesPage.tsx';
 import AdminCatalogPage  from './pages/admin/AdminCatalogPage.js';
 import AdminLogsPage     from './pages/admin/AdminLogsPage.js';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage.js';
@@ -58,6 +59,7 @@ export default function App() {
               <Route path="discount-codes" element={<AdminDiscountCodesPage />} />
               <Route path="products"    element={<AdminProductsPage />} />
               <Route path="products/new" element={<AdminProductCreatePage />} />
+              <Route path="ranges"      element={<AdminRangesPage />} />
               <Route path="catalog"     element={<AdminCatalogPage />} />
               <Route path="logs"        element={<AdminLogsPage />} />
               <Route path="settings"    element={<AdminSettingsPage />} />

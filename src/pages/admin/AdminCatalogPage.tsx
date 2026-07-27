@@ -18,7 +18,9 @@ const emptyGarmentDraft = {
   printSurface: '',
   manufacturingCost: '',
   saleCost: '',
-  delivery: '',
+  deliveryRetail: '',
+  deliveryPartner: '',
+  deliveryOnlinePartnership: '',
   salePrice: '',
   partnerPrice: '',
 };
@@ -123,7 +125,9 @@ export default function AdminCatalogPage() {
       printSurface: garmentDraft.printSurface.trim(),
       manufacturingCost: garmentDraft.manufacturingCost.trim(),
       saleCost: garmentDraft.saleCost.trim(),
-      delivery: garmentDraft.delivery.trim(),
+      deliveryRetail: garmentDraft.deliveryRetail.trim(),
+      deliveryPartner: garmentDraft.deliveryPartner.trim(),
+      deliveryOnlinePartnership: garmentDraft.deliveryOnlinePartnership.trim(),
       salePrice: garmentDraft.salePrice.trim(),
       partnerPrice: garmentDraft.partnerPrice.trim(),
     });
@@ -362,7 +366,7 @@ function GarmentPricingModal({
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">New garment</p>
         <h2 className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">Add garment &amp; pricing</h2>
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          This adds the garment to the list and creates one pricing row in all three matrices below.
+          This adds the garment to the list and creates one pricing row with separate delivery values per sale path.
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -424,10 +428,30 @@ function GarmentPricingModal({
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">Delivery</span>
+            <span className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">Retail delivery</span>
             <input
-              value={draft.delivery}
-              onChange={(e) => onChange({ delivery: e.target.value })}
+              value={draft.deliveryRetail}
+              onChange={(e) => onChange({ deliveryRetail: e.target.value })}
+              placeholder="e.g. 2.99"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">Partner delivery</span>
+            <input
+              value={draft.deliveryPartner}
+              onChange={(e) => onChange({ deliveryPartner: e.target.value })}
+              placeholder="e.g. 2.99"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            />
+          </label>
+
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">Online partnership delivery</span>
+            <input
+              value={draft.deliveryOnlinePartnership}
+              onChange={(e) => onChange({ deliveryOnlinePartnership: e.target.value })}
               placeholder="e.g. 2.99"
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
             />
@@ -573,7 +597,12 @@ function PricingMatrixTable({
               const salePrice = Number.parseFloat(row.salePrice || '0');
               const saleCost = Number.parseFloat(row.saleCost || '0');
               const manufacturingCost = Number.parseFloat(row.manufacturingCost || '0');
-              const delivery = Number.parseFloat(row.delivery || '0');
+              const deliveryValue = channel === 'retail'
+                ? row.deliveryRetail
+                : channel === 'partner'
+                  ? row.deliveryPartner
+                  : row.deliveryOnlinePartnership;
+              const delivery = Number.parseFloat(deliveryValue || '0');
               const margin = salePrice - manufacturingCost - delivery;
               const partnerMargin = salePrice - Number.parseFloat(row.partnerPrice || '0');
               const partnerNetProfit = Number.parseFloat(row.partnerPrice || '0') - manufacturingCost - delivery;
@@ -592,7 +621,15 @@ function PricingMatrixTable({
                     </td>
                   )}
                   <td className="px-2 py-1.5">
-                    <input value={row.delivery} onChange={(e) => onUpdateRow(index, { delivery: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                    <input
+                      value={deliveryValue}
+                      onChange={(e) => onUpdateRow(index, channel === 'retail'
+                        ? { deliveryRetail: e.target.value }
+                        : channel === 'partner'
+                          ? { deliveryPartner: e.target.value }
+                          : { deliveryOnlinePartnership: e.target.value })}
+                      className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
                   </td>
                   {channel === 'partner' && (
                     <>

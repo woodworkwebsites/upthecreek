@@ -5,7 +5,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const id = context.params['id'] as string;
 
   try {
-    const product = await getProductById(context.env.DB, id);
+    const channel = new URL(context.request.url).searchParams.get('channel');
+    const product = await getProductById(
+      context.env.DB,
+      id,
+      channel === 'partner' ? 'partner' : 'storefront',
+    );
     if (!product) {
       return new Response(JSON.stringify({ error: 'Product not found' }), {
         status: 404,
