@@ -32,7 +32,7 @@ function InlineDraftProductRow({
   ranges: CatalogRange[];
   onCreated: () => Promise<void> | void;
   onCancel: () => void;
-  rowRef?: Ref<HTMLTableRowElement>;
+  rowRef?: Ref<HTMLDivElement>;
 }) {
   const [printSurface, setPrintSurface] = useState('');
   const [title, setTitle] = useState('');
@@ -166,116 +166,93 @@ function InlineDraftProductRow({
   }
 
   return (
-    <tr ref={rowRef} className="border-t border-dashed border-gray-200 bg-cream/20 dark:border-gray-700 dark:bg-gray-950/40">
-      <td colSpan={6} className="p-0">
-        <div className="space-y-6 p-4 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">New product</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Use the dropdowns below to create the row directly in the table.</p>
-            </div>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
-            >
-              Cancel
-            </button>
-          </div>
+    <div ref={rowRef} className="overflow-hidden rounded-[1.75rem] border border-dashed border-gray-200 bg-cream/20 shadow-[0_18px_50px_rgba(5,13,31,0.04)] dark:border-gray-700 dark:bg-gray-950/40">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-4 dark:border-gray-800 sm:px-6">
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">New product</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Create a garment card with the essentials visible and the heavier edit actions tucked away.</p>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
+        >
+          Cancel
+        </button>
+      </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Identity</p>
-              <div className="mt-3 space-y-3">
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                    <option value="">Audience</option>
-                    {catalog.audiences.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                  <select value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                    <option value="">Product</option>
-                    {catalog.products.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                  <select value={garmentType} onChange={(e) => setGarmentType(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                    <option value="">Garment</option>
-                    {catalog.garments.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                  <select value={printSurface} onChange={(e) => setPrintSurface(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                    <option value="">Print surface</option>
-                    {Array.from(new Set(catalog.pricingRows.map((row) => row.printSurface.trim()).filter(Boolean))).map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" rows={4} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Publication</p>
-              <div className="mt-3 space-y-3">
-                <button
-                  type="button"
-                  onClick={() => setIsEnabled((current) => !current)}
-                  className={`inline-flex items-center gap-3 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    isEnabled
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-200'
-                      : 'border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200'
-                  }`}
-                >
-                  <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                    <span className={`h-4 w-4 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                  </span>
-                  Enabled
-                </button>
-                {isEnabled && (
-                  <select value={rangeId} onChange={(e) => setRangeId(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                    <option value="">Range</option>
-                    {ranges.map((range) => (
-                      <option key={range.id} value={range.id}>{range.name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
+      <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <label className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                <span className={`inline-flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                  <span className={`h-3 w-3 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-3.5' : 'translate-x-0'}`} />
+                </span>
+                <input type="checkbox" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} className="sr-only" />
+                Enabled
+              </label>
+              <select value={rangeId} onChange={(e) => setRangeId(e.target.value)} className="min-w-[140px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                <option value="">Range</option>
+                {ranges.map((range) => (
+                  <option key={range.id} value={range.id}>{range.name}</option>
+                ))}
+              </select>
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className="min-w-[120px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                <option value="">Audience</option>
+                {catalog.audiences.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              <select value={productType} onChange={(e) => setProductType(e.target.value)} className="min-w-[120px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                <option value="">Product</option>
+                {catalog.products.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              <select value={garmentType} onChange={(e) => setGarmentType(e.target.value)} className="min-w-[140px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                <option value="">Garment</option>
+                {catalog.garments.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              <select value={printSurface} onChange={(e) => setPrintSurface(e.target.value)} className="min-w-[160px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                <option value="">Print surface</option>
+                {Array.from(new Set(catalog.pricingRows.map((row) => row.printSurface.trim()).filter(Boolean))).map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setDetailOpen(true)}
+                className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
+              >
+                Description
+              </button>
             </div>
           </div>
 
           <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-            <ColorMultiSelect
-              colors={catalog.colors}
-              selected={selectedColors}
-              onToggle={(color) => toggleColor(color.name)}
-            />
+            <ColorMultiSelect colors={catalog.colors} selected={selectedColors} onToggle={(color) => toggleColor(color.name)} />
           </div>
+        </div>
 
-          <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Publish on save</p>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              Select the colours you want, then save to publish the product to the shop immediately.
-            </p>
-          </div>
-
+        <div className="space-y-4">
           <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Images</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Upload product imagery and choose the default.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Upload imagery and choose the default.</p>
               </div>
-              <input type="file" accept="image/*" multiple onChange={(e) => handleFilesSelected(e.target.files)} className="w-full max-w-md rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 file:mr-3 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700" />
+              <input type="file" accept="image/*" multiple onChange={(e) => handleFilesSelected(e.target.files)} className="max-w-[240px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 file:mr-3 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700" />
             </div>
-            {images.length > 0 && (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {images.length > 0 ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {images.map((img, index) => (
-                  <div key={index} className="rounded-xl border border-gray-100 p-2 space-y-2 dark:border-gray-800">
-                    <img src={img.previewUrl} alt="" className="h-32 w-full rounded-lg object-cover" />
-                    <div className="flex items-center justify-between gap-2">
+                  <div key={index} className="rounded-xl border border-gray-100 p-2 dark:border-gray-800">
+                    <img src={img.previewUrl} alt="" className="h-28 w-full rounded-lg object-cover" />
+                    <div className="mt-2 flex items-center justify-between gap-2">
                       <span className="text-xs text-gray-500 dark:text-gray-400">No colour selection</span>
                       <button
                         type="button"
@@ -286,26 +263,35 @@ function InlineDraftProductRow({
                         X
                       </button>
                     </div>
-                    <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                    <label className="mt-2 flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
                       <input type="radio" name="default-image" checked={img.isDefault} onChange={() => setDefaultImage(index)} />
                       Default image
                     </label>
                   </div>
                 ))}
               </div>
+            ) : (
+              <div className="mt-4 rounded-xl border border-dashed border-gray-200 px-3 py-4 text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
+                No images uploaded
+              </div>
             )}
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Publish on save</p>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Select the colours you want, then save to publish the product immediately.</p>
           </div>
 
           {error && <p className="text-sm font-semibold text-red-600 dark:text-red-400">{error}</p>}
 
-          <div className="flex justify-end gap-3">
-            <button type="button" onClick={() => { void handleSubmit(); }} disabled={submitting} className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+          <div className="flex flex-wrap justify-end gap-3">
+            <button type="button" onClick={() => { void handleSubmit(); }} disabled={submitting} className="rounded-full bg-navy-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
               {submitting ? 'Creating…' : 'Create product'}
             </button>
           </div>
         </div>
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 }
 
@@ -461,6 +447,8 @@ function ProductRow({
   const [pricingRowSaving, setPricingRowSaving] = useState(false);
   const [pricingRowSaved, setPricingRowSaved] = useState(false);
   const [pricingRowError, setPricingRowError] = useState<string | null>(null);
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const [sizesModalOpen, setSizesModalOpen] = useState(false);
   const [sizeGuideUploading, setSizeGuideUploading] = useState(false);
   const [sizeGuideUploadError, setSizeGuideUploadError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -743,628 +731,496 @@ function ProductRow({
 
   return (
     <>
-      <tr className="border-b border-gray-100 bg-white transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/50 align-top">
-        <td className="px-4 py-4 sm:px-6">
-          <div className="flex max-w-[240px] flex-col gap-3">
-            <div className="mx-auto flex h-32 w-24 items-center justify-center overflow-hidden flex-shrink-0">
-              {img ? (
-                <img src={img.src} alt={product.title} className="h-full w-full object-contain object-center" loading="lazy" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">No img</div>
-              )}
+      <article className="overflow-hidden rounded-[1.75rem] border border-gray-200 bg-white shadow-[0_18px_50px_rgba(5,13,31,0.06)] transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+        <div className="grid gap-4 p-4 lg:grid-cols-[220px_minmax(0,1fr)_220px] lg:gap-5 lg:p-5">
+          <div className="space-y-3">
+            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950">
+              <div className="aspect-[4/5]">
+                {img ? (
+                  <img src={img.src} alt={product.title} className="h-full w-full object-cover object-center" loading="lazy" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">No image</div>
+                )}
+              </div>
             </div>
-            <div className="min-w-0 space-y-2">
+            <button type="button" onClick={() => setImageModalOpen(true)} className="w-full rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800">
+              Manage images
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
               <textarea
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 ref={titleRef}
                 rows={2}
-                className="w-full resize-none overflow-hidden rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm font-semibold leading-snug text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                className="w-full resize-none overflow-hidden rounded-2xl border border-gray-200 bg-white px-3 py-2 text-base font-semibold leading-snug text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
               />
-              <div className="flex justify-center">
-                <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                  <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                    <span className={`h-4 w-4 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <label className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                  <span className={`inline-flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                    <span className={`h-3 w-3 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-3.5' : 'translate-x-0'}`} />
                   </span>
-                  <input
-                    type="checkbox"
-                    checked={isEnabled}
-                    onChange={(e) => setIsEnabled(e.target.checked)}
-                    className="sr-only"
-                  />
+                  <input type="checkbox" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} className="sr-only" />
                   Enabled
                 </label>
-              </div>
-              <div className="space-y-1">
                 {isEnabled ? (
-                  <select
-                    value={rangeId}
-                    onChange={(e) => setRangeId(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                  >
+                  <select value={rangeId} onChange={(e) => setRangeId(e.target.value)} className="min-w-[140px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
                     <option value="">Range</option>
                     {ranges.map((range) => (
                       <option key={range.id} value={range.id}>{range.name}</option>
                     ))}
                   </select>
                 ) : (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Enable this product to choose a range.</p>
+                  <span className="rounded-full border border-dashed border-gray-200 px-3 py-2 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">Range hidden until live</span>
                 )}
+                <select value={category} onChange={(e) => setCategory(e.target.value)} className="min-w-[120px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                  <option value="">Audience</option>
+                  {catalog.audiences.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                <select value={productType} onChange={(e) => setProductType(e.target.value)} className="min-w-[120px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                  <option value="">Product</option>
+                  {catalog.products.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                <select value={garmentType} onChange={(e) => setGarmentType(e.target.value)} className="min-w-[140px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                  <option value="">Garment</option>
+                  {catalog.garments.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                <button type="button" onClick={() => setDetailOpen(true)} className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                  Description
+                </button>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Shop product</p>
-              <p className="font-mono text-[11px] text-gray-400 dark:text-gray-500 truncate">{product.id}</p>
+              <p className="mt-2 font-mono text-[11px] text-gray-400 dark:text-gray-500 truncate">{product.id}</p>
+            </div>
+
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
+              <ColorMultiSelect colors={allColors} selected={visibleColors.map((color) => color.name)} onToggle={(color) => toggleColor(color.name)} />
+              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Range: {ranges.find((range) => range.id === rangeId)?.name ?? 'Unassigned'}</div>
             </div>
           </div>
-        </td>
 
-        <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
-          <div className="space-y-2">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-            >
-              <option value="">Audience</option>
-              {catalog.audiences.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-            <select
-              value={productType}
-              onChange={(e) => setProductType(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-            >
-              <option value="">Product</option>
-              {catalog.products.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-            <select
-              value={garmentType}
-              onChange={(e) => setGarmentType(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-            >
-              <option value="">Garment</option>
-              {catalog.garments.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setDetailOpen(true)}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                Edit description
-              </button>
-              <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${
-                description
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300'
-                  : 'border-gray-200 bg-white text-gray-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-400'
-              }`}>
-                {description ? 'Description set' : 'No description yet'}
-              </span>
-            </div>
-          </div>
-        </td>
-
-        <td className="w-[200px] px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
-          <ColorMultiSelect
-            colors={allColors}
-            selected={visibleColors.map((color) => color.name)}
-            onToggle={(color) => toggleColor(color.name)}
-          />
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            Range: {ranges.find((range) => range.id === rangeId)?.name ?? 'Unassigned'}
-          </div>
-        </td>
-
-        <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-2 dark:border-amber-900/40 dark:bg-amber-900/10">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
-              Pricing
-            </p>
-            <p className="mt-1 inline-flex items-center rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950 dark:text-amber-200">
-              {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
-            </p>
-            <div className="mt-2 grid gap-1.5 sm:grid-cols-2 xl:grid-cols-5">
-              <label className="space-y-1">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Surface</span>
-                <input
-                  value={pricingMatrix.printSurface}
-                  onChange={(e) => updatePricingMatrix({ printSurface: e.target.value })}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Cost</span>
-                <input
-                  value={pricingMatrix.manufacturingCost}
-                  onChange={(e) => updatePricingMatrix({ manufacturingCost: e.target.value })}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Pricing</span>
-                <input
-                  value={pricingMatrix.saleCost}
-                  onChange={(e) => updatePricingMatrix({ saleCost: e.target.value })}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Retail delivery</span>
-                <input
-                  value={pricingMatrix.deliveryRetail}
-                  onChange={(e) => updatePricingMatrix({ deliveryRetail: e.target.value })}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Partner delivery</span>
-                <input
-                  value={pricingMatrix.deliveryPartner}
-                  onChange={(e) => updatePricingMatrix({ deliveryPartner: e.target.value })}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Online delivery</span>
-                <input
-                  value={pricingMatrix.deliveryOnlinePartnership}
-                  onChange={(e) => updatePricingMatrix({ deliveryOnlinePartnership: e.target.value })}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Retail</span>
-                <input
-                  value={pricingMatrix.salePrice}
-                  onChange={(e) => updatePricingMatrix({ salePrice: e.target.value })}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-600 dark:text-amber-400">Partner</span>
-                <input
-                  value={pricingMatrix.partnerPrice}
-                  onChange={(e) => updatePricingMatrix({ partnerPrice: e.target.value })}
-                  className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1 text-[10px] text-gray-900 dark:border-amber-900/40 dark:bg-gray-900 dark:text-gray-100"
-                />
-              </label>
-            </div>
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
-                {pricingCustomRef.current ? 'Custom pricing' : 'Catalog pricing'}
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-900/10">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">Pricing</p>
+                <span className="inline-flex items-center rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950 dark:text-amber-200">
+                  {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {pricingCustomRef.current ? 'Custom pricing set' : 'Catalog pricing'}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={addPricingRowToCatalog}
-                  disabled={pricingRowSaving}
-                  className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[10px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
+                  onClick={() => setPricingModalOpen(true)}
+                  className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
                 >
-                  {pricingRowSaving ? 'Adding…' : 'Add row'}
+                  Edit pricing
                 </button>
                 <button
                   type="button"
                   onClick={resetPricingToCatalog}
-                  className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[10px] font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
+                  className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
                 >
                   Use catalog
                 </button>
-              </div>
-            </div>
-            {pricingRowSaved && (
-              <p className="mt-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                Added to catalog
-              </p>
-            )}
-            {pricingRowError && (
-              <p className="mt-1 text-[10px] font-semibold text-red-600 dark:text-red-400">
-                {pricingRowError}
-              </p>
-            )}
-          </div>
-        </td>
-
-        <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
-          <div className="space-y-3">
-            <div className="flex flex-wrap gap-1 max-w-[180px]">
-              {product.sizes.map((size) => (
-                <span
-                  key={size}
-                  className="inline-flex items-center rounded-full border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
+                <button
+                  type="button"
+                  onClick={addPricingRowToCatalog}
+                  disabled={pricingRowSaving}
+                  className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
-                  {size}
-                </span>
-              ))}
-            </div>
-          </div>
-        </td>
-
-        <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setImageModalOpen(true)}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
-            >
-              Manage images
-            </button>
-            <div className="max-h-72 overflow-y-auto pr-1">
-              <div className="grid grid-cols-3 gap-2">
-                {(images.length > 0 ? images : []).map((image, index) => (
-                  <button
-                    key={`${image.src}-${index}`}
-                    type="button"
-                    onClick={() => setImageModalOpen(true)}
-                    className="group relative overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-950"
-                    title="Open image manager"
-                  >
-                    <div className="aspect-square">
-                      <img src={image.src} alt={product.title} className="h-full w-full object-cover" loading="lazy" />
-                    </div>
-                    {image.isDefault && (
-                      <span className="absolute left-1 top-1 rounded-full bg-navy-800 px-1.5 py-0.5 text-[9px] font-semibold text-white">
-                        Main
-                      </span>
-                    )}
-                  </button>
-                ))}
-                {images.length === 0 && (
-                  <div className="col-span-3 rounded-lg border border-dashed border-gray-200 px-3 py-4 text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
-                    No images uploaded
-                  </div>
-                )}
+                  {pricingRowSaving ? 'Adding…' : 'Add row'}
+                </button>
               </div>
+              {pricingRowSaved && <p className="mt-2 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">Added to catalog</p>}
+              {pricingRowError && <p className="mt-1 text-[10px] font-semibold text-red-600 dark:text-red-400">{pricingRowError}</p>}
             </div>
-          </div>
-        </td>
 
-        <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
-          <div className="space-y-3">
-            <button
-              onClick={() => void handleSaveRow()}
-              className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 transition-colors"
-            >
-              {saving ? 'Saving…' : 'Save row'}
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setSizesModalOpen(true)}
+                className="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Sizes ({product.sizes.length})
               </button>
-            <button
-              type="button"
-              onClick={() => void handleDeleteProductRow()}
-              disabled={saving || deleting}
-              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50"
-            >
-              {deleting ? 'Deleting…' : 'Delete row'}
-            </button>
-            {saved && <div className="text-xs text-green-600 dark:text-green-400">Saved</div>}
-            {error && <div className="text-xs text-red-600 dark:text-red-400">{error}</div>}
-            <p className="text-xs text-gray-400 dark:text-gray-500">
-              Published {formatDate(product.syncedAt)}
-            </p>
+              {saved && <span className="self-center text-xs text-green-600 dark:text-green-400">Saved</span>}
+              {error && <span className="self-center text-xs text-red-600 dark:text-red-400">{error}</span>}
+              <button onClick={() => void handleSaveRow()} className="rounded-full bg-navy-800 px-4 py-2 text-xs font-semibold text-white hover:bg-navy-700 transition-colors">
+                {saving ? 'Saving…' : 'Save card'}
+              </button>
+              <button type="button" onClick={() => void handleDeleteProductRow()} disabled={saving || deleting} className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50">
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Published {formatDate(product.syncedAt)}</p>
           </div>
-        </td>
-      </tr>
+        </div>
+      </article>
 
       {detailOpen && (
-        <tr>
-          <td colSpan={7} className="p-0">
-            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
-              <div className="flex w-full max-w-3xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit description</h2>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{product.title}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setDetailOpen(false)}
-                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <div className="mt-5 flex-1 overflow-y-auto pr-1">
-                  <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">Description</label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={10}
-                    className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                  />
-                </div>
-
-                <div className="mt-6 flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setDetailOpen(false)}
-                    className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { void handleSaveRow(true); }}
-                    className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-700 transition-colors"
-                  >
-                    {saving ? 'Saving…' : 'Save changes'}
-                  </button>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
+          <div className="flex w-full max-w-3xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit description</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{product.title}</p>
               </div>
+              <button type="button" onClick={() => setDetailOpen(false)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+                Close
+              </button>
             </div>
-          </td>
-        </tr>
+
+            <div className="mt-5 flex-1 overflow-y-auto pr-1">
+              <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">Description</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={10}
+                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+              />
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button type="button" onClick={() => setDetailOpen(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+                Cancel
+              </button>
+              <button type="button" onClick={() => { void handleSaveRow(true); }} className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-700 transition-colors">
+                {saving ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {imageModalOpen && (
-        <tr>
-          <td colSpan={7} className="p-0">
-            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
-              <div className="flex w-full max-w-6xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Manage images</h2>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{product.title}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setImageModalOpen(false)}
-                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-                  >
-                    Close
-                  </button>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
+          <div className="flex w-full max-w-6xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Manage images</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{product.title}</p>
+              </div>
+              <button type="button" onClick={() => setImageModalOpen(false)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+                Close
+              </button>
+            </div>
 
-                <div className="mt-5 grid flex-1 min-h-0 gap-6 overflow-hidden lg:grid-cols-[360px_minmax(0,1fr)]">
-                  <div className="space-y-3 overflow-y-auto pr-1">
-                    <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">Upload image</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={(e) => setImageUploadFiles(Array.from(e.target.files ?? []))}
-                      className="block w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 file:mr-3 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700"
-                    />
-                    <select
-                      value={imageUploadColor}
-                      onChange={(e) => setImageUploadColor(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                    >
-                      <option value="">No colour selection</option>
-                      {visibleColors.map((color) => (
-                        <option key={color.name} value={color.name}>{color.name}</option>
+            <div className="mt-5 grid flex-1 min-h-0 gap-6 overflow-hidden lg:grid-cols-[360px_minmax(0,1fr)]">
+              <div className="space-y-3 overflow-y-auto pr-1">
+                <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">Upload image</label>
+                <input type="file" accept="image/*" multiple onChange={(e) => setImageUploadFiles(Array.from(e.target.files ?? []))} className="block w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 file:mr-3 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700" />
+                <select value={imageUploadColor} onChange={(e) => setImageUploadColor(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                  <option value="">No colour selection</option>
+                  {visibleColors.map((color) => (
+                    <option key={color.name} value={color.name}>{color.name}</option>
+                  ))}
+                </select>
+                <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                  <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${imageUploadDefault ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                    <span className={`h-4 w-4 rounded-full bg-white transition-transform ${imageUploadDefault ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </span>
+                  <input type="checkbox" checked={imageUploadDefault} onChange={(e) => setImageUploadDefault(e.target.checked)} className="sr-only" />
+                  Default image
+                </label>
+                {imageUploadPreviews.length > 0 && (
+                  <div className="space-y-2 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">{imageUploadPreviews.length} selected</div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {imageUploadPreviews.map(({ file, previewUrl }) => (
+                        <div key={`${file.name}-${file.size}`} className="overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800">
+                          <img src={previewUrl} alt={file.name} className="h-32 w-full object-contain bg-white dark:bg-gray-950" />
+                          <div className="px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400 truncate">{file.name}</div>
+                        </div>
                       ))}
-                    </select>
-                    <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                      <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${imageUploadDefault ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                        <span className={`h-4 w-4 rounded-full bg-white transition-transform ${imageUploadDefault ? 'translate-x-4' : 'translate-x-0'}`} />
-                      </span>
-                      <input
-                        type="checkbox"
-                        checked={imageUploadDefault}
-                        onChange={(e) => setImageUploadDefault(e.target.checked)}
-                        className="sr-only"
-                      />
-                      Default image
-                    </label>
-                    {imageUploadPreviews.length > 0 && (
-                      <div className="space-y-2 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">
-                          {imageUploadPreviews.length} selected
-                        </div>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {imageUploadPreviews.map(({ file, previewUrl }) => (
-                            <div key={`${file.name}-${file.size}`} className="overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800">
-                              <img src={previewUrl} alt={file.name} className="h-32 w-full object-contain bg-white dark:bg-gray-950" />
-                              <div className="px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400 truncate">{file.name}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleUploadProductImage}
-                      disabled={imageSaving}
-                      className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
-                    >
-                      {imageSaving ? 'Uploading…' : 'Upload image'}
+                    </div>
+                  </div>
+                )}
+                <button type="button" onClick={handleUploadProductImage} disabled={imageSaving} className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors">
+                  {imageSaving ? 'Uploading…' : 'Upload image'}
+                </button>
+                {imageError && <div className="text-xs text-red-600 dark:text-red-400">{imageError}</div>}
+
+                <div className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 space-y-3">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Size guide</p>
+                  <div className="flex items-center gap-2">
+                    <input type="file" accept="image/*" onChange={(e) => setSizeGuideUploadFile(e.target.files?.[0] ?? null)} className="block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700 dark:text-gray-400" />
+                    <button type="button" onClick={handleUploadSizeGuide} disabled={sizeGuideUploading} className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors">
+                      {sizeGuideUploading ? 'Uploading…' : 'Upload'}
                     </button>
-                    {imageError && <div className="text-xs text-red-600 dark:text-red-400">{imageError}</div>}
+                  </div>
+                  {sizeGuideUploadFile && <div className="text-[11px] text-gray-500 dark:text-gray-400">Selected: {sizeGuideUploadFile.name}</div>}
+                  {sizeGuideUploadError && <div className="text-xs text-red-600 dark:text-red-400">{sizeGuideUploadError}</div>}
+                </div>
+              </div>
 
-                    <div className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 space-y-3">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Size guide</p>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => setSizeGuideUploadFile(e.target.files?.[0] ?? null)}
-                          className="block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700 dark:text-gray-400"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleUploadSizeGuide}
-                          disabled={sizeGuideUploading}
-                          className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
-                        >
-                          {sizeGuideUploading ? 'Uploading…' : 'Upload'}
-                        </button>
+              <div className="space-y-3 overflow-y-auto pr-1">
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Current images</div>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {images.map((image, index) => (
+                    <div
+                      key={`${image.src}-${index}`}
+                      draggable={!imageSaving}
+                      onDragStart={(event) => {
+                        if (!image.storageKey || imageSaving) return;
+                        event.dataTransfer.effectAllowed = 'move';
+                        event.dataTransfer.setData('text/plain', image.storageKey);
+                        setDraggingImageKey(image.storageKey);
+                      }}
+                      onDragOver={(event) => {
+                        if (!draggingImageKey || draggingImageKey === image.storageKey) return;
+                        event.preventDefault();
+                        setDropTargetImageKey(image.storageKey ?? null);
+                      }}
+                      onDragLeave={() => {
+                        if (dropTargetImageKey === image.storageKey) setDropTargetImageKey(null);
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        const fromKey = draggingImageKey ?? event.dataTransfer.getData('text/plain');
+                        const targetKey = image.storageKey;
+                        if (!fromKey || !targetKey || fromKey === targetKey) {
+                          setDraggingImageKey(null);
+                          setDropTargetImageKey(null);
+                          return;
+                        }
+
+                        const fromIndex = images.findIndex((entry) => entry.storageKey === fromKey);
+                        const targetIndex = images.findIndex((entry) => entry.storageKey === targetKey);
+                        if (fromIndex < 0 || targetIndex < 0) {
+                          setDraggingImageKey(null);
+                          setDropTargetImageKey(null);
+                          return;
+                        }
+
+                        const next = [...images];
+                        const [moved] = next.splice(fromIndex, 1);
+                        const insertIndex = fromIndex < targetIndex ? targetIndex - 1 : targetIndex;
+                        next.splice(insertIndex, 0, moved);
+                        void handleReorderImages(next);
+                      }}
+                      onDragEnd={() => {
+                        setDraggingImageKey(null);
+                        setDropTargetImageKey(null);
+                      }}
+                      className={`relative rounded-xl border p-2 transition-colors ${
+                        dropTargetImageKey === image.storageKey
+                          ? 'border-navy-400 bg-navy-50 dark:border-navy-700 dark:bg-navy-950/40'
+                          : 'border-gray-100 dark:border-gray-800'
+                      } ${draggingImageKey === image.storageKey ? 'opacity-60' : ''}`}
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+                        <span>Drag to reorder</span>
+                        <span>{index + 1}</span>
                       </div>
-                      {sizeGuideUploadFile && (
-                        <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                          Selected: {sizeGuideUploadFile.name}
-                        </div>
-                      )}
-                      {sizeGuideUploadError && (
-                        <div className="text-xs text-red-600 dark:text-red-400">
-                          {sizeGuideUploadError}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 overflow-y-auto pr-1">
-                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Current images</div>
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                      {images.map((image, index) => (
-                        <div
-                          key={`${image.src}-${index}`}
-                          draggable={!imageSaving}
-                          onDragStart={(event) => {
-                            if (!image.storageKey || imageSaving) return;
-                            event.dataTransfer.effectAllowed = 'move';
-                            event.dataTransfer.setData('text/plain', image.storageKey);
-                            setDraggingImageKey(image.storageKey);
-                          }}
-                          onDragOver={(event) => {
-                            if (!draggingImageKey || draggingImageKey === image.storageKey) return;
-                            event.preventDefault();
-                            setDropTargetImageKey(image.storageKey ?? null);
-                          }}
-                          onDragLeave={() => {
-                            if (dropTargetImageKey === image.storageKey) {
-                              setDropTargetImageKey(null);
-                            }
-                          }}
-                          onDrop={(event) => {
-                            event.preventDefault();
-                            const fromKey = draggingImageKey ?? event.dataTransfer.getData('text/plain');
-                            const targetKey = image.storageKey;
-                            if (!fromKey || !targetKey || fromKey === targetKey) {
-                              setDraggingImageKey(null);
-                              setDropTargetImageKey(null);
-                              return;
-                            }
-
-                            const fromIndex = images.findIndex((entry) => entry.storageKey === fromKey);
-                            const targetIndex = images.findIndex((entry) => entry.storageKey === targetKey);
-                            if (fromIndex < 0 || targetIndex < 0) {
-                              setDraggingImageKey(null);
-                              setDropTargetImageKey(null);
-                              return;
-                            }
-
-                            const next = [...images];
-                            const [moved] = next.splice(fromIndex, 1);
-                            const insertIndex = fromIndex < targetIndex ? targetIndex - 1 : targetIndex;
-                            next.splice(insertIndex, 0, moved);
-                            void handleReorderImages(next);
-                          }}
-                          onDragEnd={() => {
-                            setDraggingImageKey(null);
-                            setDropTargetImageKey(null);
-                          }}
-                          className={`relative rounded-xl border p-2 transition-colors ${
-                            dropTargetImageKey === image.storageKey
-                              ? 'border-navy-400 bg-navy-50 dark:border-navy-700 dark:bg-navy-950/40'
-                              : 'border-gray-100 dark:border-gray-800'
-                          } ${draggingImageKey === image.storageKey ? 'opacity-60' : ''}`}
-                        >
-                          <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
-                            <span>Drag to reorder</span>
-                            <span>{index + 1}</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!image.storageKey) return;
-                              try {
-                                await adminDeleteProductImage(token, product.printifyId, image.storageKey);
-                                setImages((current) => {
-                                  const next = current.filter((entry) => entry.storageKey !== image.storageKey);
-                                  if (next.length > 0 && !next.some((entry) => entry.isDefault)) {
-                                    next[0].isDefault = true;
-                                  }
-                                  return next;
-                                });
-                              } catch (err) {
-                                setImageError(err instanceof Error ? err.message : 'Delete failed');
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!image.storageKey) return;
+                          try {
+                            await adminDeleteProductImage(token, product.printifyId, image.storageKey);
+                            setImages((current) => {
+                              const next = current.filter((entry) => entry.storageKey !== image.storageKey);
+                              if (next.length > 0 && !next.some((entry) => entry.isDefault)) {
+                                next[0].isDefault = true;
                               }
-                            }}
-                            className="absolute right-3 top-3 z-10 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-black"
-                            aria-label="Delete image"
-                            >
-                            Delete
-                          </button>
-                          <div className="overflow-hidden rounded-lg border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950">
-                            <img src={image.src} alt={product.title} className="h-40 w-full object-contain" />
-                          </div>
-                          <div className="mt-2 space-y-2 text-xs text-gray-500 dark:text-gray-400">
-                            <div className="space-y-1.5">
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Row colours</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                <button
-                                  type="button"
-                                  disabled={imageSaving}
-                                  onClick={() => {
-                                    if (!image.storageKey) return;
-                                    void handleUpdateImage(image.storageKey, { color: null });
-                                  }}
-                                  className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold transition-colors ${
-                                    !image.color
-                                      ? 'border-navy-800 bg-navy-800 text-white'
-                                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800'
-                                  }`}
-                                >
-                                  No colour selection
+                              return next;
+                            });
+                          } catch (err) {
+                            setImageError(err instanceof Error ? err.message : 'Delete failed');
+                          }
+                        }}
+                        className="absolute right-3 top-3 z-10 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-black"
+                        aria-label="Delete image"
+                      >
+                        Delete
+                      </button>
+                      <div className="overflow-hidden rounded-lg border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950">
+                        <img src={image.src} alt={product.title} className="h-40 w-full object-contain" />
+                      </div>
+                      <div className="mt-2 space-y-2 text-xs text-gray-500 dark:text-gray-400">
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Row colours</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            <button type="button" disabled={imageSaving} onClick={() => { if (!image.storageKey) return; void handleUpdateImage(image.storageKey, { color: null }); }} className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold transition-colors ${!image.color ? 'border-navy-800 bg-navy-800 text-white' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800'}`}>
+                              No colour selection
+                            </button>
+                            {visibleColors.map((color) => {
+                              const selected = image.color === color.name;
+                              return (
+                                <button key={color.name} type="button" disabled={imageSaving} onClick={() => { if (!image.storageKey) return; void handleUpdateImage(image.storageKey, { color: color.name }); }} className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold transition-colors ${selected ? 'border-navy-800 bg-navy-800 text-white' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800'}`}>
+                                  <span className="inline-block h-3 w-3 rounded-full border border-black/10" style={{ backgroundColor: color.hex }} />
+                                  {color.name}
                                 </button>
-                                {visibleColors.map((color) => {
-                                  const selected = image.color === color.name;
-                                  return (
-                                    <button
-                                      key={color.name}
-                                      type="button"
-                                      disabled={imageSaving}
-                                      onClick={() => {
-                                        if (!image.storageKey) return;
-                                        void handleUpdateImage(image.storageKey, { color: color.name });
-                                      }}
-                                      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold transition-colors ${
-                                        selected
-                                          ? 'border-navy-800 bg-navy-800 text-white'
-                                          : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800'
-                                      }`}
-                                    >
-                                      <span
-                                        className="inline-block h-3 w-3 rounded-full border border-black/10"
-                                        style={{ backgroundColor: color.hex }}
-                                      />
-                                      {color.name}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                              {image.isDefault ? (
-                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Default image</span>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (!image.storageKey) return;
-                                    void handleUpdateImage(image.storageKey, { isDefault: true });
-                                  }}
-                                  disabled={imageSaving}
-                                  className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
-                                >
-                                  Set default
-                                </button>
-                              )}
-                              <span>{image.color || 'No colour selection'}</span>
-                            </div>
+                              );
+                            })}
                           </div>
                         </div>
-                      ))}
+                        <div className="flex items-center justify-between gap-2">
+                          {image.isDefault ? (
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">Default image</span>
+                          ) : (
+                            <button type="button" onClick={() => { if (!image.storageKey) return; void handleUpdateImage(image.storageKey, { isDefault: true }); }} disabled={imageSaving} className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800">
+                              Set default
+                            </button>
+                          )}
+                          <span>{image.color || 'No colour selection'}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
-          </td>
-        </tr>
+          </div>
+        </div>
+      )}
+
+      {pricingModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
+          <div className="flex w-full max-w-3xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit pricing</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{product.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPricingModalOpen(false)}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 flex-1 overflow-y-auto pr-1">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-900/10">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">Pricing matrix</p>
+                  <span className="inline-flex items-center rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950 dark:text-amber-200">
+                    {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <input value={pricingMatrix.printSurface} onChange={(e) => updatePricingMatrix({ printSurface: e.target.value })} placeholder="Surface" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                  <input value={pricingMatrix.manufacturingCost} onChange={(e) => updatePricingMatrix({ manufacturingCost: e.target.value })} placeholder="Cost" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                  <input value={pricingMatrix.saleCost} onChange={(e) => updatePricingMatrix({ saleCost: e.target.value })} placeholder="Pricing" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                  <input value={pricingMatrix.deliveryRetail} onChange={(e) => updatePricingMatrix({ deliveryRetail: e.target.value })} placeholder="Retail delivery" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                  <input value={pricingMatrix.deliveryPartner} onChange={(e) => updatePricingMatrix({ deliveryPartner: e.target.value })} placeholder="Partner delivery" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                  <input value={pricingMatrix.deliveryOnlinePartnership} onChange={(e) => updatePricingMatrix({ deliveryOnlinePartnership: e.target.value })} placeholder="Online delivery" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                  <input value={pricingMatrix.salePrice} onChange={(e) => updatePricingMatrix({ salePrice: e.target.value })} placeholder="Retail" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                  <input value={pricingMatrix.partnerPrice} onChange={(e) => updatePricingMatrix({ partnerPrice: e.target.value })} placeholder="Partner" className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-amber-900/40 dark:bg-gray-900 dark:text-gray-100" />
+                </div>
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+                    {pricingCustomRef.current ? 'Custom pricing' : 'Catalog pricing'}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={resetPricingToCatalog}
+                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
+                    >
+                      Use catalog
+                    </button>
+                    <button
+                      type="button"
+                      onClick={addPricingRowToCatalog}
+                      disabled={pricingRowSaving}
+                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
+                    >
+                      {pricingRowSaving ? 'Adding…' : 'Add row'}
+                    </button>
+                  </div>
+                </div>
+                {pricingRowSaved && <p className="mt-2 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">Added to catalog</p>}
+                {pricingRowError && <p className="mt-1 text-[10px] font-semibold text-red-600 dark:text-red-400">{pricingRowError}</p>}
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPricingModalOpen(false)}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => { setPricingModalOpen(false); void handleSaveRow(true); }}
+                className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-700 transition-colors"
+              >
+                {saving ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sizesModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
+          <div className="flex w-full max-w-2xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Sizes</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{product.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSizesModalOpen(false)}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 flex-1 overflow-y-auto pr-1">
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">Available sizes</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {product.sizes.map((size) => (
+                    <span key={size} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                      {size}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                  These sizes come from the synced product data and are displayed here for reference only.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setSizesModalOpen(false)}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSizesModalOpen(false);
+                  void handleSaveRow(true);
+                }}
+                className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-700 transition-colors"
+              >
+                {saving ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
@@ -1377,7 +1233,7 @@ export default function AdminProductsPage() {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
   const [draftOpen, setDraftOpen] = useState(false);
-  const draftRowRef = useRef<HTMLTableRowElement | null>(null);
+  const draftRowRef = useRef<HTMLDivElement | null>(null);
   const [catalog, setCatalog] = useState<CatalogOptions>(DEFAULT_CATALOG_OPTIONS);
   const saveHandlersRef = useRef(new Map<string, () => Promise<boolean>>());
   const saveAllInProgressRef = useRef(false);
@@ -1488,58 +1344,32 @@ export default function AdminProductsPage() {
           </Button>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-          <div className="overflow-x-auto">
-            <table className="min-w-[1540px] w-full table-fixed border-separate border-spacing-0">
-              <colgroup>
-                <col className="w-[250px]" />
-                <col className="w-[290px]" />
-                <col className="w-[170px]" />
-                <col className="w-[280px]" />
-                <col className="w-[230px]" />
-                <col className="w-[260px]" />
-                <col className="w-[140px]" />
-              </colgroup>
-              <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
-                <tr className="text-left text-[11px] uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
-                  <th className="px-4 py-3 sm:px-6">Product</th>
-                  <th className="px-4 py-3">Classification</th>
-                  <th className="px-4 py-3">Colours</th>
-                  <th className="px-4 py-3">Pricing</th>
-                  <th className="px-4 py-3">Sizes</th>
-                  <th className="px-4 py-3">Visibility</th>
-                  <th className="px-4 py-3">Inventory</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <ProductRow
-                    key={product.id}
-                    product={product}
-                    token={token!}
-                    catalog={catalog}
-                    ranges={ranges}
-                    onCatalogRefreshed={refreshCatalog}
-                    onDeleted={(id) => setProducts((current) => current.filter((item) => item.id !== id))}
-                    onRegisterSave={registerRowSave}
-                  />
-                ))}
-                {draftOpen && (
-                  <InlineDraftProductRow
-                    token={token!}
-                    catalog={catalog}
-                    ranges={ranges}
-                    rowRef={draftRowRef}
-                    onCancel={() => setDraftOpen(false)}
-                    onCreated={async () => {
-                      setDraftOpen(false);
-                      await load();
-                    }}
-                  />
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="space-y-4">
+          {products.map((product) => (
+            <ProductRow
+              key={product.id}
+              product={product}
+              token={token!}
+              catalog={catalog}
+              ranges={ranges}
+              onCatalogRefreshed={refreshCatalog}
+              onDeleted={(id) => setProducts((current) => current.filter((item) => item.id !== id))}
+              onRegisterSave={registerRowSave}
+            />
+          ))}
+          {draftOpen && (
+            <InlineDraftProductRow
+              token={token!}
+              catalog={catalog}
+              ranges={ranges}
+              rowRef={draftRowRef}
+              onCancel={() => setDraftOpen(false)}
+              onCreated={async () => {
+                setDraftOpen(false);
+                await load();
+              }}
+            />
+          )}
         </div>
       )}
     </div>

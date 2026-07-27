@@ -273,6 +273,7 @@ export interface PartnerCollaborationDesign {
   title: string;
   description: string | null;
   imageUrl: string | null;
+  imageUrls: string[];
   garment: string | null;
   colorName: string;
   colorHex: string;

@@ -24,7 +24,7 @@ type Draft = {
   collaborationEnabled: boolean;
   collaborationTitle: string;
   collaborationDescription: string;
-  collaborationImageUrl: string;
+  collaborationImageUrls: string;
   collaborationGarment: string;
   collaborationColorName: string;
   collaborationColorHex: string;
@@ -44,7 +44,7 @@ function emptyDraft(): Draft {
     collaborationEnabled: false,
     collaborationTitle: '',
     collaborationDescription: '',
-    collaborationImageUrl: '',
+    collaborationImageUrls: '',
     collaborationGarment: 'Collaboration Shirt',
     collaborationColorName: 'Collaboration',
     collaborationColorHex: '#111827',
@@ -58,11 +58,23 @@ function formatPoundsInput(value: number | undefined | null): string {
   return ((value ?? 0) / 100).toFixed(2);
 }
 
+function parseCollaborationImages(value: string): string[] {
+  return Array.from(
+    new Set(
+      value
+        .split(/[\n,]/)
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
 function buildCollaborationDesign(draft: Draft): PartnerCollaborationDesign | null {
+  const imageUrls = parseCollaborationImages(draft.collaborationImageUrls);
   const hasCustomContent =
     draft.collaborationTitle.trim().length > 0 ||
     draft.collaborationDescription.trim().length > 0 ||
-    draft.collaborationImageUrl.trim().length > 0 ||
+    imageUrls.length > 0 ||
     draft.collaborationGarment.trim() !== 'Collaboration Shirt' ||
     draft.collaborationColorName.trim() !== 'Collaboration' ||
     draft.collaborationColorHex.trim() !== '#111827' ||
@@ -88,7 +100,8 @@ function buildCollaborationDesign(draft: Draft): PartnerCollaborationDesign | nu
   return {
     title: draft.collaborationTitle.trim() || 'Collaboration Shirt',
     description: draft.collaborationDescription.trim() || null,
-    imageUrl: draft.collaborationImageUrl.trim() || null,
+    imageUrl: imageUrls[0] ?? null,
+    imageUrls,
     garment: draft.collaborationGarment.trim() || null,
     colorName: draft.collaborationColorName.trim() || 'Collaboration',
     colorHex: draft.collaborationColorHex.trim() || '#111827',
@@ -151,7 +164,7 @@ export default function AdminPartnersPage() {
       collaborationEnabled: partner.collaborationEnabled,
       collaborationTitle: collaboration?.title ?? '',
       collaborationDescription: collaboration?.description ?? '',
-      collaborationImageUrl: collaboration?.imageUrl ?? '',
+      collaborationImageUrls: (collaboration?.imageUrls?.length ? collaboration.imageUrls : collaboration?.imageUrl ? [collaboration.imageUrl] : []).join('\n'),
       collaborationGarment: collaboration?.garment ?? 'Collaboration Shirt',
       collaborationColorName: collaboration?.colorName ?? 'Collaboration',
       collaborationColorHex: collaboration?.colorHex ?? '#111827',
@@ -256,7 +269,7 @@ export default function AdminPartnersPage() {
       collaborationEnabled: false,
       collaborationTitle: '',
       collaborationDescription: '',
-      collaborationImageUrl: '',
+      collaborationImageUrls: '',
       collaborationGarment: 'Collaboration Shirt',
       collaborationColorName: 'Collaboration',
       collaborationColorHex: '#111827',
@@ -542,13 +555,16 @@ export default function AdminPartnersPage() {
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Image URL</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Image URLs</span>
                 <input
-                  value={draft.collaborationImageUrl}
-                  onChange={(e) => setDraft((current) => ({ ...current, collaborationImageUrl: e.target.value }))}
-                  placeholder="/partner-collab.jpg"
+                  value={draft.collaborationImageUrls}
+                  onChange={(e) => setDraft((current) => ({ ...current, collaborationImageUrls: e.target.value }))}
+                  placeholder="/partner-collab-front.jpg\n/partner-collab-back.jpg"
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                 />
+                <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                  Add one URL per line or separate them with commas. The first image is used as the default.
+                </p>
               </label>
 
               <label className="block space-y-1">

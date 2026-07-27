@@ -39,7 +39,7 @@ export function ColorMultiSelect({
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        {selectedColors.slice(0, 3).map((color) => (
+        {selectedColors.map((color) => (
           <button
             key={color.name}
             type="button"
@@ -47,7 +47,7 @@ export function ColorMultiSelect({
             aria-pressed="true"
             title={`Remove ${color.name}`}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+              'inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors',
               'border-navy-800 bg-navy-800 text-white shadow-md shadow-navy-900/20',
             )}
           >
@@ -55,18 +55,12 @@ export function ColorMultiSelect({
               className="h-3.5 w-3.5 rounded-full border border-white/20"
               style={{ backgroundColor: color.hex }}
             />
-            <span className="max-w-[9rem] truncate">{color.name}</span>
           </button>
         ))}
-        {selectedColors.length > 3 && (
-          <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300">
-            +{selectedColors.length - 3}
-          </span>
-        )}
         <details className="group relative">
           <summary
             className={cn(
-              'list-none inline-flex cursor-pointer items-center justify-center rounded-full border px-3 py-1 text-xs font-black transition-colors',
+              'list-none inline-flex h-7 min-w-7 cursor-pointer items-center justify-center rounded-full border px-2 text-xs font-black transition-colors',
               remainingColors.length > 0
                 ? 'border-gray-200 bg-white text-gray-700 hover:border-navy-800 hover:text-navy-800 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:border-navy-500 dark:hover:text-navy-300'
                 : 'border-dashed border-gray-200 bg-gray-50 text-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-600',

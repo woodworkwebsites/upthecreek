@@ -121,6 +121,19 @@ function getImageForColor(product: Product, color: string): string {
   return product.images.find((image) => image.isDefault)?.src ?? product.images[0]?.src ?? '/UTC_Logo.png';
 }
 
+function getImagesForColor(product: Product, color: string): string[] {
+  const unique = new Set<string>();
+  const images = product.images.filter((image) => normalizeName(image.color ?? '') === normalizeName(color));
+  return images
+    .map((image) => image.src)
+    .filter((src) => {
+      const trimmed = src.trim();
+      if (!trimmed || unique.has(trimmed)) return false;
+      unique.add(trimmed);
+      return true;
+    });
+}
+
 function buildLine(product: Product, color: string): BasketLineItem {
   const colors = visibleColors(product);
   const colorMeta = colors.find((entry) => entry.name === color) ?? colors[0] ?? { name: color, hex: '#111827' };
@@ -187,30 +200,59 @@ function ProductMatrixCard({
 }) {
   const colors = visibleColors(product);
   const [selectedColorName, setSelectedColorName] = useState(colors[0]?.name ?? '');
+  const [imageIndex, setImageIndex] = useState(0);
   const activeColor = colors.find((color) => color.name === selectedColorName) ?? colors[0];
   const partnerPrice = getPartnerUnitPrice(product, product.minPrice);
   const rrp = getRrp(product);
   const margin = rrp - partnerPrice;
   const { purchaserPrice, commission } = getReferralPricing(product);
   const isCollaboration = product.category === 'partner-collaboration';
+  const colorImages = useMemo(() => (activeColor ? getImagesForColor(product, activeColor.name) : []), [activeColor, product]);
+  const activeImageSrc = colorImages.length > 0 ? colorImages[imageIndex % colorImages.length] : getImageForColor(product, activeColor?.name ?? '');
+
+  useEffect(() => {
+    setImageIndex(0);
+  }, [activeColor?.name]);
 
   return (
     <article className="overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_40px_rgba(5,13,31,0.05)]">
       {activeColor && (
-        <button
-          type="button"
-          onClick={() => onOpenDraft(product, activeColor.name)}
-          className="group block w-full overflow-hidden text-left"
-        >
-          <span className="block aspect-[4/3] w-full overflow-hidden bg-gray-50">
-            <img
-              src={getImageForColor(product, activeColor.name)}
-              alt={`${product.title} ${activeColor.name}`}
-              className="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-105"
-              loading="lazy"
-            />
-          </span>
-        </button>
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => onOpenDraft(product, activeColor.name)}
+            className="group block w-full overflow-hidden text-left"
+          >
+            <span className="block aspect-[4/3] w-full overflow-hidden bg-gray-50">
+              <img
+                src={activeImageSrc}
+                alt={`${product.title} ${activeColor.name}`}
+                className="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-105"
+                loading="lazy"
+              />
+            </span>
+          </button>
+          {colorImages.length > 1 && (
+            <div className="flex gap-2 px-4">
+              {colorImages.map((src, index) => (
+                <button
+                  key={`${src}-${index}`}
+                  type="button"
+                  onClick={() => setImageIndex(index)}
+                  aria-label={`Show image ${index + 1} for ${activeColor.name}`}
+                  className={cn(
+                    'h-10 w-10 overflow-hidden rounded-xl border transition-colors',
+                    index === imageIndex
+                      ? 'border-navy-800 ring-2 ring-navy-800/20'
+                      : 'border-gray-200 hover:border-navy-400',
+                  )}
+                >
+                  <img src={src} alt="" className="h-full w-full object-cover object-top" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       <div className="p-4">
@@ -220,10 +262,6 @@ function ProductMatrixCard({
           </div>
         )}
         <h2 className="text-base font-black leading-snug tracking-tight text-navy-900">{product.title}</h2>
-        <p className="mt-0.5 text-xs font-semibold text-gray-500">{product.garment}</p>
-        {product.description && (
-          <p className="mt-2 text-sm leading-6 text-gray-500">{product.description}</p>
-        )}
 
         <div className="mt-2.5 space-y-1.5">
           {isCollaboration ? (

@@ -52,6 +52,18 @@ function normalizeCollaborationSizes(value: unknown): string[] {
   );
 }
 
+function normalizeCollaborationImages(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(
+    new Set(
+      value
+        .filter((entry): entry is string => typeof entry === 'string')
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
 function parseCollaborationDesign(raw: string | null): PartnerCollaborationDesign | null {
   if (!raw) return null;
 
@@ -64,11 +76,15 @@ function parseCollaborationDesign(raw: string | null): PartnerCollaborationDesig
       : typeof parsed.partnerPrice === 'string'
         ? Number(parsed.partnerPrice)
         : NaN;
+    const imageUrls = normalizeCollaborationImages(
+      parsed.imageUrls ?? (typeof parsed.imageUrl === 'string' ? [parsed.imageUrl] : []),
+    );
 
     return {
       title: typeof parsed.title === 'string' ? parsed.title.trim() : '',
       description: typeof parsed.description === 'string' ? parsed.description.trim() || null : null,
-      imageUrl: typeof parsed.imageUrl === 'string' ? parsed.imageUrl.trim() || null : null,
+      imageUrl: imageUrls[0] ?? (typeof parsed.imageUrl === 'string' ? parsed.imageUrl.trim() || null : null),
+      imageUrls,
       garment: typeof parsed.garment === 'string' ? parsed.garment.trim() || null : null,
       colorName: typeof parsed.colorName === 'string' ? parsed.colorName.trim() || 'Collaboration' : 'Collaboration',
       colorHex: typeof parsed.colorHex === 'string' ? parsed.colorHex.trim() || '#111827' : '#111827',
@@ -86,7 +102,8 @@ function serializeCollaborationDesign(design: PartnerCollaborationDesign | null 
   return JSON.stringify({
     title: design.title.trim(),
     description: design.description?.trim() || null,
-    imageUrl: design.imageUrl?.trim() || null,
+    imageUrl: design.imageUrls[0]?.trim() || design.imageUrl?.trim() || null,
+    imageUrls: normalizeCollaborationImages(design.imageUrls ?? (design.imageUrl ? [design.imageUrl] : [])),
     garment: design.garment?.trim() || null,
     colorName: design.colorName.trim() || 'Collaboration',
     colorHex: design.colorHex.trim() || '#111827',

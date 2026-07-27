@@ -29,6 +29,11 @@ function buildCollaborationProduct(partner: PartnerDashboard['partner']): Produc
   const price = Math.max(0, design.partnerPrice);
   const pricePounds = (price / 100).toFixed(2);
   const colorName = design.colorName.trim() || 'Collaboration';
+  const imageUrls = design.imageUrls.length > 0
+    ? design.imageUrls
+    : design.imageUrl
+      ? [design.imageUrl]
+      : [];
 
   return {
     id: `partner-collab:${partner.slug}`,
@@ -53,14 +58,21 @@ function buildCollaborationProduct(partner: PartnerDashboard['partner']): Produc
       salePrice: pricePounds,
       partnerPrice: pricePounds,
     },
-    images: [
-      {
-        src: design.imageUrl?.trim() || '/UTC_Logo.png',
-        isDefault: true,
-        variantIds: [1],
+    images: imageUrls.length > 0
+      ? imageUrls.map((src, index) => ({
+        src: src.trim() || '/UTC_Logo.png',
+        isDefault: index === 0,
+        variantIds: sizes.map((_, variantIndex) => variantIndex + 1),
         color: colorName,
-      },
-    ],
+      }))
+      : [
+        {
+          src: '/UTC_Logo.png',
+          isDefault: true,
+          variantIds: [1],
+          color: colorName,
+        },
+      ],
     variants: sizes.map((size, index) => ({
       id: index + 1,
       color: colorName,
