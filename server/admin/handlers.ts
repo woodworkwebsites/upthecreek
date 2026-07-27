@@ -428,8 +428,14 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
   }
 
   const ranges = await listRanges(env.DB);
-  const defaultRange = ranges.find((range) => range.storefrontEnabled && range.partnerEnabled) ?? ranges[0] ?? null;
-  const rangeId = rangeIdRaw || defaultRange?.id || null;
+  const defaultRange = ranges.find((range) => range.storefrontEnabled && range.partnerEnabled && range.id !== 'evergreen')
+    ?? ranges.find((range) => range.id !== 'evergreen')
+    ?? ranges[0]
+    ?? null;
+  let rangeId = rangeIdRaw || defaultRange?.id || null;
+  if (rangeId === 'evergreen' && !(await getRangeById(env.DB, rangeId))) {
+    rangeId = null;
+  }
   if (rangeId && !(await getRangeById(env.DB, rangeId))) {
     return json({ error: 'Selected range not found' }, 400);
   }

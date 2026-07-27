@@ -13,6 +13,10 @@ interface ImageRow {
   isDefault: boolean;
 }
 
+function getDefaultRangeId(ranges: CatalogRange[]): string {
+  return ranges.find((range) => range.id !== 'evergreen')?.id ?? '';
+}
+
 function uniquePrintSurfaces(catalog: CatalogOptions): string[] {
   return Array.from(new Set(catalog.pricingRows.map((row) => row.printSurface.trim()).filter(Boolean)));
 }
@@ -55,8 +59,11 @@ export default function AdminProductCreatePage() {
         setCatalog(nextCatalog);
         setRanges(rangeList);
         const evergreen = rangeList.find((range) => range.name.toLowerCase() === 'evergreen');
-        const defaultRange = evergreen ?? rangeList.find((range) => range.storefrontEnabled && range.partnerEnabled) ?? rangeList[0] ?? null;
-        setRangeId((current) => current || defaultRange?.id || '');
+        const defaultRange = rangeList.find((range) => range.storefrontEnabled && range.partnerEnabled && range.id !== 'evergreen')
+          ?? rangeList.find((range) => range.id !== 'evergreen')
+          ?? evergreen
+          ?? null;
+        setRangeId((current) => current || (defaultRange?.id === 'evergreen' ? '' : defaultRange?.id || ''));
         setCategory((current) => current || nextCatalog.audiences[0] || '');
         setProductType((current) => current || nextCatalog.products[0] || '');
         setGarmentType((current) => current || nextCatalog.garments[0] || '');
@@ -131,7 +138,7 @@ export default function AdminProductCreatePage() {
       form.append('audience', category.trim() || catalog.audiences[0] || '');
       form.append('productType', productType.trim() || catalog.products[0] || '');
       form.append('garment', garmentType.trim() || catalog.garments[0] || '');
-      form.append('rangeId', rangeId.trim() || ranges[0]?.id || '');
+      form.append('rangeId', rangeId.trim() || getDefaultRangeId(ranges));
       const pricingPreset = findPricingPresetRow(catalog.pricingRows, category, productType, garmentType)
         ?? catalog.pricingRows[0]
         ?? null;

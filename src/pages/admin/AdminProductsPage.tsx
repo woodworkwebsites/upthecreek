@@ -15,6 +15,10 @@ interface DraftImageRow {
   isDefault: boolean;
 }
 
+function getDefaultRangeId(ranges: CatalogRange[]): string {
+  return ranges.find((range) => range.id !== 'evergreen')?.id ?? '';
+}
+
 function InlineDraftProductRow({
   token,
   catalog,
@@ -36,7 +40,7 @@ function InlineDraftProductRow({
   const [category, setCategory] = useState(catalog.audiences[0] ?? '');
   const [productType, setProductType] = useState(catalog.products[0] ?? '');
   const [garmentType, setGarmentType] = useState(catalog.garments[0] ?? '');
-  const [rangeId, setRangeId] = useState(ranges[0]?.id ?? '');
+  const [rangeId, setRangeId] = useState(getDefaultRangeId(ranges));
   const [isEnabled, setIsEnabled] = useState(true);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [images, setImages] = useState<DraftImageRow[]>([]);
@@ -114,7 +118,7 @@ function InlineDraftProductRow({
       form.append('audience', category.trim() || catalog.audiences[0] || '');
       form.append('productType', productType.trim() || catalog.products[0] || '');
       form.append('garment', garmentType.trim() || catalog.garments[0] || '');
-      form.append('rangeId', rangeId.trim() || ranges[0]?.id || '');
+      form.append('rangeId', rangeId.trim() || getDefaultRangeId(ranges));
       const pricingPreset = matchPricingPresetBySelection(category, productType, garmentType, catalog)
         ?? catalog.pricingRows[0]
         ?? null;
@@ -217,12 +221,6 @@ function InlineDraftProductRow({
             <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Publication</p>
               <div className="mt-3 space-y-3">
-                <select value={rangeId} onChange={(e) => setRangeId(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                  <option value="">Range</option>
-                  {ranges.map((range) => (
-                    <option key={range.id} value={range.id}>{range.name}</option>
-                  ))}
-                </select>
                 <button
                   type="button"
                   onClick={() => setIsEnabled((current) => !current)}
@@ -237,6 +235,14 @@ function InlineDraftProductRow({
                   </span>
                   Enabled
                 </button>
+                {isEnabled && (
+                  <select value={rangeId} onChange={(e) => setRangeId(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                    <option value="">Range</option>
+                    {ranges.map((range) => (
+                      <option key={range.id} value={range.id}>{range.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
           </div>
@@ -414,6 +420,7 @@ function ProductRow({
   ranges,
   onCatalogRefreshed,
   onDeleted,
+  onRegisterSave,
 }: {
   product: Product;
   token: string;
@@ -421,6 +428,7 @@ function ProductRow({
   ranges: CatalogRange[];
   onCatalogRefreshed: () => Promise<void>;
   onDeleted: (id: string) => void;
+  onRegisterSave: (id: string, save: (() => Promise<boolean>) | null) => void;
 }) {
   const [images, setImages] = useState(product.images);
   const [title, setTitle] = useState(product.title);
@@ -428,7 +436,7 @@ function ProductRow({
   const [category, setCategory] = useState(product.audience || '');
   const [productType, setProductType] = useState(product.productType || '');
   const [garmentType, setGarmentType] = useState(product.garment || '');
-  const [rangeId, setRangeId] = useState(product.rangeId ?? ranges[0]?.id ?? '');
+  const [rangeId, setRangeId] = useState(product.rangeId ?? getDefaultRangeId(ranges));
   const initialPricingMatrix = {
     ...emptyPricingMatrix(),
     ...(product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? {}),
@@ -466,7 +474,7 @@ function ProductRow({
     setCategory(product.audience || '');
     setProductType(product.productType || '');
     setGarmentType(product.garment || '');
-    setRangeId(product.rangeId ?? ranges[0]?.id ?? '');
+    setRangeId(product.rangeId ?? getDefaultRangeId(ranges));
     setPricingMatrix(product.pricingMatrix ?? nextPreset);
     pricingCustomRef.current = Boolean(product.pricingMatrix);
     setHiddenColors(product.hiddenColors ?? []);
@@ -657,14 +665,6 @@ function ProductRow({
     });
   })();
   const visibleColors = allColors.filter((color) => !hiddenColors.includes(color.name));
-  const hiddenCount = hiddenColors.length;
-  const colorOrder = new Map(allColors.map((color, index) => [color.name, index] as const));
-  const sortedVisibleColors = [...visibleColors].sort(
-    (a, b) => (colorOrder.get(a.name) ?? Number.MAX_SAFE_INTEGER) - (colorOrder.get(b.name) ?? Number.MAX_SAFE_INTEGER),
-  );
-  const sortedHiddenColors = [...allColors.filter((color) => hiddenColors.includes(color.name))].sort(
-    (a, b) => (colorOrder.get(a.name) ?? Number.MAX_SAFE_INTEGER) - (colorOrder.get(b.name) ?? Number.MAX_SAFE_INTEGER),
-  );
   const currentPricingSignature = pricingMatrixSignature(pricingMatrix);
   const originalPricingSignature = pricingMatrixSignature({
     ...emptyPricingMatrix(),
@@ -683,6 +683,7 @@ function ProductRow({
 
   async function handleSaveRow(closeDetails = false) {
     if (saving) return false;
+    if (!hasChanges) return true;
 
     if (title.trim().length === 0) {
       setError('Title cannot be empty');
@@ -718,6 +719,11 @@ function ProductRow({
       setSaving(false);
     }
   }
+
+  useEffect(() => {
+    onRegisterSave(product.id, handleSaveRow);
+    return () => onRegisterSave(product.id, null);
+  }, [handleSaveRow, onRegisterSave, product.id]);
 
   async function handleDeleteProductRow() {
     const confirmed = window.confirm(`Delete ${product.title}? This cannot be undone.`);
@@ -769,6 +775,22 @@ function ProductRow({
                   Enabled
                 </label>
               </div>
+              <div className="space-y-1">
+                {isEnabled ? (
+                  <select
+                    value={rangeId}
+                    onChange={(e) => setRangeId(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                  >
+                    <option value="">Range</option>
+                    {ranges.map((range) => (
+                      <option key={range.id} value={range.id}>{range.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Enable this product to choose a range.</p>
+                )}
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">Shop product</p>
               <p className="font-mono text-[11px] text-gray-400 dark:text-gray-500 truncate">{product.id}</p>
             </div>
@@ -807,16 +829,6 @@ function ProductRow({
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>
-            <select
-              value={rangeId}
-              onChange={(e) => setRangeId(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-            >
-              <option value="">Range</option>
-              {ranges.map((range) => (
-                <option key={range.id} value={range.id}>{range.name}</option>
-              ))}
-            </select>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -837,55 +849,11 @@ function ProductRow({
         </td>
 
         <td className="w-[200px] px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
-          <div className="space-y-2 max-w-[200px]">
-            <div className="flex flex-wrap gap-1.5 max-w-[240px]">
-              {sortedVisibleColors.map((color) => {
-                const isHidden = hiddenColors.includes(color.name);
-                return (
-                  <button
-                    key={color.name}
-                    type="button"
-                    onClick={() => toggleColor(color.name)}
-                    aria-pressed={!isHidden}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-                      isHidden
-                        ? 'border-dashed border-gray-300 bg-gray-50 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500'
-                        : 'border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200'
-                    }`}
-                    title={isHidden ? `${color.name} hidden` : color.name}
-                  >
-                    <span
-                      className="inline-block h-3 w-3 rounded-full border border-black/10"
-                      style={{ backgroundColor: color.hex }}
-                    />
-                    <span>{color.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {sortedHiddenColors.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 max-w-[200px]">
-                {sortedHiddenColors.map((color) => (
-                  <button
-                    key={`hidden-${color.name}`}
-                    type="button"
-                    onClick={() => toggleColor(color.name)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500"
-                    title={`${color.name} hidden`}
-                  >
-                    <span
-                      className="inline-block h-3 w-3 rounded-full border border-black/10 opacity-60"
-                      style={{ backgroundColor: color.hex }}
-                    />
-                    <span>{color.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            {visibleColors.length} visible, {hiddenCount} hidden
-          </div>
+          <ColorMultiSelect
+            colors={allColors}
+            selected={visibleColors.map((color) => color.name)}
+            onToggle={(color) => toggleColor(color.name)}
+          />
           <div className="text-xs text-gray-500 dark:text-gray-400">
             Range: {ranges.find((range) => range.id === rangeId)?.name ?? 'Unassigned'}
           </div>
@@ -1411,6 +1379,37 @@ export default function AdminProductsPage() {
   const [draftOpen, setDraftOpen] = useState(false);
   const draftRowRef = useRef<HTMLTableRowElement | null>(null);
   const [catalog, setCatalog] = useState<CatalogOptions>(DEFAULT_CATALOG_OPTIONS);
+  const saveHandlersRef = useRef(new Map<string, () => Promise<boolean>>());
+  const saveAllInProgressRef = useRef(false);
+  const [savingAll, setSavingAll] = useState(false);
+
+  const registerRowSave = useCallback((id: string, save: (() => Promise<boolean>) | null) => {
+    if (save) {
+      saveHandlersRef.current.set(id, save);
+    } else {
+      saveHandlersRef.current.delete(id);
+    }
+  }, []);
+
+  const handleSaveAll = useCallback(async () => {
+    if (saveAllInProgressRef.current) return;
+    saveAllInProgressRef.current = true;
+    setSavingAll(true);
+    setError(null);
+
+    try {
+      const results = await Promise.allSettled(
+        Array.from(saveHandlersRef.current.values()).map((save) => save()),
+      );
+      const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+      if (failures.length > 0) {
+        setError(`Saved with ${failures.length} row${failures.length === 1 ? '' : 's'} failing`);
+      }
+    } finally {
+      saveAllInProgressRef.current = false;
+      setSavingAll(false);
+    }
+  }, []);
 
   const refreshCatalog = useCallback(async () => {
     if (!token) return;
@@ -1456,6 +1455,14 @@ export default function AdminProductsPage() {
           Products
         </h1>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void handleSaveAll()}
+            disabled={savingAll || products.length === 0}
+          >
+            {savingAll ? 'Saving all…' : 'Save all changes'}
+          </Button>
           <Button variant="primary" size="sm" onClick={() => setDraftOpen(true)}>
             + Add product
           </Button>
@@ -1514,6 +1521,7 @@ export default function AdminProductsPage() {
                     ranges={ranges}
                     onCatalogRefreshed={refreshCatalog}
                     onDeleted={(id) => setProducts((current) => current.filter((item) => item.id !== id))}
+                    onRegisterSave={registerRowSave}
                   />
                 ))}
                 {draftOpen && (
