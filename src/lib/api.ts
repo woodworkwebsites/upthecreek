@@ -65,6 +65,17 @@ export async function fetchProducts(channel: 'storefront' | 'partner' = 'storefr
   return data.products;
 }
 
+export async function fetchRanges(channel: 'storefront' | 'partner' = 'storefront'): Promise<CatalogRange[]> {
+  const url = new URL('/api/ranges', window.location.origin);
+  if (channel === 'partner') {
+    url.searchParams.set('channel', channel);
+  }
+  const data = await apiFetch<{ ranges: CatalogRange[] }>(url.pathname + url.search, {
+    cache: 'no-store',
+  });
+  return data.ranges;
+}
+
 export async function fetchProduct(id: string): Promise<Product> {
   const data = await apiFetch<{ product: Product }>(`/api/products/${id}`, {
     cache: 'no-store',

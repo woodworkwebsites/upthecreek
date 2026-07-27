@@ -23,7 +23,8 @@ type Draft = {
   collaborationEnabled: boolean;
   collaborationTitle: string;
   collaborationDescription: string;
-  collaborationImage: CollaborationImageRow | null;
+  collaborationFrontImage: CollaborationImageRow | null;
+  collaborationBackImage: CollaborationImageRow | null;
   collaborationSizes: string;
   collaborationPrice: string;
 };
@@ -46,7 +47,8 @@ function emptyDraft(): Draft {
     collaborationEnabled: false,
     collaborationTitle: '',
     collaborationDescription: '',
-    collaborationImage: null,
+    collaborationFrontImage: null,
+    collaborationBackImage: null,
     collaborationSizes: DEFAULT_SIZE_OPTIONS.join(', '),
     collaborationPrice: '',
   };
@@ -67,7 +69,8 @@ export default function AdminPartnersPage() {
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [saved, setSaved] = useState<string | null>(null);
   const collaborationSectionRef = useRef<HTMLDivElement | null>(null);
-  const collaborationImageInputRef = useRef<HTMLInputElement | null>(null);
+  const collaborationFrontImageInputRef = useRef<HTMLInputElement | null>(null);
+  const collaborationBackImageInputRef = useRef<HTMLInputElement | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -112,9 +115,13 @@ export default function AdminPartnersPage() {
       collaborationEnabled: partner.collaborationEnabled,
       collaborationTitle: collaboration?.title ?? '',
       collaborationDescription: collaboration?.description ?? '',
-      collaborationImage: (() => {
+      collaborationFrontImage: (() => {
         const imageUrl = collaboration?.imageUrls?.[0] ?? collaboration?.imageUrl ?? null;
         return imageUrl ? { previewUrl: imageUrl, isDefault: true } : null;
+      })(),
+      collaborationBackImage: (() => {
+        const imageUrl = collaboration?.imageUrls?.[1] ?? null;
+        return imageUrl ? { previewUrl: imageUrl, isDefault: false } : null;
       })(),
       collaborationSizes: (collaboration?.sizes ?? DEFAULT_SIZE_OPTIONS).join(', '),
       collaborationPrice: formatPoundsInput(collaboration?.partnerPrice),
@@ -122,28 +129,46 @@ export default function AdminPartnersPage() {
     setSaved(null);
   }
 
-  function handleCollaborationFilesSelected(fileList: FileList | null) {
-    if (!fileList) return;
-    const file = fileList[0];
-    const previous = draft.collaborationImage;
-    if (previous?.previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(previous.previewUrl);
+  function revokeCollaborationPreview(image: CollaborationImageRow | null) {
+    if (image?.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(image.previewUrl);
     }
-    setDraft((current) => ({
-      ...current,
-      collaborationImage: {
-        file,
-        previewUrl: URL.createObjectURL(file),
-        isDefault: true,
-      },
-    }));
   }
 
-  function removeCollaborationImage() {
-    setDraft((current) => ({
-      ...current,
-      collaborationImage: null,
-    }));
+  function handleCollaborationFilesSelected(side: 'front' | 'back', fileList: FileList | null) {
+    if (!fileList) return;
+    const file = fileList[0];
+    if (!file) return;
+
+    setDraft((current) => {
+      const previous = side === 'front' ? current.collaborationFrontImage : current.collaborationBackImage;
+      if (previous?.previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previous.previewUrl);
+      }
+
+      const nextImage: CollaborationImageRow = {
+        file,
+        previewUrl: URL.createObjectURL(file),
+        isDefault: side === 'front',
+      };
+
+      return side === 'front'
+        ? { ...current, collaborationFrontImage: nextImage }
+        : { ...current, collaborationBackImage: nextImage };
+    });
+  }
+
+  function removeCollaborationImage(side: 'front' | 'back') {
+    setDraft((current) => {
+      const previous = side === 'front' ? current.collaborationFrontImage : current.collaborationBackImage;
+      if (previous?.previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previous.previewUrl);
+      }
+
+      return side === 'front'
+        ? { ...current, collaborationFrontImage: null }
+        : { ...current, collaborationBackImage: null };
+    });
   }
 
   async function handleSubmit() {
@@ -187,11 +212,25 @@ export default function AdminPartnersPage() {
       form.append('collaborationDescription', draft.collaborationDescription.trim());
       form.append('collaborationSizes', draft.collaborationSizes.trim());
       form.append('collaborationPrice', draft.collaborationPrice.trim());
-      if (draft.collaborationImage?.file) {
-        form.append('collaborationImages', draft.collaborationImage.file, draft.collaborationImage.file.name);
-      } else if (draft.collaborationImage?.previewUrl) {
-        form.append('collaborationImageUrls', draft.collaborationImage.previewUrl);
-      }
+      const collaborationImages = [
+        { side: 'front', image: draft.collaborationFrontImage },
+        { side: 'back', image: draft.collaborationBackImage },
+      ] as const;
+      let fileIndex = 0;
+      collaborationImages.forEach(({ side, image }) => {
+        if (image?.file) {
+          form.append('collaborationImages', image.file, image.file.name);
+          form.append(
+            'collaborationImagesMeta',
+            JSON.stringify({ type: 'file', fileIndex: fileIndex++, isDefault: side === 'front' }),
+          );
+        } else if (image?.previewUrl) {
+          form.append(
+            'collaborationImagesMeta',
+            JSON.stringify({ type: 'url', url: image.previewUrl, isDefault: side === 'front' }),
+          );
+        }
+      });
 
       if (editingId) {
         if (accessToken) form.append('accessToken', accessToken);
@@ -231,15 +270,15 @@ export default function AdminPartnersPage() {
   }
 
   function clearCollaborationDraft() {
-    if (draft.collaborationImage?.previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(draft.collaborationImage.previewUrl);
-    }
+    revokeCollaborationPreview(draft.collaborationFrontImage);
+    revokeCollaborationPreview(draft.collaborationBackImage);
     setDraft((current) => ({
       ...current,
       collaborationEnabled: false,
       collaborationTitle: '',
       collaborationDescription: '',
-      collaborationImage: null,
+      collaborationFrontImage: null,
+      collaborationBackImage: null,
       collaborationSizes: DEFAULT_SIZE_OPTIONS.join(', '),
       collaborationPrice: '',
     }));
@@ -476,43 +515,65 @@ export default function AdminPartnersPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950/60">
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => collaborationImageInputRef.current?.click()}
-                    className="flex min-h-[18rem] w-full items-center justify-center bg-white p-4 text-left dark:bg-gray-950"
+              <div className="grid gap-4 lg:grid-cols-2">
+                {[
+                  {
+                    side: 'front' as const,
+                    label: 'Front image',
+                    inputRef: collaborationFrontImageInputRef,
+                    image: draft.collaborationFrontImage,
+                    emptyCopy: 'Upload the front of the collaboration shirt.',
+                  },
+                  {
+                    side: 'back' as const,
+                    label: 'Back image',
+                    inputRef: collaborationBackImageInputRef,
+                    image: draft.collaborationBackImage,
+                    emptyCopy: 'Upload the back of the collaboration shirt.',
+                  },
+                ].map(({ side, label, inputRef, image, emptyCopy }) => (
+                  <div
+                    key={side}
+                    className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950/60"
                   >
-                    {draft.collaborationImage ? (
-                      <img
-                        src={draft.collaborationImage.previewUrl}
-                        alt=""
-                        className="h-[18rem] w-full rounded-xl object-contain"
-                      />
-                    ) : (
-                      <div className="flex h-[18rem] w-full flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 px-6 text-center dark:border-gray-700">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Upload image</p>
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Single preview image for the collaboration shirt.</p>
-                      </div>
-                    )}
-                  </button>
-                  {draft.collaborationImage && (
-                    <button
-                      type="button"
-                      onClick={removeCollaborationImage}
-                      className="absolute right-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-black"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-                <input
-                  ref={collaborationImageInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleCollaborationFilesSelected(e.target.files)}
-                  className="sr-only"
-                />
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => inputRef.current?.click()}
+                        className="flex min-h-[15rem] w-full items-center justify-center bg-white p-4 text-left dark:bg-gray-950"
+                      >
+                        {image ? (
+                          <img
+                            src={image.previewUrl}
+                            alt={label}
+                            className="h-[15rem] w-full rounded-xl object-contain"
+                          />
+                        ) : (
+                          <div className="flex h-[15rem] w-full flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 px-6 text-center dark:border-gray-700">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{label}</p>
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{emptyCopy}</p>
+                          </div>
+                        )}
+                      </button>
+                      {image && (
+                        <button
+                          type="button"
+                          onClick={() => removeCollaborationImage(side)}
+                          className="absolute right-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-black"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      ref={inputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleCollaborationFilesSelected(side, e.target.files)}
+                      className="sr-only"
+                    />
+                  </div>
+                ))}
               </div>
 
               <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">

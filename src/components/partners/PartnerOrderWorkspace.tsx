@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { PrintifyColor, PrintifyVariant, Product } from '../../../types/index.js';
+import type { CatalogRange, PrintifyColor, PrintifyVariant, Product } from '../../../types/index.js';
 import { Badge } from '../ui/Badge.js';
 import { cn, formatPrice } from '../../lib/utils.js';
 import { submitPartnerStockOrder } from '../../lib/api.js';
@@ -205,7 +205,7 @@ function ProductMatrixCard({
   const partnerPrice = getPartnerUnitPrice(product, product.minPrice);
   const rrp = getRrp(product);
   const margin = rrp - partnerPrice;
-  const { purchaserPrice, commission } = getReferralPricing(product);
+  const { commission } = getReferralPricing(product);
   const isCollaboration = product.category === 'partner-collaboration';
   const colorImages = useMemo(() => (activeColor ? getImagesForColor(product, activeColor.name) : []), [activeColor, product]);
   const activeImageSrc = colorImages.length > 0 ? colorImages[imageIndex % colorImages.length] : getImageForColor(product, activeColor?.name ?? '');
@@ -227,7 +227,10 @@ function ProductMatrixCard({
               <img
                 src={activeImageSrc}
                 alt={`${product.title} ${activeColor.name}`}
-                className="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-105"
+                className={cn(
+                  'h-full w-full transition-transform duration-200 group-hover:scale-105',
+                  isCollaboration ? 'object-contain object-center bg-white' : 'object-cover object-top',
+                )}
                 loading="lazy"
               />
             </span>
@@ -264,25 +267,15 @@ function ProductMatrixCard({
         <h2 className="text-base font-black leading-snug tracking-tight text-navy-900">{product.title}</h2>
 
         <div className="mt-2.5 space-y-1.5">
-          {isCollaboration ? (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className={priceChipClass}>{formatPrice(partnerPrice)} partner</span>
-              <span className={rrpChipClass}>Partner only</span>
-            </div>
-          ) : (
+          {isCollaboration ? null : (
             <>
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
+                <span className={marginChipClass}>{formatPrice(margin)} Margin</span>
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className={rowLabelClass}>In-store</span>
-                <span className={priceChipClass}>{formatPrice(partnerPrice)} partner</span>
-                <span className={marginChipClass}>{formatPrice(margin)} margin</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className={rowLabelClass}>Referral after discount</span>
+                <span className={rowLabelClass}>Referral</span>
                 <span className={commissionChipClass}>{formatPrice(commission)} referral</span>
-                <span className={rrpChipClass}>{formatPrice(purchaserPrice)} after discount</span>
               </div>
             </>
           )}
@@ -322,11 +315,13 @@ function ProductMatrixCard({
 export function PartnerOrderWorkspace({
   products,
   collaborationProduct,
+  ranges,
   slug,
   accessToken,
 }: {
   products: Product[];
   collaborationProduct?: Product | null;
+  ranges: CatalogRange[];
   slug: string;
   accessToken: string;
 }) {
@@ -362,6 +357,53 @@ export function PartnerOrderWorkspace({
         .includes(search);
     });
   }, [products, query]);
+
+  const groupedProducts = useMemo(() => {
+    const productsByRange = new Map<string, Product[]>();
+    const knownRangeIds = new Set(ranges.map((range) => range.id));
+
+    for (const product of filteredProducts) {
+      const key = product.rangeId?.trim() || 'evergreen';
+      const bucket = productsByRange.get(key) ?? [];
+      bucket.push(product);
+      productsByRange.set(key, bucket);
+    }
+
+    const orderedRanges = ranges.length > 0
+      ? ranges
+      : [{
+        id: 'evergreen',
+        name: 'Evergreen',
+        storefrontEnabled: true,
+        partnerEnabled: true,
+        sortOrder: 0,
+        createdAt: '',
+        updatedAt: '',
+      }];
+
+    const groups = orderedRanges
+      .map((range) => ({
+        id: range.id,
+        name: range.name,
+        products: productsByRange.get(range.id) ?? [],
+      }))
+      .filter((group) => group.products.length > 0);
+
+    const unmatchedProducts = filteredProducts.filter((product) => {
+      const key = product.rangeId?.trim() || 'evergreen';
+      return !knownRangeIds.has(key) && key !== 'evergreen';
+    });
+
+    if (unmatchedProducts.length > 0) {
+      groups.push({
+        id: 'other',
+        name: 'Other',
+        products: unmatchedProducts,
+      });
+    }
+
+    return groups;
+  }, [filteredProducts, ranges]);
 
   const pieceCount = useMemo(() => basketCount(basket), [basket]);
   const value = useMemo(() => basketTotal(basket), [basket]);
@@ -479,21 +521,13 @@ export function PartnerOrderWorkspace({
   return (
     <div>
       <section className="space-y-6">
-        <div className="rounded-[1.75rem] border border-gray-200 bg-white p-5 shadow-[0_18px_50px_rgba(5,13,31,0.06)]">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Product matrix</p>
-              <p className="mt-2 text-sm leading-7 text-gray-500">
-                Click a colour chip to preview it, then click the photo to set sizes and quantities.
-              </p>
-            </div>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search design, garment or colour"
-              className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-navy-900 outline-none transition-colors placeholder:text-gray-400 focus:border-navy-800 md:max-w-[320px]"
-            />
-          </div>
+        <div className="flex justify-end">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search design, garment or colour"
+            className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-navy-900 outline-none transition-colors placeholder:text-gray-400 focus:border-navy-800 md:max-w-[320px]"
+          />
         </div>
 
         {collaborationProduct && (
@@ -509,13 +543,26 @@ export function PartnerOrderWorkspace({
           </div>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filteredProducts.map((product) => (
-            <ProductMatrixCard
-              key={product.id}
-              product={product}
-              onOpenDraft={openDraft}
-            />
+        <div className="space-y-8">
+          {groupedProducts.map((group) => (
+            <section key={group.id} className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Range</p>
+                  <h3 className="mt-2 text-xl font-black tracking-tight text-navy-900">{group.name}</h3>
+                </div>
+                <Badge variant="default">{group.products.length} product{group.products.length === 1 ? '' : 's'}</Badge>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {group.products.map((product) => (
+                  <ProductMatrixCard
+                    key={product.id}
+                    product={product}
+                    onOpenDraft={openDraft}
+                  />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       </section>
@@ -779,9 +826,8 @@ export function PartnerOrderWorkspace({
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={rowLabelClass}>Referral after discount</span>
+                        <span className={rowLabelClass}>Referral</span>
                         <span className={commissionChipClass}>{formatPrice(draftReferral.commission)} referral</span>
-                        <span className={rrpChipClass}>{formatPrice(draftReferral.purchaserPrice)} after discount</span>
                       </div>
                     </div>
                     {draftColors.length > 1 && (

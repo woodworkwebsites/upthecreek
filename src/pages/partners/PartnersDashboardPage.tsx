@@ -7,6 +7,7 @@ import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { formatDate, formatPrice } from '../../lib/utils.js';
 import { partnerFetchDashboard } from '../../lib/api.js';
 import { useProducts } from '../../hooks/useProducts.js';
+import { useRanges } from '../../hooks/useRanges.js';
 import { PartnerOrderWorkspace } from '../../components/partners/PartnerOrderWorkspace.js';
 import { usePartnerSession } from '../../hooks/usePartner.js';
 import type { PartnerDashboard, Product } from '../../../types/index.js';
@@ -102,6 +103,7 @@ export default function PartnersDashboardPage() {
   const navigate = useNavigate();
   const { session, clearSession } = usePartnerSession();
   const { products, loading: productsLoading, error: productsError } = useProducts('partner');
+  const { ranges, loading: rangesLoading, error: rangesError } = useRanges('partner');
   const [dashboard, setDashboard] = useState<PartnerDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -273,7 +275,7 @@ export default function PartnersDashboardPage() {
             </div>
 
             <div className="mt-8">
-              {productsLoading ? (
+              {productsLoading || rangesLoading ? (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {Array.from({ length: 6 }).map((_, index) => (
                     <div key={index} className="aspect-[3/4] animate-pulse rounded-2xl bg-gray-100" />
@@ -281,10 +283,13 @@ export default function PartnersDashboardPage() {
                 </div>
               ) : productsError ? (
                 <p className="text-sm text-red-600">{productsError}</p>
+              ) : rangesError ? (
+                <p className="text-sm text-red-600">{rangesError}</p>
               ) : (
                 <PartnerOrderWorkspace
                   products={products}
                   collaborationProduct={collaborationProduct}
+                  ranges={ranges}
                   slug={session.slug}
                   accessToken={session.accessToken}
                 />
