@@ -698,8 +698,8 @@ function ProductRow({
 
   return (
     <>
-      <article className="overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_34px_rgba(5,13,31,0.05)] transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
-        <div className="grid gap-0 lg:grid-cols-[180px_minmax(0,1fr)]">
+      <article className="h-full min-w-0 overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_34px_rgba(5,13,31,0.05)] transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+        <div className="grid gap-0 min-w-0 lg:grid-cols-[180px_minmax(0,1fr)]">
           <div className="border-b border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:border-b-0 lg:border-r">
             <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950">
               <div className="aspect-[4/5]">
@@ -719,8 +719,8 @@ function ProductRow({
             </button>
           </div>
 
-          <div className="space-y-3 p-4 sm:p-5">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0 space-y-3 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0 flex-1 space-y-3">
                 <div className="space-y-2">
                   <input
@@ -732,7 +732,7 @@ function ProductRow({
                   />
                 </div>
 
-                <div className="grid gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60 sm:grid-cols-2 lg:grid-cols-3">
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Status</p>
                     <label className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
@@ -764,7 +764,7 @@ function ProductRow({
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Classification</p>
-                    <div className="grid gap-2">
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
                       <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
                         <option value="">Audience</option>
                         {catalog.audiences.map((option) => (
@@ -796,8 +796,8 @@ function ProductRow({
                 </div>
               </div>
 
-              <div className="flex flex-row flex-wrap gap-2 xl:w-[220px] xl:flex-col xl:items-stretch">
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900/40 dark:bg-amber-900/10">
+              <div className="flex w-full flex-wrap gap-2 lg:w-[220px] lg:flex-col lg:items-stretch">
+                <div className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900/40 dark:bg-amber-900/10">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">Pricing</p>
                     <span className="inline-flex items-center rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950 dark:text-amber-200">
@@ -825,7 +825,7 @@ function ProductRow({
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-950/60">
+                <div className="w-full rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-950/60">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Published</p>
                   <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">{formatDate(product.syncedAt)}</p>
                 </div>
@@ -1357,7 +1357,7 @@ export default function AdminProductsPage() {
           </Button>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(38rem,1fr))]">
           {products.map((product) => (
             <ProductRow
               key={product.id}

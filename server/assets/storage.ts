@@ -1,6 +1,6 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
 
-export type AssetKind = 'product-image' | 'size-guide';
+export type AssetKind = 'product-image' | 'size-guide' | 'partner-collab-image';
 
 export interface StoredAsset {
   key: string;

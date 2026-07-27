@@ -25,10 +25,11 @@ async function apiFetch<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
+  const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
   const res = await fetch(path, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...options?.headers,
     },
   });
@@ -389,11 +390,11 @@ export async function adminFetchPartners(token: string): Promise<PartnerAdmin[]>
 
 export async function adminCreatePartner(
   token: string,
-  data: PartnerInput,
+  data: PartnerInput | FormData,
 ): Promise<PartnerAdmin> {
   const response = await adminFetch<{ partner: PartnerAdmin }>('/api/admin/partners', token, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: data instanceof FormData ? data : JSON.stringify(data),
   });
   return response.partner;
 }
@@ -445,11 +446,11 @@ export async function adminDeleteRange(token: string, id: string): Promise<void>
 export async function adminUpdatePartner(
   token: string,
   id: string,
-  data: Partial<PartnerInput>,
+  data: Partial<PartnerInput> | FormData,
 ): Promise<PartnerAdmin> {
   const response = await adminFetch<{ partner: PartnerAdmin }>(`/api/admin/partners/${id}`, token, {
     method: 'PATCH',
-    body: JSON.stringify(data),
+    body: data instanceof FormData ? data : JSON.stringify(data),
   });
   return response.partner;
 }

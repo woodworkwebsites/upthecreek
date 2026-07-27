@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { PartnerAdmin, PartnerCollaborationDesign } from '../../../types/index.js';
+import type { PartnerAdmin } from '../../../types/index.js';
 import {
   adminCreatePartner,
   adminDeletePartner,
@@ -10,7 +10,6 @@ import { DEFAULT_SIZE_OPTIONS } from '../../../types/catalog.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Badge } from '../../components/ui/Badge.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
-import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatDate } from '../../lib/utils.js';
 
 type Draft = {
@@ -24,13 +23,19 @@ type Draft = {
   collaborationEnabled: boolean;
   collaborationTitle: string;
   collaborationDescription: string;
-  collaborationImageUrls: string;
+  collaborationImages: CollaborationImageRow[];
   collaborationGarment: string;
   collaborationColorName: string;
   collaborationColorHex: string;
   collaborationSizes: string;
   collaborationPrice: string;
 };
+
+interface CollaborationImageRow {
+  file?: File;
+  previewUrl: string;
+  isDefault: boolean;
+}
 
 function emptyDraft(): Draft {
   return {
@@ -44,7 +49,7 @@ function emptyDraft(): Draft {
     collaborationEnabled: false,
     collaborationTitle: '',
     collaborationDescription: '',
-    collaborationImageUrls: '',
+    collaborationImages: [],
     collaborationGarment: 'Collaboration Shirt',
     collaborationColorName: 'Collaboration',
     collaborationColorHex: '#111827',
@@ -58,56 +63,11 @@ function formatPoundsInput(value: number | undefined | null): string {
   return ((value ?? 0) / 100).toFixed(2);
 }
 
-function parseCollaborationImages(value: string): string[] {
-  return Array.from(
-    new Set(
-      value
-        .split(/[\n,]/)
-        .map((entry) => entry.trim())
-        .filter(Boolean),
-    ),
-  );
-}
-
-function buildCollaborationDesign(draft: Draft): PartnerCollaborationDesign | null {
-  const imageUrls = parseCollaborationImages(draft.collaborationImageUrls);
-  const hasCustomContent =
-    draft.collaborationTitle.trim().length > 0 ||
-    draft.collaborationDescription.trim().length > 0 ||
-    imageUrls.length > 0 ||
-    draft.collaborationGarment.trim() !== 'Collaboration Shirt' ||
-    draft.collaborationColorName.trim() !== 'Collaboration' ||
-    draft.collaborationColorHex.trim() !== '#111827' ||
-    draft.collaborationSizes.trim() !== DEFAULT_SIZE_OPTIONS.join(', ') ||
-    draft.collaborationPrice.trim().length > 0;
-
-  if (!draft.collaborationEnabled && !hasCustomContent) return null;
-
-  const pounds = Number(draft.collaborationPrice);
-  if (!Number.isFinite(pounds) || pounds < 0) {
-    throw new Error('Collaboration shirt price must be zero or greater');
-  }
-
-  const sizes = Array.from(
-    new Set(
-      draft.collaborationSizes
-        .split(',')
-        .map((entry) => entry.trim())
-        .filter(Boolean),
-    ),
-  );
-
-  return {
-    title: draft.collaborationTitle.trim() || 'Collaboration Shirt',
-    description: draft.collaborationDescription.trim() || null,
-    imageUrl: imageUrls[0] ?? null,
-    imageUrls,
-    garment: draft.collaborationGarment.trim() || null,
-    colorName: draft.collaborationColorName.trim() || 'Collaboration',
-    colorHex: draft.collaborationColorHex.trim() || '#111827',
-    sizes: sizes.length > 0 ? sizes : DEFAULT_SIZE_OPTIONS.slice(),
-    partnerPrice: Math.round(pounds * 100),
-  };
+function createCollaborationImageRows(urls: string[]): CollaborationImageRow[] {
+  return urls.map((url, index) => ({
+    previewUrl: url,
+    isDefault: index === 0,
+  }));
 }
 
 export default function AdminPartnersPage() {
@@ -120,6 +80,7 @@ export default function AdminPartnersPage() {
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [saved, setSaved] = useState<string | null>(null);
   const collaborationSectionRef = useRef<HTMLDivElement | null>(null);
+  const collaborationImagesRef = useRef<CollaborationImageRow[]>([]);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -144,6 +105,20 @@ export default function AdminPartnersPage() {
     collaborationSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [editingId]);
 
+  useEffect(() => {
+    collaborationImagesRef.current = draft.collaborationImages;
+  }, [draft.collaborationImages]);
+
+  useEffect(() => {
+    return () => {
+      collaborationImagesRef.current.forEach((image) => {
+        if (image.previewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(image.previewUrl);
+        }
+      });
+    };
+  }, []);
+
   function startCreate() {
     setEditingId(null);
     setDraft(emptyDraft());
@@ -164,7 +139,9 @@ export default function AdminPartnersPage() {
       collaborationEnabled: partner.collaborationEnabled,
       collaborationTitle: collaboration?.title ?? '',
       collaborationDescription: collaboration?.description ?? '',
-      collaborationImageUrls: (collaboration?.imageUrls?.length ? collaboration.imageUrls : collaboration?.imageUrl ? [collaboration.imageUrl] : []).join('\n'),
+      collaborationImages: createCollaborationImageRows(
+        collaboration?.imageUrls?.length ? collaboration.imageUrls : collaboration?.imageUrl ? [collaboration.imageUrl] : [],
+      ),
       collaborationGarment: collaboration?.garment ?? 'Collaboration Shirt',
       collaborationColorName: collaboration?.colorName ?? 'Collaboration',
       collaborationColorHex: collaboration?.colorHex ?? '#111827',
@@ -172,6 +149,51 @@ export default function AdminPartnersPage() {
       collaborationPrice: formatPoundsInput(collaboration?.partnerPrice),
     });
     setSaved(null);
+  }
+
+  function handleCollaborationFilesSelected(fileList: FileList | null) {
+    if (!fileList) return;
+
+    const hasDefault = draft.collaborationImages.some((image) => image.isDefault);
+    const newRows: CollaborationImageRow[] = Array.from(fileList).map((file, index) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+      isDefault: !hasDefault && draft.collaborationImages.length === 0 && index === 0,
+    }));
+
+    setDraft((current) => ({
+      ...current,
+      collaborationImages: [...current.collaborationImages, ...newRows],
+    }));
+  }
+
+  function removeCollaborationImage(index: number) {
+    setDraft((current) => {
+      const row = current.collaborationImages[index];
+      if (row?.previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(row.previewUrl);
+      }
+
+      const next = current.collaborationImages.filter((_, i) => i !== index);
+      if (next.length > 0 && !next.some((image) => image.isDefault)) {
+        next[0].isDefault = true;
+      }
+
+      return {
+        ...current,
+        collaborationImages: next,
+      };
+    });
+  }
+
+  function setDefaultCollaborationImage(index: number) {
+    setDraft((current) => ({
+      ...current,
+      collaborationImages: current.collaborationImages.map((image, i) => ({
+        ...image,
+        isDefault: i === index,
+      })),
+    }));
   }
 
   async function handleSubmit() {
@@ -198,41 +220,61 @@ export default function AdminPartnersPage() {
       return;
     }
 
-    let collaborationDesign: PartnerCollaborationDesign | null;
-    try {
-      collaborationDesign = buildCollaborationDesign(draft);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid collaboration shirt');
-      return;
-    }
-
     setSaving(true);
     setError(null);
     setSaved(null);
 
     try {
-      const basePayload = {
-        slug,
-        name,
-        discountCode: draft.discountCode.trim() || null,
-        commissionRate,
-        description: draft.description.trim() || null,
-        active: draft.active,
-        collaborationEnabled: draft.collaborationEnabled,
-        collaborationDesign,
-      };
+      const form = new FormData();
+      form.append('slug', slug);
+      form.append('name', name);
+      form.append('discountCode', draft.discountCode.trim());
+      form.append('commissionRate', String(commissionRate));
+      form.append('description', draft.description.trim());
+      form.append('active', String(draft.active));
+      form.append('collaborationEnabled', String(draft.collaborationEnabled));
+      form.append('collaborationTitle', draft.collaborationTitle.trim());
+      form.append('collaborationDescription', draft.collaborationDescription.trim());
+      form.append('collaborationGarment', draft.collaborationGarment.trim());
+      form.append('collaborationColorName', draft.collaborationColorName.trim());
+      form.append('collaborationColorHex', draft.collaborationColorHex.trim());
+      form.append('collaborationSizes', draft.collaborationSizes.trim());
+      form.append('collaborationPrice', draft.collaborationPrice.trim());
+
+      const collaborationImagesMeta: Array<
+        | { type: 'file'; fileIndex: number; isDefault?: boolean }
+        | { type: 'url'; url: string; isDefault?: boolean }
+      > = [];
+      let fileIndex = 0;
+
+      draft.collaborationImages.forEach((image) => {
+        if (image.file) {
+          form.append('collaborationImages', image.file, image.file.name);
+          collaborationImagesMeta.push({
+            type: 'file',
+            fileIndex,
+            isDefault: image.isDefault,
+          });
+          fileIndex += 1;
+          return;
+        }
+
+        collaborationImagesMeta.push({
+          type: 'url',
+          url: image.previewUrl,
+          isDefault: image.isDefault,
+        });
+      });
+
+      form.append('collaborationImagesMeta', JSON.stringify(collaborationImagesMeta));
 
       if (editingId) {
-        await adminUpdatePartner(token, editingId, {
-          ...basePayload,
-          accessToken: accessToken || undefined,
-        });
+        if (accessToken) form.append('accessToken', accessToken);
+        await adminUpdatePartner(token, editingId, form);
         setSaved('Partner updated');
       } else {
-        await adminCreatePartner(token, {
-          ...basePayload,
-          accessToken,
-        });
+        form.append('accessToken', accessToken);
+        await adminCreatePartner(token, form);
         setSaved('Partner created');
       }
 
@@ -264,12 +306,17 @@ export default function AdminPartnersPage() {
   }
 
   function clearCollaborationDraft() {
+    collaborationImagesRef.current.forEach((image) => {
+      if (image.previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(image.previewUrl);
+      }
+    });
     setDraft((current) => ({
       ...current,
       collaborationEnabled: false,
       collaborationTitle: '',
       collaborationDescription: '',
-      collaborationImageUrls: '',
+      collaborationImages: [],
       collaborationGarment: 'Collaboration Shirt',
       collaborationColorName: 'Collaboration',
       collaborationColorHex: '#111827',
@@ -510,9 +557,23 @@ export default function AdminPartnersPage() {
 
             <div className="space-y-4">
               <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Identity</p>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Match the same top-to-bottom flow as manual product creation.</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Identity</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Keep the club-only product aligned with the same workflow as manual catalog creation.</p>
+                  </div>
+                  <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                    <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${draft.collaborationEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                      <span className={`h-4 w-4 rounded-full bg-white transition-transform ${draft.collaborationEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={draft.collaborationEnabled}
+                      onChange={(e) => setDraft((current) => ({ ...current, collaborationEnabled: e.target.checked }))}
+                      className="sr-only"
+                    />
+                    Enabled
+                  </label>
                 </div>
 
                 <div className="mt-4 space-y-3">
@@ -561,22 +622,13 @@ export default function AdminPartnersPage() {
                       />
                     </label>
                   </div>
-
-                  <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                    <input
-                      type="checkbox"
-                      checked={draft.collaborationEnabled}
-                      onChange={(e) => setDraft((current) => ({ ...current, collaborationEnabled: e.target.checked }))}
-                    />
-                    Show collaboration shirt in partner ordering
-                  </label>
                 </div>
               </div>
 
               <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
                 <div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Colours</p>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Set the single visible colour token and the size split for the shirt.</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Set the colour token and size split for the club-only shirt.</p>
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -615,24 +667,75 @@ export default function AdminPartnersPage() {
               </div>
 
               <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Images</p>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Paste image URLs in the same spirit as uploading images on the product create page.</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Images</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Upload the club shirt images here. The default image sits first.</p>
+                  </div>
                 </div>
 
-                <label className="mt-4 block space-y-1">
-                  <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Image URLs</span>
-                  <textarea
-                    value={draft.collaborationImageUrls}
-                    onChange={(e) => setDraft((current) => ({ ...current, collaborationImageUrls: e.target.value }))}
-                    placeholder="/partner-collab-front.jpg\n/partner-collab-back.jpg"
-                    rows={3}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                  />
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                    Add one URL per line or separate them with commas. The first image is used as the default.
-                  </p>
-                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleCollaborationFilesSelected(e.target.files)}
+                  className="mt-4 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 file:mr-3 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700"
+                />
+
+                {draft.collaborationImages.length > 0 ? (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {draft.collaborationImages.map((image, index) => (
+                      <div key={`${image.previewUrl}-${index}`} className="rounded-xl border border-gray-100 bg-white p-2 dark:border-gray-800 dark:bg-gray-900">
+                        <img src={image.previewUrl} alt="" className="h-32 w-full rounded-lg object-cover" />
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setDefaultCollaborationImage(index)}
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                              image.isDefault
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                                : 'border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'
+                            }`}
+                          >
+                            {image.isDefault ? 'Default' : 'Set default'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeCollaborationImage(index)}
+                            aria-label="Remove image"
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                          >
+                            X
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-xl border border-dashed border-gray-200 px-4 py-6 text-center text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                    Add one or more images to match the main product card layout.
+                  </div>
+                )}
+              </div>
+
+              {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => void handleSubmit()}
+                  disabled={saving}
+                  className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
+                >
+                  {saving ? 'Saving…' : editingId ? 'Update partner' : 'Create partner'}
+                </button>
+                <button
+                  type="button"
+                  onClick={startCreate}
+                  className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Reset
+                </button>
               </div>
             </div>
           </div>
