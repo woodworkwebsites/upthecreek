@@ -23,7 +23,35 @@ function parseRangeRow(row: CatalogRangeRow): CatalogRange {
   };
 }
 
+export async function ensureRangeSchema(db: D1Database): Promise<void> {
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS ranges (
+      id                 TEXT PRIMARY KEY,
+      name               TEXT NOT NULL,
+      storefront_enabled INTEGER NOT NULL DEFAULT 1,
+      partner_enabled    INTEGER NOT NULL DEFAULT 1,
+      sort_order         INTEGER NOT NULL DEFAULT 0,
+      created_at         TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at         TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `).run();
+
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_ranges_sort_order ON ranges(sort_order)').run();
+
+  await db.prepare(`
+    INSERT OR IGNORE INTO ranges (id, name, storefront_enabled, partner_enabled, sort_order)
+    VALUES (?, ?, ?, ?, ?)
+  `).bind(
+    DEFAULT_RANGE.id,
+    DEFAULT_RANGE.name,
+    DEFAULT_RANGE.storefrontEnabled ? 1 : 0,
+    DEFAULT_RANGE.partnerEnabled ? 1 : 0,
+    DEFAULT_RANGE.sortOrder,
+  ).run();
+}
+
 export async function listRanges(db: D1Database): Promise<CatalogRange[]> {
+  await ensureRangeSchema(db);
   try {
     const result = await db
       .prepare('SELECT * FROM ranges ORDER BY sort_order ASC, created_at ASC, name ASC')
@@ -36,6 +64,7 @@ export async function listRanges(db: D1Database): Promise<CatalogRange[]> {
 }
 
 export async function listEnabledRangeIds(db: D1Database, channel: 'storefront' | 'partner'): Promise<string[]> {
+  await ensureRangeSchema(db);
   const column = channel === 'storefront' ? 'storefront_enabled' : 'partner_enabled';
   try {
     const result = await db
@@ -49,6 +78,7 @@ export async function listEnabledRangeIds(db: D1Database, channel: 'storefront' 
 }
 
 export async function getRangeById(db: D1Database, id: string): Promise<CatalogRange | null> {
+  await ensureRangeSchema(db);
   try {
     const row = await db
       .prepare('SELECT * FROM ranges WHERE id = ?')
@@ -70,6 +100,7 @@ export async function createRange(
     sortOrder?: number;
   },
 ): Promise<CatalogRange> {
+  await ensureRangeSchema(db);
   const id = crypto.randomUUID();
   const sortOrder = Number.isFinite(data.sortOrder ?? NaN) ? Math.round(data.sortOrder ?? 0) : 0;
   const storefrontEnabled = data.storefrontEnabled !== false;
@@ -105,6 +136,7 @@ export async function updateRange(
     sortOrder?: number;
   },
 ): Promise<CatalogRange | null> {
+  await ensureRangeSchema(db);
   const current = await getRangeById(db, id);
   if (!current && id !== DEFAULT_RANGE.id) return null;
 
@@ -145,6 +177,7 @@ export async function updateRange(
 }
 
 export async function deleteRange(db: D1Database, id: string): Promise<boolean> {
+  await ensureRangeSchema(db);
   if (id === DEFAULT_RANGE.id) return false;
   const result = await db
     .prepare('DELETE FROM ranges WHERE id = ?')

@@ -1,4 +1,5 @@
 -- Partner-specific collaboration shirt configuration.
-
-ALTER TABLE partners ADD COLUMN collaboration_enabled INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE partners ADD COLUMN collaboration_design TEXT;
+--
+-- The live schema now bootstraps these columns lazily in code, so this
+-- migration is intentionally a no-op to avoid failing on databases where the
+-- columns were already added out-of-band.
