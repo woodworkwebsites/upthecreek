@@ -72,15 +72,19 @@ function normalizeCollaborationDesign(design: Partial<PartnerCollaborationDesign
     : typeof design.partnerPrice === 'string'
       ? Number(design.partnerPrice)
       : NaN;
-  const imageUrls = normalizeCollaborationImages(
-    design.imageUrls ?? (typeof design.imageUrl === 'string' ? [design.imageUrl] : []),
+  const normalizedImageUrls = normalizeCollaborationImages(
+    Array.isArray(design.imageUrls) && design.imageUrls.length > 0
+      ? design.imageUrls
+      : typeof design.imageUrl === 'string'
+        ? [design.imageUrl]
+        : [],
   );
 
   return {
     title: typeof design.title === 'string' ? design.title.trim() : '',
     description: typeof design.description === 'string' ? design.description.trim() || null : null,
-    imageUrl: imageUrls[0] ?? (typeof design.imageUrl === 'string' ? design.imageUrl.trim() || null : null),
-    imageUrls,
+    imageUrl: normalizedImageUrls[0] ?? (typeof design.imageUrl === 'string' ? design.imageUrl.trim() || null : null),
+    imageUrls: normalizedImageUrls,
     garment: typeof design.garment === 'string' ? design.garment.trim() || null : null,
     colorName: typeof design.colorName === 'string' ? design.colorName.trim() || 'Collaboration' : 'Collaboration',
     colorHex: typeof design.colorHex === 'string' ? design.colorHex.trim() || '#111827' : '#111827',
@@ -122,7 +126,13 @@ function serializeCollaborationDesigns(designs: PartnerCollaborationDesign[] | n
     title: design.title.trim(),
     description: design.description?.trim() || null,
     imageUrl: design.imageUrls[0]?.trim() || design.imageUrl?.trim() || null,
-    imageUrls: normalizeCollaborationImages(design.imageUrls ?? (design.imageUrl ? [design.imageUrl] : [])),
+    imageUrls: normalizeCollaborationImages(
+      design.imageUrls.length > 0
+        ? design.imageUrls
+        : design.imageUrl
+          ? [design.imageUrl]
+          : [],
+    ),
     garment: design.garment?.trim() || null,
     colorName: design.colorName.trim() || 'Collaboration',
     colorHex: design.colorHex.trim() || '#111827',

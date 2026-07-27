@@ -699,8 +699,8 @@ function ProductRow({
   return (
     <>
       <article className="h-full min-w-0 overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_34px_rgba(5,13,31,0.05)] transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
-      <div className="grid gap-0 min-w-0 lg:grid-cols-[160px_minmax(0,1fr)]">
-          <div className="border-b border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:border-b-0 lg:border-r">
+        <div className="grid gap-0 min-w-0 lg:grid-cols-[160px_minmax(0,1fr)]">
+          <div className="flex flex-col border-b border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:border-b-0 lg:border-r">
             <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950">
               <div className="aspect-[4/5]">
                 {img ? (
@@ -724,26 +724,31 @@ function ProductRow({
               <input type="checkbox" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} className="sr-only" />
               Enabled
             </label>
+
+            <div className="mt-auto w-full rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-950/60">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Published</p>
+              <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">{formatDate(product.syncedAt)}</p>
+            </div>
           </div>
 
           <div className="min-w-0 space-y-3 p-4 sm:p-5">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-              <div className="min-w-0 flex-1 space-y-3 xl:max-w-[760px]">
+            <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_220px] xl:items-start">
+              <div className="min-w-0 space-y-3">
                 <div className="space-y-2">
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     ref={titleRef}
-                    className="w-full max-w-[36rem] rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    className="w-full max-w-[42rem] rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                   />
                 </div>
 
-                <div className="grid gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60 xl:grid-cols-[minmax(0,220px)_minmax(0,180px)_minmax(0,1fr)]">
+                <div className="grid gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60 xl:grid-cols-2">
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Range</p>
                     {isEnabled ? (
-                      <select value={rangeId} onChange={(e) => setRangeId(e.target.value)} className="w-full max-w-[220px] rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                      <select value={rangeId} onChange={(e) => setRangeId(e.target.value)} className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
                         <option value="">Select range</option>
                         {ranges.map((range) => (
                           <option key={range.id} value={range.id}>{range.name}</option>
@@ -755,26 +760,26 @@ function ProductRow({
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Catalog</p>
-                    <button type="button" onClick={() => setDetailOpen(true)} className="inline-flex w-full max-w-[180px] items-center justify-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                    <button type="button" onClick={() => setDetailOpen(true)} className="inline-flex w-full items-center justify-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
                       Edit description
                     </button>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 xl:col-span-2">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Classification</p>
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-1">
-                      <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full max-w-[170px] rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full min-w-0 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
                         <option value="">Audience</option>
                         {catalog.audiences.map((option) => (
                           <option key={option} value={option}>{option}</option>
                         ))}
                       </select>
-                      <select value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full max-w-[170px] rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                      <select value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full min-w-0 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
                         <option value="">Product</option>
                         {catalog.products.map((option) => (
                           <option key={option} value={option}>{option}</option>
                         ))}
                       </select>
-                      <select value={garmentType} onChange={(e) => setGarmentType(e.target.value)} className="w-full max-w-[180px] rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                      <select value={garmentType} onChange={(e) => setGarmentType(e.target.value)} className="w-full min-w-0 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
                         <option value="">Garment</option>
                         {catalog.garments.map((option) => (
                           <option key={option} value={option}>{option}</option>
@@ -818,10 +823,6 @@ function ProductRow({
                   </div>
                 </div>
 
-                <div className="w-full rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-950/60">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Published</p>
-                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">{formatDate(product.syncedAt)}</p>
-                </div>
               </div>
             </div>
 

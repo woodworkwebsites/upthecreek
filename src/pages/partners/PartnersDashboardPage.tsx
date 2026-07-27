@@ -114,6 +114,10 @@ export default function PartnersDashboardPage() {
   const [dashboard, setDashboard] = useState<PartnerDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const collaborationProducts = useMemo(
+    () => (dashboard ? buildCollaborationProducts(dashboard.partner) : []),
+    [dashboard],
+  );
 
   useEffect(() => {
     if (!session) {
@@ -179,7 +183,6 @@ export default function PartnersDashboardPage() {
   }
 
   const { partner, summary, recentOrders } = dashboard;
-  const collaborationProducts = useMemo(() => buildCollaborationProducts(partner), [partner]);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,_#06122c_0%,_#0a1736_18%,_#f8f7f3_18%,_#f8f7f3_100%)] text-navy-900">
