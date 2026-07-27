@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useLayoutEffect, type Ref } from 'react';
+import { useState, useEffect, useCallback, useRef, type ReactNode, type Ref } from 'react';
 import type { Product, PricingMatrixRow, CatalogRange } from '../../../types/index.js';
 import { adminCreateProduct, adminDeleteProduct, adminDeleteProductImage, adminFetchProducts, adminFetchRanges, adminGetSettings, adminReorderProductImages, adminUpdateProduct, adminUpdateProductImage, adminUpdateSettings, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
@@ -444,16 +444,13 @@ function ProductRow({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pricingRowSaving, setPricingRowSaving] = useState(false);
-  const [pricingRowSaved, setPricingRowSaved] = useState(false);
-  const [pricingRowError, setPricingRowError] = useState<string | null>(null);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const [sizesModalOpen, setSizesModalOpen] = useState(false);
   const [sizeGuideUploading, setSizeGuideUploading] = useState(false);
   const [sizeGuideUploadError, setSizeGuideUploadError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const pricingCustomRef = useRef(Boolean(product.pricingMatrix));
-  const titleRef = useRef<HTMLTextAreaElement | null>(null);
+  const titleRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const nextPreset = matchPricingPreset(product, catalog) ?? emptyPricingMatrix();
@@ -469,14 +466,6 @@ function ProductRow({
     setIsEnabled(product.isEnabled);
     setImages(product.images);
   }, [product, ranges]);
-
-  useLayoutEffect(() => {
-    const el = titleRef.current;
-    if (!el) return;
-
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
-  }, [title]);
 
   const img = images.find((i) => i.isDefault) ?? images[0];
 
@@ -521,28 +510,6 @@ function ProductRow({
       ?? emptyPricingMatrix();
     pricingCustomRef.current = false;
     setPricingMatrix(preset);
-  }
-
-  async function addPricingRowToCatalog() {
-    if (pricingRowSaving) return;
-
-    setPricingRowSaving(true);
-    setPricingRowSaved(false);
-    setPricingRowError(null);
-    try {
-      const nextRows = [...catalog.pricingRows, normalizePricingMatrix(pricingMatrix)];
-      await adminUpdateSettings(token, serializeCatalogSettings({
-        ...catalog,
-        pricingRows: nextRows,
-      }));
-      await onCatalogRefreshed();
-      setPricingRowSaved(true);
-      setTimeout(() => setPricingRowSaved(false), 2000);
-    } catch (err) {
-      setPricingRowError(err instanceof Error ? err.message : 'Failed to add row');
-    } finally {
-      setPricingRowSaving(false);
-    }
   }
 
   function toggleColor(colorName: string) {
@@ -731,10 +698,10 @@ function ProductRow({
 
   return (
     <>
-      <article className="overflow-hidden rounded-[1.75rem] border border-gray-200 bg-white shadow-[0_18px_50px_rgba(5,13,31,0.06)] transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
-        <div className="grid gap-4 p-4 lg:grid-cols-[220px_minmax(0,1fr)_220px] lg:gap-5 lg:p-5">
-          <div className="space-y-3">
-            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950">
+      <article className="overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_34px_rgba(5,13,31,0.05)] transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+        <div className="grid gap-0 lg:grid-cols-[180px_minmax(0,1fr)]">
+          <div className="border-b border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:border-b-0 lg:border-r">
+            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950">
               <div className="aspect-[4/5]">
                 {img ? (
                   <img src={img.src} alt={product.title} className="h-full w-full object-cover object-center" loading="lazy" />
@@ -743,126 +710,145 @@ function ProductRow({
                 )}
               </div>
             </div>
-            <button type="button" onClick={() => setImageModalOpen(true)} className="w-full rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800">
-              Manage images
+            <button
+              type="button"
+              onClick={() => setImageModalOpen(true)}
+              className="mt-3 w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
+            >
+              Images
             </button>
           </div>
 
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
-              <textarea
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                ref={titleRef}
-                rows={2}
-                className="w-full resize-none overflow-hidden rounded-2xl border border-gray-200 bg-white px-3 py-2 text-base font-semibold leading-snug text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-              />
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <label className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                  <span className={`inline-flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                    <span className={`h-3 w-3 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-3.5' : 'translate-x-0'}`} />
-                  </span>
-                  <input type="checkbox" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} className="sr-only" />
-                  Enabled
-                </label>
-                {isEnabled ? (
-                  <select value={rangeId} onChange={(e) => setRangeId(e.target.value)} className="min-w-[140px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                    <option value="">Range</option>
-                    {ranges.map((range) => (
-                      <option key={range.id} value={range.id}>{range.name}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="rounded-full border border-dashed border-gray-200 px-3 py-2 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">Range hidden until live</span>
-                )}
-                <select value={category} onChange={(e) => setCategory(e.target.value)} className="min-w-[120px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                  <option value="">Audience</option>
-                  {catalog.audiences.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-                <select value={productType} onChange={(e) => setProductType(e.target.value)} className="min-w-[120px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                  <option value="">Product</option>
-                  {catalog.products.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-                <select value={garmentType} onChange={(e) => setGarmentType(e.target.value)} className="min-w-[140px] rounded-full border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-                  <option value="">Garment</option>
-                  {catalog.garments.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-                <button type="button" onClick={() => setDetailOpen(true)} className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                  Description
-                </button>
+          <div className="space-y-3 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0 flex-1 space-y-3">
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    ref={titleRef}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                  />
+                </div>
+
+                <div className="grid gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Status</p>
+                    <label className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                      <span className={`inline-flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                        <span className={`h-3 w-3 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-3.5' : 'translate-x-0'}`} />
+                      </span>
+                      <input type="checkbox" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} className="sr-only" />
+                      Enabled
+                    </label>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Range</p>
+                    {isEnabled ? (
+                      <select value={rangeId} onChange={(e) => setRangeId(e.target.value)} className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                        <option value="">Select range</option>
+                        {ranges.map((range) => (
+                          <option key={range.id} value={range.id}>{range.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="inline-flex w-full items-center rounded-full border border-dashed border-gray-200 px-3 py-1.5 text-[11px] text-gray-500 dark:border-gray-700 dark:text-gray-400">Hidden until live</span>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Catalog</p>
+                    <button type="button" onClick={() => setDetailOpen(true)} className="inline-flex w-full items-center justify-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                      Edit description
+                    </button>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Classification</p>
+                    <div className="grid gap-2">
+                      <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                        <option value="">Audience</option>
+                        {catalog.audiences.map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                      <select value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                        <option value="">Product</option>
+                        {catalog.products.map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                      <select value={garmentType} onChange={(e) => setGarmentType(e.target.value)} className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+                        <option value="">Garment</option>
+                        {catalog.garments.map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60">
+                  <ColorMultiSelect colors={allColors} selected={visibleColors.map((color) => color.name)} onToggle={(color) => toggleColor(color.name)} />
+                  <div className="flex items-center justify-between gap-3 text-[11px] text-gray-500 dark:text-gray-400">
+                    <span>Range: {ranges.find((range) => range.id === rangeId)?.name ?? 'Unassigned'}</span>
+                    <span>{visibleColors.length} colours</span>
+                  </div>
+                </div>
               </div>
-              <p className="mt-2 font-mono text-[11px] text-gray-400 dark:text-gray-500 truncate">{product.id}</p>
+
+              <div className="flex flex-row flex-wrap gap-2 xl:w-[220px] xl:flex-col xl:items-stretch">
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900/40 dark:bg-amber-900/10">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">Pricing</p>
+                    <span className="inline-flex items-center rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950 dark:text-amber-200">
+                      {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                    {pricingCustomRef.current ? 'Custom' : 'Catalog'}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setPricingModalOpen(true)}
+                      className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetPricingToCatalog}
+                      className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
+                    >
+                      Catalog
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-950/60">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Published</p>
+                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">{formatDate(product.syncedAt)}</p>
+                </div>
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
-              <ColorMultiSelect colors={allColors} selected={visibleColors.map((color) => color.name)} onToggle={(color) => toggleColor(color.name)} />
-              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Range: {ranges.find((range) => range.id === rangeId)?.name ?? 'Unassigned'}</div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-900/10">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">Pricing</p>
-                <span className="inline-flex items-center rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950 dark:text-amber-200">
-                  {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
-                </span>
-              </div>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                {pricingCustomRef.current ? 'Custom pricing set' : 'Catalog pricing'}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPricingModalOpen(true)}
-                  className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
-                >
-                  Edit pricing
-                </button>
-                <button
-                  type="button"
-                  onClick={resetPricingToCatalog}
-                  className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
-                >
-                  Use catalog
-                </button>
-                <button
-                  type="button"
-                  onClick={addPricingRowToCatalog}
-                  disabled={pricingRowSaving}
-                  className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
-                >
-                  {pricingRowSaving ? 'Adding…' : 'Add row'}
-                </button>
-              </div>
-              {pricingRowSaved && <p className="mt-2 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">Added to catalog</p>}
-              {pricingRowError && <p className="mt-1 text-[10px] font-semibold text-red-600 dark:text-red-400">{pricingRowError}</p>}
-            </div>
-
-            <div className="flex flex-wrap justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
               <button
                 type="button"
                 onClick={() => setSizesModalOpen(true)}
-                className="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
+                className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800"
               >
                 Sizes ({product.sizes.length})
               </button>
-              {saved && <span className="self-center text-xs text-green-600 dark:text-green-400">Saved</span>}
-              {error && <span className="self-center text-xs text-red-600 dark:text-red-400">{error}</span>}
-              <button onClick={() => void handleSaveRow()} className="rounded-full bg-navy-800 px-4 py-2 text-xs font-semibold text-white hover:bg-navy-700 transition-colors">
+              {saved && <span className="self-center text-[11px] text-green-600 dark:text-green-400">Saved</span>}
+              {error && <span className="self-center text-[11px] text-red-600 dark:text-red-400">{error}</span>}
+              <button onClick={() => void handleSaveRow()} className="rounded-full bg-navy-800 px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-navy-700 transition-colors">
                 {saving ? 'Saving…' : 'Save card'}
               </button>
-              <button type="button" onClick={() => void handleDeleteProductRow()} disabled={saving || deleting} className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50">
+              <button type="button" onClick={() => void handleDeleteProductRow()} disabled={saving || deleting} className="rounded-full border border-red-200 bg-red-50 px-3.5 py-1.5 text-[11px] font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50">
                 {deleting ? 'Deleting…' : 'Delete'}
               </button>
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500">Published {formatDate(product.syncedAt)}</p>
           </div>
         </div>
       </article>
@@ -1110,40 +1096,50 @@ function ProductRow({
                     {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
                   </span>
                 </div>
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <input value={pricingMatrix.printSurface} onChange={(e) => updatePricingMatrix({ printSurface: e.target.value })} placeholder="Surface" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
-                  <input value={pricingMatrix.manufacturingCost} onChange={(e) => updatePricingMatrix({ manufacturingCost: e.target.value })} placeholder="Cost" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
-                  <input value={pricingMatrix.saleCost} onChange={(e) => updatePricingMatrix({ saleCost: e.target.value })} placeholder="Pricing" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
-                  <input value={pricingMatrix.deliveryRetail} onChange={(e) => updatePricingMatrix({ deliveryRetail: e.target.value })} placeholder="Retail delivery" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
-                  <input value={pricingMatrix.deliveryPartner} onChange={(e) => updatePricingMatrix({ deliveryPartner: e.target.value })} placeholder="Partner delivery" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
-                  <input value={pricingMatrix.deliveryOnlinePartnership} onChange={(e) => updatePricingMatrix({ deliveryOnlinePartnership: e.target.value })} placeholder="Online delivery" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
-                  <input value={pricingMatrix.salePrice} onChange={(e) => updatePricingMatrix({ salePrice: e.target.value })} placeholder="Retail" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
-                  <input value={pricingMatrix.partnerPrice} onChange={(e) => updatePricingMatrix({ partnerPrice: e.target.value })} placeholder="Partner" className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-amber-900/40 dark:bg-gray-900 dark:text-gray-100" />
-                </div>
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
-                    {pricingCustomRef.current ? 'Custom pricing' : 'Catalog pricing'}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={resetPricingToCatalog}
-                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
-                    >
-                      Use catalog
-                    </button>
-                    <button
-                      type="button"
-                      onClick={addPricingRowToCatalog}
-                      disabled={pricingRowSaving}
-                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
-                    >
-                      {pricingRowSaving ? 'Adding…' : 'Add row'}
-                    </button>
+
+                <div className="mt-4 space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Print surface">
+                      <input value={pricingMatrix.printSurface} onChange={(e) => updatePricingMatrix({ printSurface: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                    </Field>
+                    <Field label="Manufacturing cost">
+                      <input value={pricingMatrix.manufacturingCost} onChange={(e) => updatePricingMatrix({ manufacturingCost: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                    </Field>
+                    <Field label="Sale cost">
+                      <input value={pricingMatrix.saleCost} onChange={(e) => updatePricingMatrix({ saleCost: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                    </Field>
+                    <Field label="Retail delivery">
+                      <input value={pricingMatrix.deliveryRetail} onChange={(e) => updatePricingMatrix({ deliveryRetail: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                    </Field>
+                    <Field label="Partner delivery">
+                      <input value={pricingMatrix.deliveryPartner} onChange={(e) => updatePricingMatrix({ deliveryPartner: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                    </Field>
+                    <Field label="Online partnership delivery">
+                      <input value={pricingMatrix.deliveryOnlinePartnership} onChange={(e) => updatePricingMatrix({ deliveryOnlinePartnership: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                    </Field>
+                    <Field label="Retail price">
+                      <input value={pricingMatrix.salePrice} onChange={(e) => updatePricingMatrix({ salePrice: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                    </Field>
+                    <Field label="Partner price">
+                      <input value={pricingMatrix.partnerPrice} onChange={(e) => updatePricingMatrix({ partnerPrice: e.target.value })} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-amber-900/40 dark:bg-gray-900 dark:text-gray-100" />
+                    </Field>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-amber-200 pt-3 dark:border-amber-900/40">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+                      {pricingCustomRef.current ? 'Custom pricing' : 'Catalog pricing'}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={resetPricingToCatalog}
+                        className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800"
+                      >
+                        Use catalog
+                      </button>
+                    </div>
                   </div>
                 </div>
-                {pricingRowSaved && <p className="mt-2 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">Added to catalog</p>}
-                {pricingRowError && <p className="mt-1 text-[10px] font-semibold text-red-600 dark:text-red-400">{pricingRowError}</p>}
               </div>
             </div>
 
@@ -1223,6 +1219,23 @@ function ProductRow({
         </div>
       )}
     </>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block space-y-1">
+      <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }
 

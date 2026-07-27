@@ -493,10 +493,10 @@ export default function AdminPartnersPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Collaboration shirt
+                  Partner-only product
                 </p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Optional partner-only shirt that appears at the top of the ordering view.
+                  This uses the same sectioned workflow as manual catalog creation, but stays attached to this club.
                 </p>
               </div>
               <button
@@ -504,110 +504,136 @@ export default function AdminPartnersPage() {
                 onClick={clearCollaborationDraft}
                 className="text-xs font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
               >
-                Remove collab
+                Reset collab
               </button>
             </div>
 
-            <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-              <input
-                type="checkbox"
-                checked={draft.collaborationEnabled}
-                onChange={(e) => setDraft((current) => ({ ...current, collaborationEnabled: e.target.checked }))}
-              />
-              Show collaboration shirt in partner ordering
-            </label>
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Identity</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Match the same top-to-bottom flow as manual product creation.</p>
+                </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Title</span>
-                <input
-                  value={draft.collaborationTitle}
-                  onChange={(e) => setDraft((current) => ({ ...current, collaborationTitle: e.target.value }))}
-                  placeholder="Oxford Park x UTC"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
+                <div className="mt-4 space-y-3">
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Title</span>
+                    <input
+                      value={draft.collaborationTitle}
+                      onChange={(e) => setDraft((current) => ({ ...current, collaborationTitle: e.target.value }))}
+                      placeholder="Oxford Park x UTC"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
+                  </label>
 
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Partner price</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={draft.collaborationPrice}
-                  onChange={(e) => setDraft((current) => ({ ...current, collaborationPrice: e.target.value }))}
-                  placeholder="18.00"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
-            </div>
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
+                    <textarea
+                      value={draft.collaborationDescription}
+                      onChange={(e) => setDraft((current) => ({ ...current, collaborationDescription: e.target.value }))}
+                      rows={3}
+                      placeholder="What makes the shirt special?"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
+                  </label>
 
-            <label className="block space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
-              <textarea
-                value={draft.collaborationDescription}
-                onChange={(e) => setDraft((current) => ({ ...current, collaborationDescription: e.target.value }))}
-                rows={3}
-                placeholder="What makes the shirt special?"
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-              />
-            </label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Garment</span>
+                      <input
+                        value={draft.collaborationGarment}
+                        onChange={(e) => setDraft((current) => ({ ...current, collaborationGarment: e.target.value }))}
+                        placeholder="Performance T-Shirt"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                      />
+                    </label>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Image URLs</span>
-                <input
-                  value={draft.collaborationImageUrls}
-                  onChange={(e) => setDraft((current) => ({ ...current, collaborationImageUrls: e.target.value }))}
-                  placeholder="/partner-collab-front.jpg\n/partner-collab-back.jpg"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-                <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                  Add one URL per line or separate them with commas. The first image is used as the default.
-                </p>
-              </label>
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Partner price</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={draft.collaborationPrice}
+                        onChange={(e) => setDraft((current) => ({ ...current, collaborationPrice: e.target.value }))}
+                        placeholder="18.00"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                      />
+                    </label>
+                  </div>
 
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Garment</span>
-                <input
-                  value={draft.collaborationGarment}
-                  onChange={(e) => setDraft((current) => ({ ...current, collaborationGarment: e.target.value }))}
-                  placeholder="Performance T-Shirt"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
-            </div>
+                  <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={draft.collaborationEnabled}
+                      onChange={(e) => setDraft((current) => ({ ...current, collaborationEnabled: e.target.checked }))}
+                    />
+                    Show collaboration shirt in partner ordering
+                  </label>
+                </div>
+              </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour name</span>
-                <input
-                  value={draft.collaborationColorName}
-                  onChange={(e) => setDraft((current) => ({ ...current, collaborationColorName: e.target.value }))}
-                  placeholder="Collaboration"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Colours</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Set the single visible colour token and the size split for the shirt.</p>
+                </div>
 
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour hex</span>
-                <input
-                  value={draft.collaborationColorHex}
-                  onChange={(e) => setDraft((current) => ({ ...current, collaborationColorHex: e.target.value }))}
-                  placeholder="#111827"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour name</span>
+                    <input
+                      value={draft.collaborationColorName}
+                      onChange={(e) => setDraft((current) => ({ ...current, collaborationColorName: e.target.value }))}
+                      placeholder="Collaboration"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
+                  </label>
 
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Sizes</span>
-                <input
-                  value={draft.collaborationSizes}
-                  onChange={(e) => setDraft((current) => ({ ...current, collaborationSizes: e.target.value }))}
-                  placeholder={DEFAULT_SIZE_OPTIONS.join(', ')}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour hex</span>
+                    <input
+                      value={draft.collaborationColorHex}
+                      onChange={(e) => setDraft((current) => ({ ...current, collaborationColorHex: e.target.value }))}
+                      placeholder="#111827"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Sizes</span>
+                    <input
+                      value={draft.collaborationSizes}
+                      onChange={(e) => setDraft((current) => ({ ...current, collaborationSizes: e.target.value }))}
+                      placeholder={DEFAULT_SIZE_OPTIONS.join(', ')}
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Images</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Paste image URLs in the same spirit as uploading images on the product create page.</p>
+                </div>
+
+                <label className="mt-4 block space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Image URLs</span>
+                  <textarea
+                    value={draft.collaborationImageUrls}
+                    onChange={(e) => setDraft((current) => ({ ...current, collaborationImageUrls: e.target.value }))}
+                    placeholder="/partner-collab-front.jpg\n/partner-collab-back.jpg"
+                    rows={3}
+                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                  />
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                    Add one URL per line or separate them with commas. The first image is used as the default.
+                  </p>
+                </label>
+              </div>
             </div>
           </div>
         </div>

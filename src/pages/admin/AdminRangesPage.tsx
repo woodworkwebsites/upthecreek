@@ -7,7 +7,6 @@ import {
   adminUpdateRange,
 } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
-import { Badge } from '../../components/ui/Badge.js';
 import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
@@ -137,6 +136,30 @@ export default function AdminRangesPage() {
     }
   }
 
+  async function handleToggleVisibility(
+    range: CatalogRange,
+    field: 'storefrontEnabled' | 'partnerEnabled',
+  ) {
+    if (!token) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      await adminUpdateRange(token, range.id, {
+        name: range.name,
+        storefrontEnabled: field === 'storefrontEnabled' ? !range.storefrontEnabled : range.storefrontEnabled,
+        partnerEnabled: field === 'partnerEnabled' ? !range.partnerEnabled : range.partnerEnabled,
+        sortOrder: range.sortOrder,
+      });
+      await load();
+      setSaved(`${range.name} updated`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update range');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading) return <PageLoader />;
 
   return (
@@ -233,8 +256,6 @@ export default function AdminRangesPage() {
               <thead className="bg-gray-50 text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:bg-gray-950 dark:text-gray-400">
                 <tr>
                   <th className="px-4 py-3 sm:px-6">Range</th>
-                  <th className="px-4 py-3">Storefront</th>
-                  <th className="px-4 py-3">Partner</th>
                   <th className="px-4 py-3">Sort</th>
                   <th className="px-4 py-3">Updated</th>
                   <th className="px-4 py-3">Actions</th>
@@ -249,20 +270,22 @@ export default function AdminRangesPage() {
                         <p className="font-mono text-[11px] text-gray-400 dark:text-gray-500">{range.id}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
-                      <Badge variant={range.storefrontEnabled ? 'success' : 'default'}>
-                        {range.storefrontEnabled ? 'Live' : 'Hidden'}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-4">
-                      <Badge variant={range.partnerEnabled ? 'success' : 'default'}>
-                        {range.partnerEnabled ? 'Live' : 'Hidden'}
-                      </Badge>
-                    </td>
                     <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">{range.sortOrder}</td>
                     <td className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">{formatDate(range.updatedAt)}</td>
                     <td className="px-4 py-4">
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <RangeToggle
+                          label="Storefront"
+                          value={range.storefrontEnabled}
+                          disabled={saving}
+                          onToggle={() => { void handleToggleVisibility(range, 'storefrontEnabled'); }}
+                        />
+                        <RangeToggle
+                          label="Partner"
+                          value={range.partnerEnabled}
+                          disabled={saving}
+                          onToggle={() => { void handleToggleVisibility(range, 'partnerEnabled'); }}
+                        />
                         <button
                           type="button"
                           onClick={() => startEdit(range)}
@@ -284,7 +307,7 @@ export default function AdminRangesPage() {
                 ))}
                 {ranges.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                    <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                       No ranges yet.
                     </td>
                   </tr>
@@ -295,5 +318,35 @@ export default function AdminRangesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function RangeToggle({
+  label,
+  value,
+  disabled,
+  onToggle,
+}: {
+  label: string;
+  value: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors disabled:opacity-50 ${
+        value
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300'
+          : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-800'
+      }`}
+    >
+      <span className="text-[10px] uppercase tracking-[0.14em]">{label}</span>
+      <span className={`inline-flex h-4 w-8 items-center rounded-full p-0.5 ${value ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+        <span className={`h-3 w-3 rounded-full bg-white transition-transform ${value ? 'translate-x-3.5' : 'translate-x-0'}`} />
+      </span>
+    </button>
   );
 }
