@@ -753,14 +753,34 @@ export default function AdminPartnersPage() {
         {selectedPartner && (
           <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_20px_70px_rgba(5,13,31,0.07)] dark:border-gray-800 dark:bg-gray-900">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Edit partner</p>
-                <h2 className="mt-1 text-2xl font-black tracking-tight text-gray-900 dark:text-gray-100">
-                  {selectedPartner.name}
-                </h2>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Update the club record and the collaboration products below. Changes save into D1 and appear on the partner dashboard.
-                </p>
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="group flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 transition-colors hover:border-gray-300 hover:bg-white dark:border-gray-700 dark:bg-gray-950 dark:hover:border-gray-600 dark:hover:bg-gray-900">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleLogoSelected(e.target.files)}
+                    className="sr-only"
+                  />
+                  {draft.logoImage ? (
+                    <img
+                      src={draft.logoImage.previewUrl}
+                      alt="Club logo preview"
+                      className="h-full w-full object-contain p-2"
+                    />
+                  ) : (
+                    <span className="px-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400">
+                      Upload logo
+                    </span>
+                  )}
+                </label>
+                <div className="min-w-0">
+                  <h2 className="text-2xl font-black tracking-tight text-gray-900 dark:text-gray-100">
+                    {selectedPartner.name}
+                  </h2>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Update the club record and the collaboration products below. Changes save into D1 and appear on the partner dashboard.
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -797,42 +817,6 @@ export default function AdminPartnersPage() {
                       placeholder="Oxford Park Padel"
                       className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                     />
-                  </label>
-
-                  <label className="block space-y-2 sm:col-span-2">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Club logo</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleLogoSelected(e.target.files)}
-                      className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-navy-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wider file:text-white hover:file:bg-navy-700"
-                    />
-                    {draft.logoImage ? (
-                      <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950">
-                        <img
-                          src={draft.logoImage.previewUrl}
-                          alt="Club logo preview"
-                          className="h-14 w-14 rounded-xl object-contain bg-white p-1.5"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Logo selected</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {draft.logoImage.file?.name ?? 'Existing logo'}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={removeLogoImage}
-                          className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-white dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Upload the club badge or crest used across the portal and tables.
-                      </p>
-                    )}
                   </label>
 
                   <label className="block space-y-1">
@@ -1159,42 +1143,6 @@ export default function AdminPartnersPage() {
                       placeholder="Oxford Park Padel"
                       className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                     />
-                  </label>
-
-                  <label className="block space-y-2 sm:col-span-2">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Club logo</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleLogoSelected(e.target.files)}
-                      className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-navy-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wider file:text-white hover:file:bg-navy-700"
-                    />
-                    {draft.logoImage ? (
-                      <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950">
-                        <img
-                          src={draft.logoImage.previewUrl}
-                          alt="Club logo preview"
-                          className="h-14 w-14 rounded-xl object-contain bg-white p-1.5"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Logo selected</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {draft.logoImage.file?.name ?? 'Existing logo'}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={removeLogoImage}
-                          className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Upload the club badge or crest used across the portal and tables.
-                      </p>
-                    )}
                   </label>
 
                   <label className="block space-y-1">

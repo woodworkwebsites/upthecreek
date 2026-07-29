@@ -72,19 +72,27 @@ function normalizeCollaborationImages(value: unknown): string[] {
   );
 }
 
+function normalizeCollaborationMoney(value: unknown): number {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number(value)
+      : NaN;
+
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+
+  // Legacy rows were stored in whole pounds. Treat small integer values as pounds
+  // so existing collaboration products hydrate and re-save in pence.
+  if (Number.isInteger(parsed) && parsed > 0 && parsed < 100) {
+    return Math.round(parsed * 100);
+  }
+
+  return Math.round(parsed);
+}
+
 function normalizeCollaborationDesign(design: Partial<PartnerCollaborationDesign> | null | undefined): PartnerCollaborationDesign | null {
   if (!design || typeof design !== 'object') return null;
 
-  const partnerPrice = typeof design.partnerPrice === 'number'
-    ? design.partnerPrice
-    : typeof design.partnerPrice === 'string'
-      ? Number(design.partnerPrice)
-      : NaN;
-  const rrp = typeof design.rrp === 'number'
-    ? design.rrp
-    : typeof (design as { rrp?: unknown }).rrp === 'string'
-      ? Number((design as { rrp?: string }).rrp)
-      : NaN;
   const normalizedImageUrls = normalizeCollaborationImages(
     Array.isArray(design.imageUrls) && design.imageUrls.length > 0
       ? design.imageUrls
@@ -103,8 +111,8 @@ function normalizeCollaborationDesign(design: Partial<PartnerCollaborationDesign
     colorName: typeof design.colorName === 'string' ? design.colorName.trim() || 'Collaboration' : 'Collaboration',
     colorHex: typeof design.colorHex === 'string' ? design.colorHex.trim() || '#111827' : '#111827',
     sizes: normalizeCollaborationSizes(design.sizes),
-    partnerPrice: Number.isFinite(partnerPrice) && partnerPrice >= 0 ? Math.round(partnerPrice) : 0,
-    rrp: Number.isFinite(rrp) && rrp >= 0 ? Math.round(rrp) : (Number.isFinite(partnerPrice) && partnerPrice >= 0 ? Math.round(partnerPrice) : 0),
+    partnerPrice: normalizeCollaborationMoney(design.partnerPrice),
+    rrp: normalizeCollaborationMoney((design as { rrp?: unknown }).rrp ?? design.partnerPrice),
   };
 }
 
@@ -170,8 +178,8 @@ function parseJsonStringArray(raw: string | null): string[] {
 
 function parseCollaborationDesignRow(row: PartnerCollaborationDesignRow): PartnerCollaborationDesign {
   const imageUrls = parseJsonStringArray(row.image_urls);
-  const partnerPrice = row.partner_price;
-  const rrp = typeof row.rrp_price === 'number' ? row.rrp_price : partnerPrice;
+  const partnerPrice = normalizeCollaborationMoney(row.partner_price);
+  const rrp = normalizeCollaborationMoney(typeof row.rrp_price === 'number' ? row.rrp_price : partnerPrice);
   return {
     title: row.title,
     description: row.description,

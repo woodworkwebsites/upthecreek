@@ -462,6 +462,7 @@ function ProductRow({
   const [pricingMatrix, setPricingMatrix] = useState(initialPricingMatrix);
   const [hiddenColors, setHiddenColors] = useState<string[]>(product.hiddenColors ?? []);
   const [colorOrderUrls, setColorOrderUrls] = useState<Record<string, string>>(() => buildColorOrderUrlMap(product.colors));
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(product.sizes.length > 0 ? product.sizes : DEFAULT_SIZE_OPTIONS);
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
   const [sizeGuideUploadFile, setSizeGuideUploadFile] = useState<File | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
@@ -496,6 +497,7 @@ function ProductRow({
     pricingCustomRef.current = Boolean(product.pricingMatrix);
     setHiddenColors(product.hiddenColors ?? []);
     setColorOrderUrls(buildColorOrderUrlMap(product.colors));
+    setSelectedSizes(product.sizes.length > 0 ? product.sizes : DEFAULT_SIZE_OPTIONS);
     setIsEnabled(product.isEnabled);
     setImages(product.images);
   }, [product, ranges]);
@@ -551,6 +553,18 @@ function ProductRow({
         ? current.filter((value) => value !== colorName)
         : [...current, colorName],
     );
+  }
+
+  function toggleSize(size: string) {
+    setSelectedSizes((current) => {
+      const isSelected = current.includes(size);
+      if (isSelected && current.length === 1) {
+        return current;
+      }
+      return isSelected
+        ? current.filter((value) => value !== size)
+        : [...current.filter((value) => value !== size), size];
+    });
   }
 
   async function handleUploadSizeGuide() {
@@ -681,6 +695,8 @@ function ProductRow({
     ...emptyPricingMatrix(),
     ...(product.pricingMatrix ?? matchPricingPreset(product, catalog) ?? {}),
   });
+  const currentSizeSignature = JSON.stringify(selectedSizes);
+  const originalSizeSignature = JSON.stringify(product.sizes.length > 0 ? product.sizes : DEFAULT_SIZE_OPTIONS);
   const hasChanges = title.trim() !== product.title
     || description.trim() !== (product.description ?? '').trim()
     || category.trim() !== (product.audience || '').trim()
@@ -689,6 +705,7 @@ function ProductRow({
     || rangeId.trim() !== (product.rangeId ?? '').trim()
     || isEnabled !== product.isEnabled
     || currentPricingSignature !== originalPricingSignature
+    || currentSizeSignature !== originalSizeSignature
     || currentColorSignature !== originalColorSignature
     || hiddenColors.length !== (product.hiddenColors ?? []).length
     || hiddenColors.some((color) => !(product.hiddenColors ?? []).includes(color));
@@ -714,6 +731,7 @@ function ProductRow({
         garment: garmentType.trim(),
         rangeId: rangeId.trim() || null,
         pricingMatrix: normalizePricingMatrix(pricingMatrix),
+        sizes: selectedSizes,
         colors: visibleColors.map((color) => ({
           name: color.name,
           hex: color.hex,
@@ -897,17 +915,27 @@ function ProductRow({
                 <div className="space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Sizes</p>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{product.sizes.length} sizes</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{selectedSizes.length} selected</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {product.sizes.map((size) => (
-                      <span
-                        key={size}
-                        className="inline-flex h-11 min-w-[2.75rem] items-center justify-center rounded-lg border-2 border-navy-800 bg-navy-800 px-3.5 text-sm font-bold text-white shadow-md shadow-navy-900/20"
-                      >
-                        {size}
-                      </span>
-                    ))}
+                    {(product.sizes.length > 0 ? product.sizes : DEFAULT_SIZE_OPTIONS).map((size) => {
+                      const isSelected = selectedSizes.includes(size);
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => toggleSize(size)}
+                          aria-pressed={isSelected}
+                          className={`inline-flex h-11 min-w-[2.75rem] items-center justify-center rounded-lg border-2 px-3.5 text-sm font-bold shadow-md shadow-navy-900/20 transition-colors ${
+                            isSelected
+                              ? 'border-navy-800 bg-navy-800 text-white'
+                              : 'border-gray-200 bg-white text-gray-600 hover:border-navy-800 hover:text-navy-800'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

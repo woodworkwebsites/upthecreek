@@ -176,11 +176,16 @@ function buildSyntheticVariants(
   return buildVariantMatrix(colors, salePrice, seedPrefix);
 }
 
-function buildVariantMatrix(colors: PrintifyColor[], salePrice: number, seedPrefix = ''): PrintifyVariant[] {
+function buildVariantMatrix(
+  colors: PrintifyColor[],
+  salePrice: number,
+  seedPrefix = '',
+  sizes: string[] = DEFAULT_SIZE_OPTIONS,
+): PrintifyVariant[] {
   const variants: PrintifyVariant[] = [];
 
   for (const color of colors) {
-    for (const size of DEFAULT_SIZE_OPTIONS) {
+    for (const size of sizes) {
       variants.push({
         id: buildSyntheticVariantId(`${seedPrefix}:${color.name}:${size}`),
         color: color.name,
@@ -615,6 +620,7 @@ export interface UpdateProductFields {
   isEnabled?: boolean;
   sizeGuideImage?: string | null;
   hiddenColors?: string[];
+  sizes?: string[];
 }
 
 export async function updateProductFields(
@@ -623,7 +629,7 @@ export async function updateProductFields(
   fields: UpdateProductFields,
 ): Promise<boolean> {
   const current = await db
-    .prepare('SELECT category, range_id, variants, colors, pricing_matrix FROM products WHERE printify_id = ?')
+    .prepare('SELECT category, range_id, variants, colors, pricing_matrix, sizes FROM products WHERE printify_id = ?')
     .bind(printifyId)
     .first<{
       category: string;
@@ -631,12 +637,14 @@ export async function updateProductFields(
       variants: string;
       colors: string | null;
       pricing_matrix: string | null;
+      sizes: string | null;
     }>();
 
   if (!current) return false;
   const currentVariants = parseJsonArray<PrintifyVariant>(current.variants);
   const currentColors = parseJsonArray<PrintifyColor>(current.colors);
   const currentPricingMatrix = parseJsonObject<PricingMatrixRow>(current.pricing_matrix);
+  const currentSizes = normalizeSizes(parseJsonArray<string>(current.sizes));
   const categoryMetadata = parseProductMetadata(current.category);
   const colorSource = currentColors.length > 0
     ? currentColors
@@ -717,25 +725,39 @@ export async function updateProductFields(
   }
 
   const effectiveColors = fields.colors !== undefined ? nextColors : normalizedColors;
+  const nextSizes = fields.sizes !== undefined
+    ? normalizeSizes(fields.sizes)
+    : currentSizes.length > 0
+      ? currentSizes
+      : DEFAULT_SIZE_OPTIONS.slice();
 
   const nextSalePrice = (fields.pricingMatrix?.salePrice?.trim() || currentPricingMatrix?.salePrice?.trim() || '');
   if (nextSalePrice) {
     const parsed = parseFloat(nextSalePrice);
     if (Number.isFinite(parsed)) {
       const unitPrice = Math.round(parsed * 100);
-      const variants = currentVariants.length > 0
-        ? currentVariants.map((variant) => ({
-            ...variant,
-            available: true,
-            price: unitPrice,
-          }))
-        : buildVariantMatrix(effectiveColors.length > 0 ? effectiveColors : DEFAULT_FALLBACK_COLORS, unitPrice);
+      const variants = buildVariantMatrix(
+        effectiveColors.length > 0 ? effectiveColors : DEFAULT_FALLBACK_COLORS,
+        unitPrice,
+        '',
+        nextSizes,
+      );
       const colorHexByName = new Map((effectiveColors.length > 0 ? effectiveColors : DEFAULT_FALLBACK_COLORS).map((color) => [color.name, color.hex] as const));
       const { minPrice, maxPrice } = deriveProductAggregates(variants, colorHexByName, unitPrice);
 
       sets.push('variants = ?', 'sizes = ?', 'min_price = ?', 'max_price = ?');
-      values.push(JSON.stringify(variants), JSON.stringify(DEFAULT_SIZE_OPTIONS), minPrice, maxPrice);
+      values.push(JSON.stringify(variants), JSON.stringify(nextSizes), minPrice, maxPrice);
     }
+  }
+
+  if (fields.sizes !== undefined && !nextSalePrice) {
+    const unitPrice = currentVariants[0]?.price ?? parseSalePriceToPence(currentPricingMatrix);
+    const colorHexByName = new Map((effectiveColors.length > 0 ? effectiveColors : DEFAULT_FALLBACK_COLORS).map((color) => [color.name, color.hex] as const));
+    const variants = buildVariantMatrix(effectiveColors.length > 0 ? effectiveColors : DEFAULT_FALLBACK_COLORS, unitPrice, '', nextSizes);
+    const { minPrice, maxPrice } = deriveProductAggregates(variants, colorHexByName, unitPrice);
+
+    sets.push('variants = ?', 'sizes = ?', 'min_price = ?', 'max_price = ?');
+    values.push(JSON.stringify(variants), JSON.stringify(nextSizes), minPrice, maxPrice);
   }
 
   if (sets.length === 0) return false;

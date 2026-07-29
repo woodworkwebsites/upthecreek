@@ -254,6 +254,7 @@ export async function adminUpdateProduct(
     isEnabled?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: string[];
+    sizes?: string[];
   },
 ): Promise<void> {
   await adminFetch(`/api/admin/products/${printifyId}`, token, {

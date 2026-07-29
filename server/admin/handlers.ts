@@ -399,6 +399,18 @@ function parseCollaborationSizes(value: string, fallback: string[]): string[] {
   return sizes.length > 0 ? sizes : fallback;
 }
 
+function normalizeProductSizes(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(
+    new Set(
+      value
+        .filter((entry): entry is string => typeof entry === 'string')
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
 function parseCollaborationImageMeta(raw: string): CollaborationImageMeta[] {
   if (!raw.trim()) return [];
 
@@ -693,7 +705,7 @@ async function buildCollaborationDesignFromForm(
     colorHex: colorHex || '#111827',
     sizes,
     partnerPrice: Math.max(0, Math.round(wholesalePrice * 100)),
-    rrp: Math.max(0, Math.round(rrp)),
+    rrp: Math.max(0, Math.round(rrp * 100)),
   };
 }
 
@@ -1062,6 +1074,7 @@ export async function handleUpdateProduct(
     audience?: string;
     productType?: string;
     garment?: string;
+    sizes?: string[];
     pricingMatrix?: {
       audience?: string;
       product?: string;
@@ -1087,6 +1100,7 @@ export async function handleUpdateProduct(
       audience?: string;
       productType?: string;
       garment?: string;
+      sizes?: string[];
       pricingMatrix?: {
         audience?: string;
         product?: string;
@@ -1115,6 +1129,7 @@ export async function handleUpdateProduct(
     !('audience' in body) &&
     !('productType' in body) &&
     !('garment' in body) &&
+    !('sizes' in body) &&
     !('pricingMatrix' in body) &&
     !('isEnabled' in body) &&
     !('sizeGuideImage' in body) &&
@@ -1135,6 +1150,7 @@ export async function handleUpdateProduct(
   const audience = body.audience !== undefined ? body.audience.trim() : undefined;
   const productType = body.productType !== undefined ? body.productType.trim() : undefined;
   const garment = body.garment !== undefined ? body.garment.trim() : undefined;
+  const sizes = body.sizes !== undefined ? normalizeProductSizes(body.sizes) : undefined;
   const sizeGuideImage = body.sizeGuideImage !== undefined ? body.sizeGuideImage?.trim() || null : undefined;
   const pricingMatrix = body.pricingMatrix === null
     ? null
@@ -1177,6 +1193,7 @@ export async function handleUpdateProduct(
     audience,
     productType,
     garment,
+    sizes,
     pricingMatrix,
     colors,
     isEnabled: body.isEnabled,
