@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { PartnerAdmin, PartnerCollaborationDesign } from '../../../types/index.js';
 import {
   adminCreatePartner,
@@ -111,7 +111,7 @@ export default function AdminPartnersPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [saved, setSaved] = useState<string | null>(null);
-  const detailsSectionRef = useRef<HTMLDivElement | null>(null);
+  const [showAccessToken, setShowAccessToken] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -132,11 +132,6 @@ export default function AdminPartnersPage() {
   }, [load]);
 
   useEffect(() => {
-    if (!editingId) return;
-    detailsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [editingId]);
-
-  useEffect(() => {
     if (!createModalOpen) return;
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
@@ -151,6 +146,7 @@ export default function AdminPartnersPage() {
   function resetDraft() {
     setDraft(emptyDraft());
     setError(null);
+    setShowAccessToken(false);
   }
 
   function startCreate() {
@@ -171,7 +167,6 @@ export default function AdminPartnersPage() {
   }
 
   function startEdit(partner: PartnerAdmin) {
-    setCreateModalOpen(false);
     setError(null);
     const collaboration = partner.collaborationDesigns.length > 0
       ? partner.collaborationDesigns
@@ -193,6 +188,8 @@ export default function AdminPartnersPage() {
         : [emptyCollaborationDesignDraft()],
     });
     setSaved(null);
+    setShowAccessToken(false);
+    setCreateModalOpen(false);
   }
 
   function revokeCollaborationPreview(image: CollaborationImageRow | null) {
@@ -315,6 +312,11 @@ export default function AdminPartnersPage() {
       form.append('description', draft.description.trim());
       form.append('active', String(draft.active));
       form.append('collaborationEnabled', String(draft.collaborationEnabled));
+      const legacyDesign = draft.collaborationDesigns[0] ?? emptyCollaborationDesignDraft();
+      const legacyImages: Array<
+        | { type: 'file'; fileIndex: number; isDefault: boolean }
+        | { type: 'url'; url: string; isDefault: boolean }
+      > = [];
       const collaborationDesignsMeta: Array<{
         title: string;
         description: string;
@@ -361,6 +363,34 @@ export default function AdminPartnersPage() {
         });
       });
       form.append('collaborationDesignsMeta', JSON.stringify(collaborationDesignsMeta));
+
+      [
+        [legacyDesign.frontImage, true],
+        [legacyDesign.backImage, false],
+      ].forEach(([image, isDefault]) => {
+        if (image?.file) {
+          form.append('collaborationImages', image.file, image.file.name);
+          legacyImages.push({ type: 'file', fileIndex: legacyImages.length, isDefault });
+        } else if (image?.previewUrl) {
+          legacyImages.push({ type: 'url', url: image.previewUrl, isDefault });
+        }
+      });
+
+      form.append('collaborationTitle', legacyDesign.title.trim());
+      form.append('collaborationDescription', legacyDesign.description.trim());
+      form.append('collaborationGarment', legacyDesign.garment.trim());
+      form.append('collaborationColorName', legacyDesign.colorName.trim());
+      form.append('collaborationColorHex', legacyDesign.colorHex.trim());
+      form.append('collaborationSizes', legacyDesign.sizes);
+      form.append('collaborationPrice', legacyDesign.price);
+      form.append('collaborationImagesMeta', JSON.stringify(legacyImages));
+      form.append(
+        'collaborationImageUrls',
+        legacyImages
+          .filter((entry): entry is { type: 'url'; url: string; isDefault: boolean } => entry.type === 'url')
+          .map((entry) => entry.url)
+          .join(','),
+      );
 
       if (editingId) {
         if (accessToken) form.append('accessToken', accessToken);
@@ -411,6 +441,10 @@ export default function AdminPartnersPage() {
     }));
   }
 
+  const selectedPartner = editingId
+    ? partners.find((partner) => partner.id === editingId) ?? null
+    : null;
+
   if (loading) return <PageLoader />;
 
   return (
@@ -422,19 +456,21 @@ export default function AdminPartnersPage() {
             Create club access, assign discount codes, and manage commission rates.
           </p>
         </div>
-        <button
-          onClick={load}
-          className="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
-        >
-          Refresh
-        </button>
-        <button
-          type="button"
-          onClick={openCreateModal}
-          className="rounded-full bg-navy-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-700"
-        >
-          Add new partner
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={load}
+            className="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+          >
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="rounded-full bg-navy-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-700"
+          >
+            Add partner
+          </button>
+        </div>
       </div>
 
       {saved && (
@@ -530,341 +566,331 @@ export default function AdminPartnersPage() {
           )}
         </div>
 
-
-      {editingId ? (
-        <div ref={detailsSectionRef} className="space-y-4">
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-            <div className="flex items-start justify-between gap-3">
+        {selectedPartner && (
+          <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_20px_70px_rgba(5,13,31,0.07)] dark:border-gray-800 dark:bg-gray-900">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  {partners.find((partner) => partner.id === editingId)?.name ?? 'Edit partner'}
-                </p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Edit partner</p>
+                <h2 className="mt-1 text-2xl font-black tracking-tight text-gray-900 dark:text-gray-100">
+                  {selectedPartner.name}
+                </h2>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Clubs use the access token to open their portal. Leave it blank while editing to keep the current token.
+                  Update the club record and the collaboration products below. Changes save into D1 and appear on the partner dashboard.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={startCreate}
+                onClick={() => {
+                  setEditingId(null);
+                  setError(null);
+                  setShowAccessToken(false);
+                }}
                 className="rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
               >
                 Close editor
               </button>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Partner code</span>
-                <input
-                  value={draft.slug}
-                  onChange={(e) => setDraft((current) => ({ ...current, slug: e.target.value }))}
-                  placeholder="oxford-park"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
-
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</span>
-                <input
-                  value={draft.name}
-                  onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
-                  placeholder="Oxford Park Padel"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
-
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Discount code</span>
-                <input
-                  value={draft.discountCode}
-                  onChange={(e) => setDraft((current) => ({ ...current, discountCode: e.target.value }))}
-                  placeholder="OXFORD10"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
-
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Commission %</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={draft.commissionRate}
-                  onChange={(e) => setDraft((current) => ({ ...current, commissionRate: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
-
-              <label className="block space-y-1 sm:col-span-2">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Access token</span>
-                <input
-                  value={draft.accessToken}
-                  onChange={(e) => setDraft((current) => ({ ...current, accessToken: e.target.value }))}
-                  placeholder="Leave blank to keep current token"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
-
-              <label className="block space-y-1 sm:col-span-2">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
-                <textarea
-                  value={draft.description}
-                  onChange={(e) => setDraft((current) => ({ ...current, description: e.target.value }))}
-                  rows={4}
-                  placeholder="Optional notes for this club"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                <input
-                  type="checkbox"
-                  checked={draft.active}
-                  onChange={(e) => setDraft((current) => ({ ...current, active: e.target.checked }))}
-                />
-                Active partner
-              </label>
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => void handleSubmit()}
-                  disabled={saving}
-                  className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
-                >
-                  {saving ? 'Saving…' : 'Update partner'}
-                </button>
-                <button
-                  type="button"
-                  onClick={startCreate}
-                  className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
-                >
-                  Reset
-                </button>
-              </div>
-            </div>
-
-            {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
-          </div>
-
-          <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  Partner-only products
-                </p>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Each design card becomes a separate collaboration product on the partner dashboard.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={addCollaborationDesign}
-                  className="rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
-                >
-                  Create new design
-                </button>
-                <button
-                  type="button"
-                  onClick={clearCollaborationDraft}
-                  className="text-xs font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                >
-                  Reset collab
-                </button>
-              </div>
-            </div>
-
-            <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
-              <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${draft.collaborationEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                <span className={`h-4 w-4 rounded-full bg-white transition-transform ${draft.collaborationEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-              </span>
-              <input
-                type="checkbox"
-                checked={draft.collaborationEnabled}
-                onChange={(e) => setDraft((current) => ({ ...current, collaborationEnabled: e.target.checked }))}
-                className="sr-only"
-              />
-              Enabled
-            </label>
-
-            <div className="space-y-4">
-              {draft.collaborationDesigns.map((design, index) => (
-                <div key={design.id} className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Design {index + 1}</p>
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Add the images and fields for this collaboration shirt.
-                      </p>
-                    </div>
-                    {draft.collaborationDesigns.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeCollaborationDesign(design.id)}
-                        className="text-xs font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                      >
-                        Remove design
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    {[
-                      { side: 'front' as const, label: 'Front image', image: design.frontImage, emptyCopy: 'Upload the front image.' },
-                      { side: 'back' as const, label: 'Back image', image: design.backImage, emptyCopy: 'Upload the back image.' },
-                    ].map(({ side, label, image, emptyCopy }) => (
-                      <label
-                        key={side}
-                        className="relative block overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950"
-                      >
-                        <input
-                          type="file"
-                          name="collaborationDesignFiles"
-                          accept="image/*"
-                          onChange={(e) => handleCollaborationFilesSelected(design.id, side, e.target.files)}
-                          className="sr-only"
-                        />
-                        <div className="relative">
-                          <div className="flex min-h-[15rem] w-full items-center justify-center bg-white p-4 dark:bg-gray-950">
-                            {image ? (
-                              <img
-                                src={image.previewUrl}
-                                alt={label}
-                                className="h-[15rem] w-full rounded-xl object-contain"
-                              />
-                            ) : (
-                              <div className="flex h-[15rem] w-full flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 px-6 text-center dark:border-gray-700">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{label}</p>
-                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{emptyCopy}</p>
-                              </div>
-                            )}
-                          </div>
-                          {image && (
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.preventDefault();
-                                removeCollaborationImage(design.id, side);
-                              }}
-                              className="absolute right-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-black"
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="block space-y-1">
-                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Title</span>
-                      <input
-                        value={design.title}
-                        onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, title: e.target.value }))}
-                        placeholder="Oxford Park x UTC"
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </label>
-                    <label className="block space-y-1">
-                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Garment</span>
-                      <input
-                        value={design.garment}
-                        onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, garment: e.target.value }))}
-                        placeholder="Collaboration Shirt"
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </label>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="block space-y-1">
-                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour name</span>
-                      <input
-                        value={design.colorName}
-                        onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, colorName: e.target.value }))}
-                        placeholder="Collaboration"
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </label>
-                    <label className="block space-y-1">
-                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour hex</span>
-                      <input
-                        value={design.colorHex}
-                        onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, colorHex: e.target.value }))}
-                        placeholder="#111827"
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </label>
-                  </div>
-
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <label className="block space-y-1">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
-                    <textarea
-                      value={design.description}
-                      onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, description: e.target.value }))}
-                      rows={3}
-                      placeholder="What makes the shirt special?"
-                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Partner code</span>
+                    <input
+                      autoFocus
+                      value={draft.slug}
+                      onChange={(e) => setDraft((current) => ({ ...current, slug: e.target.value }))}
+                      placeholder="oxford-park"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                     />
                   </label>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="block space-y-1">
-                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Sizes</span>
-                      <input
-                        value={design.sizes}
-                        onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, sizes: e.target.value }))}
-                        placeholder={DEFAULT_SIZE_OPTIONS.join(', ')}
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </label>
-                    <label className="block space-y-1">
-                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Price</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={design.price}
-                        onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, price: e.target.value }))}
-                        placeholder="18.00"
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </label>
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</span>
+                    <input
+                      value={draft.name}
+                      onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
+                      placeholder="Oxford Park Padel"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
+                  </label>
+
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Discount code</span>
+                    <input
+                      value={draft.discountCode}
+                      onChange={(e) => setDraft((current) => ({ ...current, discountCode: e.target.value }))}
+                      placeholder="OXFORD10"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
+                  </label>
+
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Commission %</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={draft.commissionRate}
+                      onChange={(e) => setDraft((current) => ({ ...current, commissionRate: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
+                  </label>
+
+                  <label className="block space-y-1 sm:col-span-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Access token</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowAccessToken((current) => !current)}
+                        className="text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                      >
+                        {showAccessToken ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                    <input
+                      type={showAccessToken ? 'text' : 'password'}
+                      value={draft.accessToken}
+                      onChange={(e) => setDraft((current) => ({ ...current, accessToken: e.target.value }))}
+                      placeholder="partner token"
+                      autoComplete="off"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
+                  </label>
+
+                  <label className="block space-y-1 sm:col-span-2">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
+                    <textarea
+                      value={draft.description}
+                      onChange={(e) => setDraft((current) => ({ ...current, description: e.target.value }))}
+                      rows={4}
+                      placeholder="Optional notes for this club"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
+                  </label>
+
+                  <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300 sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={draft.active}
+                      onChange={(e) => setDraft((current) => ({ ...current, active: e.target.checked }))}
+                    />
+                    Active partner
+                  </label>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void handleSubmit()}
+                    disabled={saving}
+                    className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
+                  >
+                    {saving ? 'Saving…' : 'Update partner'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={startCreate}
+                    className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    Clear form
+                  </button>
+                  {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+                </div>
+              </div>
+
+              <div className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Partner-only products</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Each design card becomes a separate collaboration product on the partner dashboard.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={addCollaborationDesign}
+                      className="rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      Create new design
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearCollaborationDraft}
+                      className="text-xs font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    >
+                      Reset collab
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
 
-            {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+                <label className="inline-flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                  <span className={`inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${draft.collaborationEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                    <span className={`h-4 w-4 rounded-full bg-white transition-transform ${draft.collaborationEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={draft.collaborationEnabled}
+                    onChange={(e) => setDraft((current) => ({ ...current, collaborationEnabled: e.target.checked }))}
+                    className="sr-only"
+                  />
+                  Enabled
+                </label>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <button
-                type="button"
-                onClick={() => void handleSubmit()}
-                disabled={saving}
-                className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
-              >
-                {saving ? 'Saving…' : 'Update partner'}
-              </button>
-              <button
-                type="button"
-                onClick={startCreate}
-                className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
-              >
-                Reset
-              </button>
+                <div className="space-y-4">
+                  {draft.collaborationDesigns.map((design, index) => (
+                    <div key={design.id} className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Design {index + 1}</p>
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Add the images and fields for this collaboration shirt.
+                          </p>
+                        </div>
+                        {draft.collaborationDesigns.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeCollaborationDesign(design.id)}
+                            className="text-xs font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          >
+                            Remove design
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        {[
+                          { side: 'front' as const, label: 'Front image', image: design.frontImage, emptyCopy: 'Upload the front image.' },
+                          { side: 'back' as const, label: 'Back image', image: design.backImage, emptyCopy: 'Upload the back image.' },
+                        ].map(({ side, label, image, emptyCopy }) => (
+                          <label
+                            key={side}
+                            className="relative block overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950"
+                          >
+                            <input
+                              type="file"
+                              name="collaborationDesignFiles"
+                              accept="image/*"
+                              onChange={(e) => handleCollaborationFilesSelected(design.id, side, e.target.files)}
+                              className="sr-only"
+                            />
+                            <div className="relative">
+                              <div className="flex min-h-[15rem] w-full items-center justify-center bg-white p-4 dark:bg-gray-950">
+                                {image ? (
+                                  <img
+                                    src={image.previewUrl}
+                                    alt={label}
+                                    className="h-[15rem] w-full rounded-xl object-contain"
+                                  />
+                                ) : (
+                                  <div className="flex h-[15rem] w-full flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 px-6 text-center dark:border-gray-700">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{label}</p>
+                                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{emptyCopy}</p>
+                                  </div>
+                                )}
+                              </div>
+                              {image && (
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    removeCollaborationImage(design.id, side);
+                                  }}
+                                  className="absolute right-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-black"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Title</span>
+                          <input
+                            value={design.title}
+                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, title: e.target.value }))}
+                            placeholder="Oxford Park x UTC"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </label>
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Garment</span>
+                          <input
+                            value={design.garment}
+                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, garment: e.target.value }))}
+                            placeholder="Collaboration Shirt"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour name</span>
+                          <input
+                            value={design.colorName}
+                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, colorName: e.target.value }))}
+                            placeholder="Collaboration"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </label>
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour hex</span>
+                          <input
+                            value={design.colorHex}
+                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, colorHex: e.target.value }))}
+                            placeholder="#111827"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </label>
+                      </div>
+
+                      <label className="block space-y-1">
+                        <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
+                        <textarea
+                          value={design.description}
+                          onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, description: e.target.value }))}
+                          rows={3}
+                          placeholder="What makes the shirt special?"
+                          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                        />
+                      </label>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Sizes</span>
+                          <input
+                            value={design.sizes}
+                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, sizes: e.target.value }))}
+                            placeholder={DEFAULT_SIZE_OPTIONS.join(', ')}
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </label>
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Price</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={design.price}
+                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, price: e.target.value }))}
+                            placeholder="18.00"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-8 text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
-          Select a partner row to edit details and collaboration products.
-        </div>
-      )}
+          </section>
+        )}
+      </div>
 
       {createModalOpen && (
         <div
@@ -882,7 +908,7 @@ export default function AdminPartnersPage() {
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">New partner</p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Create the club record first. Collaboration products can be added after the partner exists.
+                  Create the club record first. Add collaboration products from the inline editor after it is saved.
                 </p>
               </div>
               <button
@@ -939,11 +965,22 @@ export default function AdminPartnersPage() {
               </label>
 
               <label className="block space-y-1 sm:col-span-2">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Access token</span>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Access token</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowAccessToken((current) => !current)}
+                    className="text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                  >
+                    {showAccessToken ? 'Hide' : 'Show'}
+                  </button>
+                </div>
                 <input
+                  type={showAccessToken ? 'text' : 'password'}
                   value={draft.accessToken}
                   onChange={(e) => setDraft((current) => ({ ...current, accessToken: e.target.value }))}
                   placeholder="partner token"
+                  autoComplete="off"
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                 />
               </label>
@@ -958,10 +995,8 @@ export default function AdminPartnersPage() {
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                 />
               </label>
-            </div>
 
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+              <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300 sm:col-span-2">
                 <input
                   type="checkbox"
                   checked={draft.active}
@@ -969,6 +1004,10 @@ export default function AdminPartnersPage() {
                 />
                 Active partner
               </label>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
               <div className="flex flex-wrap gap-3">
                 <button
@@ -988,12 +1027,9 @@ export default function AdminPartnersPage() {
                 </button>
               </div>
             </div>
-
-            {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }
