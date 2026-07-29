@@ -121,6 +121,22 @@ function serializeSizeList(values: string[]): string {
   return values.join(', ');
 }
 
+function hasCollaborationDraftContent(design: CollaborationDesignDraft): boolean {
+  return Boolean(
+    design.title.trim() ||
+    design.description.trim() ||
+    design.garment.trim() !== 'Collaboration Shirt' ||
+    design.orderProductId.trim() ||
+    design.colorName.trim() !== 'Collaboration' ||
+    design.colorHex.trim() !== '#111827' ||
+    design.frontImage ||
+    design.backImage ||
+    design.sizes.trim() !== DEFAULT_SIZE_OPTIONS.join(', ') ||
+    design.wholesalePrice.trim() ||
+    design.rrp.trim(),
+  );
+}
+
 function CollaborationSizesEditor({
   sizes,
   onChange,
@@ -243,6 +259,7 @@ export default function AdminPartnersPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [saved, setSaved] = useState<string | null>(null);
+  const [saveWarning, setSaveWarning] = useState<string | null>(null);
   const [showAccessToken, setShowAccessToken] = useState(false);
 
   const load = useCallback(async () => {
@@ -252,8 +269,10 @@ export default function AdminPartnersPage() {
     try {
       const data = await adminFetchPartners(token);
       setPartners(data);
+      return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load partners');
+      return null;
     } finally {
       setLoading(false);
     }
@@ -278,6 +297,7 @@ export default function AdminPartnersPage() {
   function resetDraft() {
     setDraft(emptyDraft());
     setError(null);
+    setSaveWarning(null);
     setShowAccessToken(false);
   }
 
@@ -289,6 +309,7 @@ export default function AdminPartnersPage() {
   function openCreateModal() {
     setEditingId(null);
     setSaved(null);
+    setSaveWarning(null);
     resetDraft();
     setCreateModalOpen(true);
   }
@@ -321,6 +342,7 @@ export default function AdminPartnersPage() {
         : [emptyCollaborationDesignDraft()],
     });
     setSaved(null);
+    setSaveWarning(null);
     setShowAccessToken(false);
     setCreateModalOpen(false);
   }
@@ -463,6 +485,11 @@ export default function AdminPartnersPage() {
     setSaving(true);
     setError(null);
     setSaved(null);
+    setSaveWarning(null);
+
+    const submittedCollaborationCount = draft.collaborationEnabled
+      ? draft.collaborationDesigns.filter(hasCollaborationDraftContent).length
+      : 0;
 
     try {
       const form = new FormData();
@@ -576,7 +603,14 @@ export default function AdminPartnersPage() {
         closeCreateModal();
       }
 
-      await load();
+      const refreshedPartners = await load();
+      const refreshedPartner = refreshedPartners?.find((partner) => partner.id === (editingId ?? refreshedPartners?.find((partner) => partner.slug === slug)?.id));
+      const refreshedCount = refreshedPartner?.collaborationDesigns.length ?? null;
+      if (refreshedCount !== null && refreshedCount < submittedCollaborationCount) {
+        setSaveWarning(
+          `Saved ${refreshedCount} of ${submittedCollaborationCount} collaboration designs. The missing design was not persisted to D1.`,
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save partner');
     } finally {
@@ -594,7 +628,8 @@ export default function AdminPartnersPage() {
       await adminDeletePartner(token, id);
       await load();
       if (editingId === id) startCreate();
-      setSaved('Partner deleted');
+    setSaved('Partner deleted');
+      setSaveWarning(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete partner');
     } finally {
@@ -612,6 +647,7 @@ export default function AdminPartnersPage() {
       collaborationEnabled: false,
       collaborationDesigns: [emptyCollaborationDesignDraft()],
     }));
+    setSaveWarning(null);
   }
 
   const selectedPartner = editingId
@@ -649,6 +685,12 @@ export default function AdminPartnersPage() {
       {saved && (
         <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300">
           {saved}
+        </div>
+      )}
+
+      {saveWarning && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200">
+          {saveWarning}
         </div>
       )}
 

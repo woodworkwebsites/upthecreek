@@ -274,19 +274,13 @@ function ProductMatrixCard({
         <div className="mt-2.5 space-y-1.5">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className={priceChipClass}>{formatPrice(partnerPrice)} partner</span>
-            {isCollaboration ? null : (
-              <>
-                <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
-                <span className={marginChipClass}>Margin</span>
-              </>
-            )}
+            <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
+            <span className={marginChipClass}>Margin</span>
           </div>
-          {!isCollaboration && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className={rowLabelClass}>Online Referral</span>
-              <span className={commissionChipClass}>{formatPrice(commission)} referral</span>
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={rowLabelClass}>Online Referral</span>
+            <span className={commissionChipClass}>{formatPrice(commission)} referral</span>
+          </div>
         </div>
         <p className="mt-2 text-xs text-gray-400">
           {colors.length} colours · {getProductSizes(product).length} sizes
