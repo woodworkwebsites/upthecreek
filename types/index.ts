@@ -253,6 +253,7 @@ export interface PartnerCollaborationDesignRow {
   description: string | null;
   image_urls: string;
   garment: string | null;
+  order_url: string | null;
   color_name: string;
   color_hex: string;
   sizes: string;
@@ -309,6 +310,7 @@ export interface PartnerCollaborationDesign {
   imageUrl: string | null;
   imageUrls: string[];
   garment: string | null;
+  orderUrl?: string | null;
   colorName: string;
   colorHex: string;
   sizes: string[];

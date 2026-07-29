@@ -151,7 +151,6 @@ export default function PartnersFunnelPage() {
             alt="One-off club x UTC collaboration t-shirt design"
             className="mx-auto mt-4 h-48 w-48 rounded-2xl bg-gray-50 object-contain p-2 sm:h-56 sm:w-56"
           />
-          <h3 className="mt-4 text-2xl font-black tracking-tight text-navy-900">One-off club x UTC collection</h3>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
             Partner with Up The Creek and we can produce limited edition designs that combine your club
             identity with UTC flair.

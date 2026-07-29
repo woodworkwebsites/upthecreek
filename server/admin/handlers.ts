@@ -316,6 +316,7 @@ type CollaborationDesignMeta = {
   title: string;
   description: string;
   garment: string;
+  orderUrl: string;
   colorName: string;
   colorHex: string;
   sizes: string[];
@@ -445,6 +446,9 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
       const garment = typeof (entry as { garment?: unknown }).garment === 'string'
         ? (entry as { garment?: string }).garment!.trim()
         : '';
+      const orderUrl = typeof (entry as { orderUrl?: unknown }).orderUrl === 'string'
+        ? (entry as { orderUrl?: string }).orderUrl!.trim()
+        : '';
       const colorName = typeof (entry as { colorName?: unknown }).colorName === 'string'
         ? (entry as { colorName?: string }).colorName!.trim()
         : 'Collaboration';
@@ -491,7 +495,7 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
         return [{ type: 'url' as const, url, isDefault }];
       });
 
-      if (!title && !description && !garment && images.length === 0 && sizes.length === 0 && !Number.isFinite(wholesalePrice) && !Number.isFinite(rrp)) {
+      if (!title && !description && !garment && !orderUrl && images.length === 0 && sizes.length === 0 && !Number.isFinite(wholesalePrice) && !Number.isFinite(rrp)) {
         return [];
       }
 
@@ -499,6 +503,7 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
         title,
         description,
         garment,
+        orderUrl,
         colorName,
         colorHex,
         sizes,
@@ -533,6 +538,7 @@ async function buildCollaborationDesignFromForm(
   const title = readFormText(form.get('collaborationTitle'));
   const description = readFormText(form.get('collaborationDescription'));
   const garment = readFormText(form.get('collaborationGarment'));
+  const orderUrl = readFormText(form.get('collaborationOrderUrl'));
   const colorName = readFormText(form.get('collaborationColorName'));
   const colorHex = readFormText(form.get('collaborationColorHex'));
   const sizes = parseCollaborationSizes(
@@ -669,6 +675,7 @@ async function buildCollaborationDesignFromForm(
     garment.trim().length > 0 ||
     colorName.trim().length > 0 ||
     colorHex.trim().length > 0 ||
+    orderUrl.trim().length > 0 ||
     sizes.join(', ') !== DEFAULT_SIZE_OPTIONS.join(', ') ||
     wholesaleRaw.length > 0 ||
     rrpRaw.length > 0;
@@ -681,6 +688,7 @@ async function buildCollaborationDesignFromForm(
     imageUrl: imageUrls[0] ?? null,
     imageUrls,
     garment: garment || 'Collaboration Shirt',
+    orderUrl: orderUrl || null,
     colorName: colorName || 'Collaboration',
     colorHex: colorHex || '#111827',
     sizes,
@@ -743,6 +751,7 @@ async function buildCollaborationDesignsFromForm(
         design.title.length > 0 ||
         design.description.length > 0 ||
         design.garment.length > 0 ||
+        design.orderUrl.length > 0 ||
         design.colorName.length > 0 ||
         design.colorHex.length > 0 ||
         design.sizes.length > 0 ||
@@ -759,6 +768,7 @@ async function buildCollaborationDesignsFromForm(
         imageUrl: resolvedImages[0]?.url ?? null,
         imageUrls: resolvedImages.map((entry) => entry.url),
         garment: design.garment || 'Collaboration Shirt',
+        orderUrl: design.orderUrl || null,
         colorName: design.colorName || 'Collaboration',
         colorHex: design.colorHex || '#111827',
         sizes: design.sizes.length > 0 ? design.sizes : DEFAULT_SIZE_OPTIONS.slice(),

@@ -14,7 +14,9 @@ interface ImageRow {
 }
 
 function getDefaultRangeId(ranges: CatalogRange[]): string {
-  return ranges.find((range) => range.id !== 'evergreen')?.id ?? '';
+  return ranges.find((range) => range.partnerEnabled && range.id !== 'evergreen')?.id
+    ?? ranges.find((range) => range.id !== 'evergreen')?.id
+    ?? '';
 }
 
 function uniquePrintSurfaces(catalog: CatalogOptions): string[] {
@@ -59,7 +61,7 @@ export default function AdminProductCreatePage() {
         setCatalog(nextCatalog);
         setRanges(rangeList);
         const evergreen = rangeList.find((range) => range.name.toLowerCase() === 'evergreen');
-        const defaultRange = rangeList.find((range) => range.storefrontEnabled && range.partnerEnabled && range.id !== 'evergreen')
+        const defaultRange = rangeList.find((range) => range.partnerEnabled && range.id !== 'evergreen')
           ?? rangeList.find((range) => range.id !== 'evergreen')
           ?? evergreen
           ?? null;

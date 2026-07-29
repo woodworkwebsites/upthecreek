@@ -29,6 +29,7 @@ async function apiFetch<T>(
   const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
   const res = await fetch(path, {
     ...options,
+    credentials: 'include',
     headers: {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...options?.headers,

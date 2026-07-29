@@ -98,6 +98,7 @@ function normalizeCollaborationDesign(design: Partial<PartnerCollaborationDesign
     imageUrl: normalizedImageUrls[0] ?? (typeof design.imageUrl === 'string' ? design.imageUrl.trim() || null : null),
     imageUrls: normalizedImageUrls,
     garment: typeof design.garment === 'string' ? design.garment.trim() || null : null,
+    orderUrl: typeof design.orderUrl === 'string' ? design.orderUrl.trim() || null : null,
     colorName: typeof design.colorName === 'string' ? design.colorName.trim() || 'Collaboration' : 'Collaboration',
     colorHex: typeof design.colorHex === 'string' ? design.colorHex.trim() || '#111827' : '#111827',
     sizes: normalizeCollaborationSizes(design.sizes),
@@ -147,6 +148,7 @@ function serializeCollaborationDesigns(designs: PartnerCollaborationDesign[] | n
           : [],
     ),
     garment: design.garment?.trim() || null,
+    orderUrl: design.orderUrl?.trim() || null,
     colorName: design.colorName.trim() || 'Collaboration',
     colorHex: design.colorHex.trim() || '#111827',
     sizes: normalizeCollaborationSizes(design.sizes),
@@ -175,6 +177,7 @@ function parseCollaborationDesignRow(row: PartnerCollaborationDesignRow): Partne
     imageUrl: imageUrls[0] ?? null,
     imageUrls,
     garment: row.garment,
+    orderUrl: row.order_url,
     colorName: row.color_name,
     colorHex: row.color_hex,
     sizes: normalizeCollaborationSizes(parseJsonStringArray(row.sizes)),
@@ -194,6 +197,7 @@ function serializeCollaborationDesignRow(
   description: string | null;
   image_urls: string;
   garment: string | null;
+  order_url: string | null;
   color_name: string;
   color_hex: string;
   sizes: string;
@@ -212,6 +216,7 @@ function serializeCollaborationDesignRow(
     description: normalized.description?.trim() || null,
     image_urls: JSON.stringify(normalized.imageUrls),
     garment: normalized.garment?.trim() || null,
+    order_url: normalized.orderUrl?.trim() || null,
     color_name: normalized.colorName.trim() || 'Collaboration',
     color_hex: normalized.colorHex.trim() || '#111827',
     sizes: JSON.stringify(normalizeCollaborationSizes(normalized.sizes)),
@@ -252,8 +257,8 @@ async function replacePartnerCollaborationDesignRows(
       const row = serializeCollaborationDesignRow(partnerId, design, index);
       return db.prepare(`
         INSERT INTO partner_collaboration_designs
-          (id, partner_id, title, description, image_urls, garment, color_name, color_hex, sizes, partner_price, rrp_price, sort_order, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+          (id, partner_id, title, description, image_urls, garment, order_url, color_name, color_hex, sizes, partner_price, rrp_price, sort_order, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
       `).bind(
         row.id,
         row.partner_id,
@@ -261,6 +266,7 @@ async function replacePartnerCollaborationDesignRows(
         row.description,
         row.image_urls,
         row.garment,
+        row.order_url,
         row.color_name,
         row.color_hex,
         row.sizes,
@@ -443,6 +449,7 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
       description   TEXT,
       image_urls    TEXT NOT NULL DEFAULT '[]',
       garment       TEXT,
+      order_url     TEXT,
       color_name    TEXT NOT NULL DEFAULT 'Collaboration',
       color_hex     TEXT NOT NULL DEFAULT '#111827',
       sizes         TEXT NOT NULL DEFAULT '[]',
@@ -510,6 +517,9 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
   const designColumnNames = new Set((designColumns.results ?? []).map((column) => column.name));
   if (!designColumnNames.has('rrp_price')) {
     await db.prepare('ALTER TABLE partner_collaboration_designs ADD COLUMN rrp_price INTEGER NOT NULL DEFAULT 0').run();
+  }
+  if (!designColumnNames.has('order_url')) {
+    await db.prepare('ALTER TABLE partner_collaboration_designs ADD COLUMN order_url TEXT').run();
   }
 }
 
@@ -645,10 +655,22 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
 
   await replacePartnerCollaborationDesignRows(db, id, collaborationDesigns);
 
-  const created = await getPartnerById(db, id);
-  if (!created) {
-    throw new Error('Failed to create partner');
-  }
+  const timestamp = new Date().toISOString();
+  const created: PartnerAdmin = {
+    id,
+    slug: normalizeSlug(data.slug),
+    name: data.name.trim(),
+    logoUrl: data.logoUrl?.trim() || null,
+    discountCode: data.discountCode?.trim() || null,
+    commissionRate: Math.max(0, Math.round(data.commissionRate)),
+    description: data.description?.trim() || null,
+    active: data.active === false ? false : true,
+    collaborationEnabled,
+    collaborationDesigns,
+    collaborationDesign: collaborationDesigns[0] ?? null,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
 
   await syncPartnerDiscountCode(
     db,
@@ -671,7 +693,7 @@ export async function updatePartner(
 
   const accessToken = data.accessToken?.trim() || existing.accessToken;
   const collaborationDesigns = data.collaborationDesigns !== undefined
-    ? data.collaborationDesigns
+    ? (data.collaborationDesigns ?? existing.collaborationDesigns)
     : data.collaborationDesign !== undefined
       ? (data.collaborationDesign ? [data.collaborationDesign] : [])
       : existing.collaborationDesigns;
@@ -710,8 +732,22 @@ export async function updatePartner(
 
   if (!result.success) return null;
   await replacePartnerCollaborationDesignRows(db, id, collaborationDesigns);
-  const updated = await getPartnerById(db, id);
-  if (!updated) return null;
+  const updatedAt = new Date().toISOString();
+  const updated: PartnerAdmin = {
+    id,
+    slug: normalizeSlug(data.slug),
+    name: data.name.trim(),
+    logoUrl: data.logoUrl !== undefined ? data.logoUrl?.trim() || null : existing.logoUrl,
+    discountCode: data.discountCode?.trim() || null,
+    commissionRate: Math.max(0, Math.round(data.commissionRate)),
+    description: data.description?.trim() || null,
+    active: data.active === false ? false : true,
+    collaborationEnabled,
+    collaborationDesigns,
+    collaborationDesign: collaborationDesigns[0] ?? null,
+    createdAt: existing.createdAt,
+    updatedAt,
+  };
 
   await syncPartnerDiscountCode(
     db,

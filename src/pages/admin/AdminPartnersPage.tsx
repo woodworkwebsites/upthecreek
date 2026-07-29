@@ -12,6 +12,8 @@ import { Badge } from '../../components/ui/Badge.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { formatDate } from '../../lib/utils.js';
 
+const SELLSHIRTS_PRODUCT_URL_STUB = 'https://sellshirts.com/product/';
+
 type Draft = {
   slug: string;
   name: string;
@@ -36,6 +38,7 @@ interface CollaborationDesignDraft {
   title: string;
   description: string;
   garment: string;
+  orderProductId: string;
   colorName: string;
   colorHex: string;
   frontImage: CollaborationImageRow | null;
@@ -51,6 +54,7 @@ function emptyCollaborationDesignDraft(): CollaborationDesignDraft {
     title: '',
     description: '',
     garment: 'Collaboration Shirt',
+    orderProductId: '',
     colorName: 'Collaboration',
     colorHex: '#111827',
     frontImage: null,
@@ -79,6 +83,18 @@ function emptyDraft(): Draft {
 function formatPoundsInput(value: number | undefined | null): string {
   if (!Number.isFinite(value ?? NaN)) return '';
   return ((value ?? 0) / 100).toFixed(2);
+}
+
+function extractSellShirtsProductId(url: string | null | undefined): string {
+  const value = url?.trim() || '';
+  if (!value) return '';
+  return value.startsWith(SELLSHIRTS_PRODUCT_URL_STUB)
+    ? value.slice(SELLSHIRTS_PRODUCT_URL_STUB.length)
+    : value;
+}
+
+function buildSellShirtsProductUrl(productId: string): string {
+  return `${SELLSHIRTS_PRODUCT_URL_STUB}${productId.trim()}`;
 }
 
 function imageFromUrl(url: string | null | undefined, isDefault: boolean): CollaborationImageRow | null {
@@ -202,6 +218,7 @@ function designDraftFromApi(design: PartnerCollaborationDesign | null | undefine
     title: design?.title ?? '',
     description: design?.description ?? '',
     garment: design?.garment ?? 'Collaboration Shirt',
+    orderProductId: extractSellShirtsProductId(design?.orderUrl),
     colorName: design?.colorName ?? 'Collaboration',
     colorHex: design?.colorHex ?? '#111827',
     frontImage: imageFromUrl(design?.imageUrls?.[0] ?? design?.imageUrl, true),
@@ -470,6 +487,7 @@ export default function AdminPartnersPage() {
         title: string;
         description: string;
         garment: string;
+        orderUrl: string;
         colorName: string;
         colorHex: string;
         sizes: string[];
@@ -505,6 +523,7 @@ export default function AdminPartnersPage() {
           title: design.title.trim(),
           description: design.description.trim(),
           garment: design.garment.trim(),
+          orderUrl: design.orderProductId.trim() ? buildSellShirtsProductUrl(design.orderProductId.trim()) : '',
           colorName: design.colorName.trim(),
           colorHex: design.colorHex.trim(),
           sizes: design.sizes.split(',').map((size) => size.trim()).filter(Boolean),
@@ -531,6 +550,7 @@ export default function AdminPartnersPage() {
       form.append('collaborationTitle', legacyDesign.title.trim());
       form.append('collaborationDescription', legacyDesign.description.trim());
       form.append('collaborationGarment', legacyDesign.garment.trim());
+      form.append('collaborationOrderUrl', legacyDesign.orderProductId.trim() ? buildSellShirtsProductUrl(legacyDesign.orderProductId.trim()) : '');
       form.append('collaborationColorName', legacyDesign.colorName.trim());
       form.append('collaborationColorHex', legacyDesign.colorHex.trim());
       form.append('collaborationSizes', legacyDesign.sizes);
@@ -1007,7 +1027,7 @@ export default function AdminPartnersPage() {
                         ))}
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         <label className="block space-y-1">
                           <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Title</span>
                           <input
@@ -1023,6 +1043,16 @@ export default function AdminPartnersPage() {
                             value={design.garment}
                             onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, garment: e.target.value }))}
                             placeholder="Collaboration Shirt"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </label>
+                        <label className="block space-y-1 sm:col-span-2 xl:col-span-1">
+                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">SellShirts product ID</span>
+                          <input
+                            inputMode="numeric"
+                            value={design.orderProductId}
+                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, orderProductId: e.target.value }))}
+                            placeholder="16653"
                             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                           />
                         </label>

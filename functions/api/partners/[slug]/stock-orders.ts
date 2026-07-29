@@ -1,5 +1,6 @@
 import type { Env } from '../../../../types/env.js';
 import { handleSubmitPartnerStockOrder } from '../../../../server/partner-stock-orders/handlers.js';
+import { readPartnerSessionToken } from '../../../../server/partners/handlers.js';
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const slug = decodeURIComponent(context.params.slug ?? '').trim();
@@ -12,7 +13,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     });
   }
 
-  if (!context.request.headers.has('Authorization')) {
+  if (!readPartnerSessionToken(context.request)) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: {

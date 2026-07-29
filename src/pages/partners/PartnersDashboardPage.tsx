@@ -13,6 +13,16 @@ import { usePartnerSession } from '../../hooks/usePartner.js';
 import type { PartnerDashboard, Product } from '../../../types/index.js';
 import { DEFAULT_SIZE_OPTIONS } from '../../../types/catalog.js';
 
+const SELLSHIRTS_PRODUCT_URL_STUB = 'https://sellshirts.com/product/';
+
+function extractSellShirtsProductId(url: string | null | undefined): string {
+  const value = url?.trim() || '';
+  if (!value) return '';
+  return value.startsWith(SELLSHIRTS_PRODUCT_URL_STUB)
+    ? value.slice(SELLSHIRTS_PRODUCT_URL_STUB.length)
+    : value;
+}
+
 function buildCollaborationProducts(partner: PartnerDashboard['partner']): Product[] {
   if (!partner.collaborationEnabled) return [];
 
@@ -34,10 +44,12 @@ function buildCollaborationProducts(partner: PartnerDashboard['partner']): Produ
       : design.imageUrl
         ? [design.imageUrl]
         : [];
+    const orderUrl = design.orderUrl?.trim() || null;
+    const productId = extractSellShirtsProductId(orderUrl) || `partner-collab:${partner.slug}:${index}`;
 
     return {
-      id: `partner-collab:${partner.slug}:${index}`,
-      printifyId: `partner-collab:${partner.slug}:${index}`,
+      id: `partner-collab:${partner.slug}:${productId}`,
+      printifyId: productId,
       title: design.title.trim() || `${partner.name} collaboration`,
       description: design.description ?? '',
       category: 'partner-collaboration',
@@ -84,6 +96,7 @@ function buildCollaborationProducts(partner: PartnerDashboard['partner']): Produ
         {
           name: colorName,
           hex: design.colorHex?.trim() || '#111827',
+          orderUrl,
         },
       ],
       hiddenColors: [],
@@ -232,7 +245,7 @@ export default function PartnersDashboardPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">Club Referral Sales this period</p>
-                <p className="mt-2 text-3xl font-black text-navy-900">{formatPrice(summary.grossSales)}</p>
+                <p className="mt-2 text-3xl font-black text-navy-900">{summary.totalOrders}</p>
               </div>
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">Commission due</p>
