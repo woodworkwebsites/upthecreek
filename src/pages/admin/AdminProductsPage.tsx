@@ -899,16 +899,16 @@ function ProductRow({
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Sizes</p>
                     <span className="text-xs text-gray-500 dark:text-gray-400">{product.sizes.length} sizes</span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {product.sizes.map((size) => (
-                      <span key={size} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+                      <span
+                        key={size}
+                        className="inline-flex h-11 min-w-[2.75rem] items-center justify-center rounded-lg border-2 border-navy-800 bg-navy-800 px-3.5 text-sm font-bold text-white shadow-md shadow-navy-900/20"
+                      >
                         {size}
                       </span>
                     ))}
                   </div>
-                  <p className="text-xs leading-6 text-gray-500 dark:text-gray-400">
-                    These sizes come from the synced product data and are shown here for reference only.
-                  </p>
                 </div>
 
                 <div className="w-full max-w-[28rem] rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900/40 dark:bg-amber-900/10">
@@ -929,13 +929,15 @@ function ProductRow({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-4 border-t border-gray-100 pt-3 dark:border-gray-800">
-              {saved && <span className="self-center text-[11px] text-green-600 dark:text-green-400">Saved</span>}
-              {error && <span className="self-center text-[11px] text-red-600 dark:text-red-400">{error}</span>}
-              <button onClick={() => void handleSaveRow()} className="rounded-full bg-navy-800 px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-navy-700 transition-colors">
+            <div className="flex flex-col gap-3 border-t border-gray-100 pt-3 dark:border-gray-800 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+              <div className="flex min-w-0 flex-col gap-1 sm:mr-auto">
+                {saved && <span className="text-[11px] text-green-600 dark:text-green-400">Saved</span>}
+                {error && <span className="text-[11px] text-red-600 dark:text-red-400">{error}</span>}
+              </div>
+              <button onClick={() => void handleSaveRow()} className="w-full rounded-full bg-navy-800 px-3.5 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-navy-700 sm:w-auto">
                 {saving ? 'Saving…' : 'Save card'}
               </button>
-              <button type="button" onClick={() => void handleDeleteProductRow()} disabled={saving || deleting} className="rounded-full border border-red-200 bg-red-50 px-3.5 py-1.5 text-[11px] font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50">
+              <button type="button" onClick={() => void handleDeleteProductRow()} disabled={saving || deleting} className="w-full rounded-full border border-red-200 bg-red-50 px-3.5 py-2 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50 sm:w-auto">
                 {deleting ? 'Deleting…' : 'Delete'}
               </button>
             </div>
@@ -1026,11 +1028,11 @@ function ProductRow({
                 </button>
                 {imageError && <div className="text-xs text-red-600 dark:text-red-400">{imageError}</div>}
 
-                <div className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 space-y-3">
+                <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-3 dark:border-gray-800 dark:bg-gray-950">
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Size guide</p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <input type="file" accept="image/*" onChange={(e) => setSizeGuideUploadFile(e.target.files?.[0] ?? null)} className="block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700 dark:text-gray-400" />
-                    <button type="button" onClick={handleUploadSizeGuide} disabled={sizeGuideUploading} className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors">
+                    <button type="button" onClick={handleUploadSizeGuide} disabled={sizeGuideUploading} className="w-full rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50 sm:w-auto">
                       {sizeGuideUploading ? 'Uploading…' : 'Upload'}
                     </button>
                   </div>
@@ -1353,27 +1355,29 @@ export default function AdminProductsPage() {
   }, [draftOpen]);
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
           Products
         </h1>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-row sm:items-center">
           <Button
             variant="secondary"
             size="sm"
             onClick={() => void handleSaveAll()}
             disabled={savingAll || products.length === 0}
+            className="w-full sm:w-auto"
           >
             {savingAll ? 'Saving all…' : 'Save all changes'}
           </Button>
-          <Button variant="primary" size="sm" onClick={() => setDraftOpen(true)}>
+          <Button variant="primary" size="sm" onClick={() => setDraftOpen(true)} className="w-full sm:w-auto">
             + Add product
           </Button>
           <Button
             variant="secondary"
             size="sm"
             onClick={load}
+            className="w-full sm:w-auto"
           >
             Reload products
           </Button>
@@ -1392,7 +1396,7 @@ export default function AdminProductsPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(38rem,1fr))]">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-1 xl:[grid-template-columns:repeat(auto-fit,minmax(38rem,1fr))]">
           {products.map((product) => (
             <ProductRow
               key={product.id}

@@ -18,7 +18,8 @@ export async function ensurePartnerStockOrderSchema(db: D1Database): Promise<voi
         CREATE TABLE IF NOT EXISTS partner_stock_orders (
           id           TEXT PRIMARY KEY,
           partner_id   TEXT NOT NULL REFERENCES partners(id),
-          status       TEXT NOT NULL DEFAULT 'submitted',
+          status       TEXT NOT NULL DEFAULT 'club_submitted',
+          invoice_paid INTEGER NOT NULL DEFAULT 0,
           total_pieces INTEGER NOT NULL DEFAULT 0,
           total_value  INTEGER NOT NULL DEFAULT 0,
           notes        TEXT,
@@ -44,6 +45,12 @@ export async function ensurePartnerStockOrderSchema(db: D1Database): Promise<voi
 
       await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_stock_orders_partner_id ON partner_stock_orders(partner_id)').run();
       await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_stock_order_items_order_id ON partner_stock_order_items(stock_order_id)').run();
+
+      const columns = await db.prepare('PRAGMA table_info(partner_stock_orders)').all<{ name: string }>();
+      const columnNames = new Set((columns.results ?? []).map((column) => column.name));
+      if (!columnNames.has('invoice_paid')) {
+        await db.prepare('ALTER TABLE partner_stock_orders ADD COLUMN invoice_paid INTEGER NOT NULL DEFAULT 0').run();
+      }
     })();
   }
 
@@ -55,6 +62,7 @@ function parseStockOrder(row: PartnerStockOrderRow): PartnerStockOrder {
     id: row.id,
     partnerId: row.partner_id,
     status: row.status,
+    invoicePaid: row.invoice_paid === 1,
     totalPieces: row.total_pieces,
     totalValue: row.total_value,
     notes: row.notes,
@@ -95,8 +103,8 @@ export async function createPartnerStockOrder(
     db
       .prepare(`
         INSERT INTO partner_stock_orders
-          (id, partner_id, status, total_pieces, total_value, notes, created_at, updated_at)
-        VALUES (?, ?, 'submitted', ?, ?, ?, datetime('now'), datetime('now'))
+          (id, partner_id, status, invoice_paid, total_pieces, total_value, notes, created_at, updated_at)
+        VALUES (?, ?, 'club_submitted', 0, ?, ?, ?, datetime('now'), datetime('now'))
       `)
       .bind(id, partnerId, totalPieces, totalValue, notes),
     ...items.map((item) =>
@@ -195,17 +203,37 @@ export async function listPartnerStockOrders(
 export async function updatePartnerStockOrderStatus(
   db: D1Database,
   id: string,
-  status: PartnerStockOrderStatus,
+  patch: {
+    status?: PartnerStockOrderStatus;
+    invoicePaid?: boolean;
+  },
 ): Promise<boolean> {
   await ensurePartnerStockOrderSchema(db);
+
+  const sets: string[] = [];
+  const values: Array<string | number> = [];
+
+  if (patch.status !== undefined) {
+    sets.push('status = ?');
+    values.push(patch.status);
+  }
+
+  if (patch.invoicePaid !== undefined) {
+    sets.push('invoice_paid = ?');
+    values.push(patch.invoicePaid ? 1 : 0);
+  }
+
+  if (sets.length === 0) {
+    return false;
+  }
 
   const result = await db
     .prepare(`
       UPDATE partner_stock_orders
-      SET status = ?, updated_at = datetime('now')
+      SET ${sets.join(', ')}, updated_at = datetime('now')
       WHERE id = ?
     `)
-    .bind(status, id)
+    .bind(...values, id)
     .run();
 
   return result.success && (result.meta?.changes ?? 0) > 0;

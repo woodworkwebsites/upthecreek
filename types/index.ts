@@ -401,7 +401,15 @@ export interface PartnerLoginResponse {
   partner: Partner;
 }
 
-export type PartnerStockOrderStatus = 'submitted' | 'fulfilled' | 'cancelled' | 'archived';
+export type PartnerStockOrderStatus =
+  | 'club_submitted'
+  | 'invoiced'
+  | 'sellshirts_order'
+  | 'sellshirts_dispatched'
+  | 'at_utc'
+  | 'with_club'
+  | 'cancelled'
+  | 'archived';
 
 export interface PartnerStockOrderItem {
   id: string;
@@ -420,6 +428,7 @@ export interface PartnerStockOrder {
   id: string;
   partnerId: string;
   status: PartnerStockOrderStatus;
+  invoicePaid: boolean;
   totalPieces: number;
   totalValue: number;
   notes: string | null;
@@ -452,6 +461,7 @@ export interface PartnerStockOrderRow {
   id: string;
   partner_id: string;
   status: PartnerStockOrderStatus;
+  invoice_paid: number;
   total_pieces: number;
   total_value: number;
   notes: string | null;

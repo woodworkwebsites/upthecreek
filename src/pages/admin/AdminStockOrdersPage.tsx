@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { PartnerStockOrderAdminSummary, PartnerStockOrderStatus } from '../../../types/index.js';
-import { adminDeletePartnerStockOrder, adminFetchPartnerStockOrders, adminUpdatePartnerStockOrderStatus } from '../../lib/api.js';
+import {
+  adminDeletePartnerStockOrder,
+  adminDownloadPartnerStockOrderInvoice,
+  adminFetchPartnerStockOrders,
+  adminUpdatePartnerStockOrderStatus,
+} from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Badge } from '../../components/ui/Badge.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -8,13 +13,37 @@ import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatDate, formatPrice } from '../../lib/utils.js';
 
 const statusVariant: Record<PartnerStockOrderStatus, 'default' | 'success' | 'warning' | 'error' | 'info'> = {
-  submitted: 'warning',
-  fulfilled: 'success',
+  club_submitted: 'warning',
+  invoiced: 'info',
+  sellshirts_order: 'default',
+  sellshirts_dispatched: 'info',
+  at_utc: 'success',
+  with_club: 'success',
   cancelled: 'error',
   archived: 'default',
 };
 
-const stockOrderStatuses: PartnerStockOrderStatus[] = ['submitted', 'fulfilled', 'cancelled', 'archived'];
+const stockOrderStatuses: PartnerStockOrderStatus[] = [
+  'club_submitted',
+  'invoiced',
+  'sellshirts_order',
+  'sellshirts_dispatched',
+  'at_utc',
+  'with_club',
+  'cancelled',
+  'archived',
+];
+
+const statusLabels: Record<PartnerStockOrderStatus, string> = {
+  club_submitted: 'Club submitted',
+  invoiced: 'Invoiced',
+  sellshirts_order: 'Sellshirts order',
+  sellshirts_dispatched: 'Sellshirts Dispatched',
+  at_utc: 'At UTC',
+  with_club: 'With Club',
+  cancelled: 'Cancelled',
+  archived: 'Archived',
+};
 
 function StockOrderRow({
   order,
@@ -29,21 +58,25 @@ function StockOrderRow({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [status, setStatus] = useState<PartnerStockOrderStatus>(order.status);
+  const [invoicePaid, setInvoicePaid] = useState(order.invoicePaid);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invoiceDownloading, setInvoiceDownloading] = useState(false);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     setStatus(order.status);
-  }, [order.status]);
+    setInvoicePaid(order.invoicePaid);
+  }, [order.invoicePaid, order.status]);
 
   async function handleUpdateStatus() {
     setSaving(true);
     setError(null);
     try {
-      await adminUpdatePartnerStockOrderStatus(token, order.id, status);
-      onUpdated({ ...order, status });
+      await adminUpdatePartnerStockOrderStatus(token, order.id, status, invoicePaid);
+      onUpdated({ ...order, status, invoicePaid });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update status');
     } finally {
@@ -56,11 +89,31 @@ function StockOrderRow({
     setError(null);
     try {
       await adminUpdatePartnerStockOrderStatus(token, order.id, 'archived');
-      onUpdated({ ...order, status: 'archived' });
+      onUpdated({ ...order, status: 'archived', invoicePaid });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to archive stock order');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDownloadInvoice() {
+    setInvoiceDownloading(true);
+    setInvoiceError(null);
+    try {
+      const { blob, filename } = await adminDownloadPartnerStockOrderInvoice(token, order.id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setInvoiceError(err instanceof Error ? err.message : 'Failed to download invoice');
+    } finally {
+      setInvoiceDownloading(false);
     }
   }
 
@@ -98,7 +151,7 @@ function StockOrderRow({
         <td className="px-3 py-2 align-middle">
           <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap overflow-x-auto" onClick={(e) => e.stopPropagation()}>
             <Badge variant={statusVariant[order.status]} className="shrink-0">
-              {order.status}
+              {statusLabels[order.status]}
             </Badge>
             <select
               value={status}
@@ -106,16 +159,33 @@ function StockOrderRow({
               className="h-8 rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
             >
               {stockOrderStatuses.map((value) => (
-                <option key={value} value={value}>{value}</option>
+                <option key={value} value={value}>{statusLabels[value]}</option>
               ))}
             </select>
+            <label className="inline-flex h-8 items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
+              <input
+                type="checkbox"
+                checked={invoicePaid}
+                onChange={(e) => setInvoicePaid(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-gray-300 text-navy-800 focus:ring-navy-500"
+              />
+              Invoice Paid
+            </label>
             <button
               type="button"
               onClick={handleUpdateStatus}
-              disabled={saving || status === order.status}
+              disabled={saving || (status === order.status && invoicePaid === order.invoicePaid)}
               className="h-8 rounded-lg bg-navy-800 px-3 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
             >
-              {saving ? 'Saving…' : 'Move status'}
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadInvoice}
+              disabled={invoiceDownloading}
+              className="h-8 rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-900"
+            >
+              {invoiceDownloading ? 'Generating…' : 'Invoice'}
             </button>
             {order.status !== 'archived' && (
               <button
@@ -128,6 +198,7 @@ function StockOrderRow({
               </button>
             )}
             {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+            {invoiceError && <span className="text-xs text-red-600 dark:text-red-400">{invoiceError}</span>}
             <button
               type="button"
               onClick={handleDeleteOrder}

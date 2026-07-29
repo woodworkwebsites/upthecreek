@@ -337,6 +337,7 @@ export function PartnerOrderWorkspace({
   const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const activeDraft = draftLines.find((line) => line.color === draftColor) ?? null;
+  const allProducts = useMemo(() => [...collaborationProducts, ...products], [collaborationProducts, products]);
 
   useEffect(() => {
     setBasket(readBasket());
@@ -418,7 +419,7 @@ export function PartnerOrderWorkspace({
     setDraftLines((current) => {
       if (current.some((line) => line.color === color)) return current;
       const sourceProductId = current[0]?.productId;
-      const product = products.find((entry) => entry.id === sourceProductId);
+      const product = allProducts.find((entry) => entry.id === sourceProductId);
       if (!product) return current;
       return [...current, buildLine(product, color)];
     });
@@ -816,7 +817,7 @@ export function PartnerOrderWorkspace({
       )}
 
       {activeDraft && (() => {
-        const draftProduct = products.find((entry) => entry.id === activeDraft.productId);
+        const draftProduct = allProducts.find((entry) => entry.id === activeDraft.productId);
         const draftColors = draftProduct ? visibleColors(draftProduct) : [];
         const draftImages = draftProduct ? getImagesForColor(draftProduct, activeDraft.color) : [];
         const carouselImages = draftImages.length > 0 ? draftImages : [activeDraft.imageSrc];
@@ -907,9 +908,6 @@ export function PartnerOrderWorkspace({
                 <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Select sizes</p>
-                    <p className="mt-2 text-sm leading-7 text-gray-500">
-                      Toggle the sizes you need for this colour. Switch colours above to add more, then add everything to the basket at once.
-                    </p>
                     <div className="mt-3 space-y-2">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={rowLabelClass}>RRP</span>

@@ -70,7 +70,7 @@ export default function PartnersFunnelPage() {
             <img
               src="/UTC_WordMark_White_Trans_BG.png"
               alt="Up the Creek Padel"
-              className="h-12 w-auto sm:h-14 lg:h-16"
+              className="h-[72px] w-auto sm:h-[84px] lg:h-[96px]"
             />
           </div>
 

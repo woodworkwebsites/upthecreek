@@ -48,7 +48,7 @@ function buildCollaborationProducts(partner: PartnerDashboard['partner']): Produ
     const productId = extractSellShirtsProductId(orderUrl) || `partner-collab:${partner.slug}:${index}`;
 
     return {
-      id: `partner-collab:${partner.slug}:${productId}`,
+      id: `partner-collab:${partner.slug}:${index}`,
       printifyId: productId,
       title: design.title.trim() || `${partner.name} collaboration`,
       description: design.description ?? '',
@@ -241,18 +241,19 @@ export default function PartnersDashboardPage() {
             </div>
           </div>
 
-          <div className="mt-8 rounded-[1.5rem] border border-gray-200 bg-white p-5 shadow-[0_12px_40px_rgba(5,13,31,0.06)]">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">Club Referral Sales this period</p>
-                <p className="mt-2 text-3xl font-black text-navy-900">{summary.totalOrders}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">Commission due</p>
-                <p className="mt-2 text-3xl font-black text-brand-500">{formatPrice(summary.commissionDue)}</p>
+            <div className="mt-8 rounded-[1.5rem] border border-gray-200 bg-white p-5 shadow-[0_12px_40px_rgba(5,13,31,0.06)]">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">Club referral sales this period</p>
+                  <p className="mt-2 text-3xl font-black text-navy-900">{summary.totalOrders.toLocaleString('en-GB')}</p>
+                  <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Sales count</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">Commission due</p>
+                  <p className="mt-2 text-3xl font-black text-brand-500">{formatPrice(summary.commissionDue)}</p>
+                </div>
               </div>
             </div>
-          </div>
         </section>
 
         <section className="mt-8 grid gap-8">

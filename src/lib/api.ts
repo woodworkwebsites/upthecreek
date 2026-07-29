@@ -202,6 +202,33 @@ export async function adminDownloadOrderReceipt(token: string, id: string): Prom
   return { blob, filename };
 }
 
+export async function adminDownloadPartnerStockOrderInvoice(token: string, id: string): Promise<{ blob: Blob; filename: string }> {
+  const res = await fetch(`/api/admin/stock-orders/${id}/invoice`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    let message = res.statusText;
+    try {
+      const parsed = JSON.parse(body) as { error?: string };
+      message = parsed.error ?? message;
+    } catch {
+      if (body) message = body;
+    }
+    throw new Error(message || `HTTP ${res.status}`);
+  }
+
+  const disposition = res.headers.get('Content-Disposition') ?? '';
+  const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+  const filename = match?.[1] ?? `stock-order-${id}-invoice.html`;
+  const blob = await res.blob();
+  return { blob, filename };
+}
+
 export async function adminFetchProducts(token: string): Promise<Product[]> {
   const data = await adminFetch<{ products: Product[] }>('/api/admin/products', token);
   return data.products;
@@ -504,10 +531,14 @@ export async function adminUpdatePartnerStockOrderStatus(
   token: string,
   id: string,
   status: PartnerStockOrderStatus,
+  invoicePaid?: boolean,
 ): Promise<void> {
   await adminFetch(`/api/admin/stock-orders/${id}`, token, {
     method: 'PATCH',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({
+      status,
+      ...(invoicePaid !== undefined ? { invoicePaid } : {}),
+    }),
   });
 }
 

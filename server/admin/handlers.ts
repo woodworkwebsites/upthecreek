@@ -1784,29 +1784,51 @@ export async function handleDeletePartnerStockOrder(env: Env, id: string): Promi
   return json({ success: true });
 }
 
-const validPartnerStockOrderStatuses: PartnerStockOrderStatus[] = ['submitted', 'fulfilled', 'cancelled', 'archived'];
+const validPartnerStockOrderStatuses: PartnerStockOrderStatus[] = [
+  'club_submitted',
+  'invoiced',
+  'sellshirts_order',
+  'sellshirts_dispatched',
+  'at_utc',
+  'with_club',
+  'cancelled',
+  'archived',
+];
 
 export async function handleUpdatePartnerStockOrderStatus(
   env: Env,
   id: string,
   request: Request,
 ): Promise<Response> {
-  let body: { status?: string };
+  let body: { status?: string; invoicePaid?: boolean };
   try {
-    body = await request.json() as { status?: string };
+    body = await request.json() as { status?: string; invoicePaid?: boolean };
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
   }
 
   const status = body.status?.trim();
-  if (!status || !validPartnerStockOrderStatuses.includes(status as PartnerStockOrderStatus)) {
+  const invoicePaid = typeof body.invoicePaid === 'boolean' ? body.invoicePaid : undefined;
+
+  if (!status && invoicePaid === undefined) {
+    return json({ error: 'No updates provided' }, 400);
+  }
+
+  if (status && !validPartnerStockOrderStatuses.includes(status as PartnerStockOrderStatus)) {
     return json({ error: 'Invalid status' }, 400);
   }
 
-  const updated = await updatePartnerStockOrderStatus(env.DB, id, status as PartnerStockOrderStatus);
+  const updated = await updatePartnerStockOrderStatus(env.DB, id, {
+    ...(status ? { status: status as PartnerStockOrderStatus } : {}),
+    ...(invoicePaid !== undefined ? { invoicePaid } : {}),
+  });
   if (!updated) return json({ error: 'Stock order not found' }, 404);
 
-  return json({ success: true, status });
+  return json({
+    success: true,
+    ...(status ? { status } : {}),
+    ...(invoicePaid !== undefined ? { invoicePaid } : {}),
+  });
 }
 
 function json(data: unknown, status = 200): Response {
