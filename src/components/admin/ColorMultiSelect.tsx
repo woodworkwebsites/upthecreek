@@ -4,6 +4,7 @@ import { cn } from '../../lib/utils.js';
 export interface ColorOption {
   name: string;
   hex: string;
+  orderUrl?: string | null;
 }
 
 interface ColorMultiSelectProps {

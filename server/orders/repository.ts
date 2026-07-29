@@ -9,6 +9,7 @@ import type {
   SyncLogRow,
   WebhookLogRow,
 } from '../../types/index.js';
+import { getProductByPrintifyIdForAdmin } from '../products/repository.js';
 
 let orderSchemaReady: Promise<void> | null = null;
 
@@ -139,6 +140,43 @@ function parseOrderItem(row: OrderItemRow): OrderItem {
     unitPrice:   row.unit_price,
     createdAt:   row.created_at,
   };
+}
+
+function normalizeColorName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function extractOrderUrlByColor(colors: Array<{ name: string; orderUrl?: string | null }>): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const color of colors) {
+    const orderUrl = color.orderUrl?.trim();
+    if (!orderUrl) continue;
+    map.set(normalizeColorName(color.name), orderUrl);
+  }
+  return map;
+}
+
+async function attachOrderUrlsToItems(db: D1Database, items: OrderItem[]): Promise<OrderItem[]> {
+  if (items.length === 0) return items;
+
+  const productsByPrintifyId = new Map<string, Awaited<ReturnType<typeof getProductByPrintifyIdForAdmin>>>();
+  const distinctIds = [...new Set(items.map((item) => item.printifyId))];
+
+  await Promise.all(distinctIds.map(async (printifyId) => {
+    const product = await getProductByPrintifyIdForAdmin(db, printifyId);
+    if (product) {
+      productsByPrintifyId.set(printifyId, product);
+    }
+  }));
+
+  return items.map((item) => {
+    const product = productsByPrintifyId.get(item.printifyId);
+    if (!product) return item;
+
+    const orderUrlByColor = extractOrderUrlByColor(product.colors);
+    const orderUrl = orderUrlByColor.get(normalizeColorName(item.color)) ?? null;
+    return orderUrl ? { ...item, orderUrl } : item;
+  });
 }
 
 export async function getOrderBySessionId(
@@ -302,7 +340,7 @@ export async function getOrderWithItems(
     .all<OrderItemRow>();
 
   const order = parseOrder(row);
-  order.items = (itemsResult.results ?? []).map(parseOrderItem);
+  order.items = await attachOrderUrlsToItems(db, (itemsResult.results ?? []).map(parseOrderItem));
   return order;
 }
 

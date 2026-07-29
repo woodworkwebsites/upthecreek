@@ -19,6 +19,22 @@ function getDefaultRangeId(ranges: CatalogRange[]): string {
   return ranges.find((range) => range.id !== 'evergreen')?.id ?? '';
 }
 
+function normalizeColorKey(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function buildColorOrderUrlMap(colors: Product['colors']): Record<string, string> {
+  const next: Record<string, string> = {};
+  for (const color of colors) {
+    const key = normalizeColorKey(color.name);
+    const orderUrl = color.orderUrl?.trim();
+    if (key && orderUrl) {
+      next[key] = orderUrl;
+    }
+  }
+  return next;
+}
+
 function InlineDraftProductRow({
   token,
   catalog,
@@ -429,6 +445,7 @@ function ProductRow({
   };
   const [pricingMatrix, setPricingMatrix] = useState(initialPricingMatrix);
   const [hiddenColors, setHiddenColors] = useState<string[]>(product.hiddenColors ?? []);
+  const [colorOrderUrls, setColorOrderUrls] = useState<Record<string, string>>(() => buildColorOrderUrlMap(product.colors));
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
   const [sizeGuideUploadFile, setSizeGuideUploadFile] = useState<File | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
@@ -462,6 +479,7 @@ function ProductRow({
     setPricingMatrix(product.pricingMatrix ?? nextPreset);
     pricingCustomRef.current = Boolean(product.pricingMatrix);
     setHiddenColors(product.hiddenColors ?? []);
+    setColorOrderUrls(buildColorOrderUrlMap(product.colors));
     setIsEnabled(product.isEnabled);
     setImages(product.images);
   }, [product, ranges]);
@@ -612,13 +630,36 @@ function ProductRow({
     const combined = [...catalog.colors];
     const seen = new Set<string>();
     return combined.filter((color) => {
-      const key = color.name.trim().toLowerCase();
+      const key = normalizeColorKey(color.name);
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
     });
   })();
-  const visibleColors = allColors.filter((color) => !hiddenColors.includes(color.name));
+  const visibleColors = allColors
+    .filter((color) => !hiddenColors.includes(color.name))
+    .map((color) => {
+      const key = normalizeColorKey(color.name);
+      return {
+        ...color,
+        orderUrl: colorOrderUrls[key] ?? product.colors.find((entry) => normalizeColorKey(entry.name) === key)?.orderUrl?.trim() ?? '',
+      };
+    });
+  const currentColorSignature = JSON.stringify(visibleColors.map((color) => ({
+    name: color.name,
+    hex: color.hex,
+    orderUrl: color.orderUrl?.trim() ?? '',
+  })));
+  const originalColorSignature = JSON.stringify(
+    visibleColors.map((color) => {
+      const original = product.colors.find((entry) => normalizeColorKey(entry.name) === normalizeColorKey(color.name));
+      return {
+        name: color.name,
+        hex: color.hex,
+        orderUrl: original?.orderUrl?.trim() ?? '',
+      };
+    }),
+  );
   const currentPricingSignature = pricingMatrixSignature(pricingMatrix);
   const originalPricingSignature = pricingMatrixSignature({
     ...emptyPricingMatrix(),
@@ -632,6 +673,7 @@ function ProductRow({
     || rangeId.trim() !== (product.rangeId ?? '').trim()
     || isEnabled !== product.isEnabled
     || currentPricingSignature !== originalPricingSignature
+    || currentColorSignature !== originalColorSignature
     || hiddenColors.length !== (product.hiddenColors ?? []).length
     || hiddenColors.some((color) => !(product.hiddenColors ?? []).includes(color));
 
@@ -656,7 +698,11 @@ function ProductRow({
         garment: garmentType.trim(),
         rangeId: rangeId.trim() || null,
         pricingMatrix: normalizePricingMatrix(pricingMatrix),
-        colors: visibleColors,
+        colors: visibleColors.map((color) => ({
+          name: color.name,
+          hex: color.hex,
+          orderUrl: color.orderUrl?.trim() || undefined,
+        })),
         hiddenColors,
         isEnabled,
       });
@@ -792,6 +838,43 @@ function ProductRow({
 
                 <div className="space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60">
                   <ColorMultiSelect colors={allColors} selected={visibleColors.map((color) => color.name)} onToggle={(color) => toggleColor(color.name)} />
+                  <div className="mt-3 space-y-2 border-t border-gray-200 pt-3 dark:border-gray-800">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+                        Order links
+                      </p>
+                      <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
+                        {visibleColors.length} colours
+                      </span>
+                    </div>
+                    <div className="grid gap-2">
+                      {visibleColors.length === 0 ? (
+                        <p className="rounded-xl border border-dashed border-gray-200 px-3 py-2 text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
+                          Select at least one colour to add its SellShirts product link.
+                        </p>
+                      ) : visibleColors.map((color) => {
+                        const key = normalizeColorKey(color.name);
+                        return (
+                          <label key={color.name} className="grid gap-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs dark:border-gray-700 dark:bg-gray-950">
+                            <span className="flex items-center gap-2 font-semibold text-gray-700 dark:text-gray-200">
+                              <span className="inline-block h-3 w-3 rounded-full border border-black/10" style={{ backgroundColor: color.hex }} />
+                              {color.name}
+                            </span>
+                            <input
+                              type="url"
+                              value={color.orderUrl ?? ''}
+                              onChange={(e) => setColorOrderUrls((current) => ({
+                                ...current,
+                                [key]: e.target.value,
+                              }))}
+                              placeholder="https://sellshirts.com/product/16653"
+                              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/60">

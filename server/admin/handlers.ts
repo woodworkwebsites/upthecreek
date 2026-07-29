@@ -319,9 +319,48 @@ type CollaborationDesignMeta = {
   colorName: string;
   colorHex: string;
   sizes: string[];
-  partnerPrice: number;
+  wholesalePrice: number;
+  rrp: number;
   images: CollaborationDesignImageMeta[];
 };
+
+async function buildPartnerLogoUrlFromForm(
+  env: Env,
+  form: FormData,
+  seed: string,
+  existingLogoUrl: string | null = null,
+): Promise<string | null> {
+  const file = form.get('logoFile');
+  if (file instanceof File) {
+    if (file.size === 0) {
+      throw new Error('Uploaded partner logo is empty');
+    }
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Partner logo upload must be an image');
+    }
+
+    const uploaded = await storeAssetData(
+      env.IMAGES,
+      await file.arrayBuffer(),
+      file.type,
+      {
+        kind: 'partner-logo',
+        keyPrefix: `partner-logos/${seed}`,
+        keySeed: `${seed}:${file.name}:${file.size}:${file.type}`,
+        sourceHint: file.name,
+        metadata: {
+          seed,
+        },
+      },
+    );
+
+    return uploaded.url;
+  }
+
+  const logoUrl = readFormText(form.get('logoUrl'));
+  if (logoUrl) return logoUrl;
+  return existingLogoUrl;
+}
 
 function readFormText(value: FormDataEntryValue | null): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -420,11 +459,18 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
             : '',
           DEFAULT_SIZE_OPTIONS.slice(),
         );
-      const partnerPriceRaw = (entry as { partnerPrice?: unknown }).partnerPrice;
-      const partnerPrice = typeof partnerPriceRaw === 'number'
-        ? partnerPriceRaw
-        : typeof partnerPriceRaw === 'string'
-          ? Number(partnerPriceRaw)
+      const wholesaleRaw = (entry as { wholesalePrice?: unknown; partnerPrice?: unknown }).wholesalePrice
+        ?? (entry as { partnerPrice?: unknown }).partnerPrice;
+      const wholesalePrice = typeof wholesaleRaw === 'number'
+        ? wholesaleRaw
+        : typeof wholesaleRaw === 'string'
+          ? Number(wholesaleRaw)
+          : NaN;
+      const rrpRaw = (entry as { rrp?: unknown }).rrp;
+      const rrp = typeof rrpRaw === 'number'
+        ? rrpRaw
+        : typeof rrpRaw === 'string'
+          ? Number(rrpRaw)
           : NaN;
       const imagesRaw = Array.isArray((entry as { images?: unknown }).images)
         ? (entry as { images?: unknown[] }).images
@@ -445,7 +491,7 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
         return [{ type: 'url' as const, url, isDefault }];
       });
 
-      if (!title && !description && !garment && images.length === 0 && sizes.length === 0 && !Number.isFinite(partnerPrice)) {
+      if (!title && !description && !garment && images.length === 0 && sizes.length === 0 && !Number.isFinite(wholesalePrice) && !Number.isFinite(rrp)) {
         return [];
       }
 
@@ -456,7 +502,8 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
         colorName,
         colorHex,
         sizes,
-        partnerPrice: Number.isFinite(partnerPrice) && partnerPrice >= 0 ? Math.round(partnerPrice) : 0,
+        wholesalePrice: Number.isFinite(wholesalePrice) && wholesalePrice >= 0 ? Math.round(wholesalePrice) : 0,
+        rrp: Number.isFinite(rrp) && rrp >= 0 ? Math.round(rrp) : (Number.isFinite(wholesalePrice) && wholesalePrice >= 0 ? Math.round(wholesalePrice) : 0),
         images,
       }];
     });
@@ -492,11 +539,16 @@ async function buildCollaborationDesignFromForm(
     readFormText(form.get('collaborationSizes')),
     DEFAULT_SIZE_OPTIONS.slice(),
   );
-  const priceRaw = readFormText(form.get('collaborationPrice'));
-  const price = priceRaw.length > 0 ? Number(priceRaw) : 0;
+  const wholesaleRaw = readFormText(form.get('collaborationPrice'));
+  const rrpRaw = readFormText(form.get('collaborationRrp'));
+  const wholesalePrice = wholesaleRaw.length > 0 ? Number(wholesaleRaw) : 0;
+  const rrp = rrpRaw.length > 0 ? Number(rrpRaw) : wholesalePrice;
 
-  if (!Number.isFinite(price) || price < 0) {
+  if (!Number.isFinite(wholesalePrice) || wholesalePrice < 0) {
     throw new Error('Collaboration shirt price must be zero or greater');
+  }
+  if (!Number.isFinite(rrp) || rrp < 0) {
+    throw new Error('Collaboration shirt RRP must be zero or greater');
   }
 
   const meta = parseCollaborationImageMeta(readFormJsonArray(form.getAll('collaborationImagesMeta')));
@@ -600,7 +652,7 @@ async function buildCollaborationDesignFromForm(
     });
   }
 
-  if (!collaborationEnabled && !title && !description && resolvedImages.length === 0 && garment === '' && colorName === '' && colorHex === '' && sizes.join(', ') === DEFAULT_SIZE_OPTIONS.join(', ') && !priceRaw) {
+  if (!collaborationEnabled && !title && !description && resolvedImages.length === 0 && garment === '' && colorName === '' && colorHex === '' && sizes.join(', ') === DEFAULT_SIZE_OPTIONS.join(', ') && !wholesaleRaw && !rrpRaw) {
     return null;
   }
 
@@ -618,7 +670,8 @@ async function buildCollaborationDesignFromForm(
     colorName.trim().length > 0 ||
     colorHex.trim().length > 0 ||
     sizes.join(', ') !== DEFAULT_SIZE_OPTIONS.join(', ') ||
-    priceRaw.length > 0;
+    wholesaleRaw.length > 0 ||
+    rrpRaw.length > 0;
 
   if (!collaborationEnabled && !hasCustomContent) return null;
 
@@ -631,7 +684,8 @@ async function buildCollaborationDesignFromForm(
     colorName: colorName || 'Collaboration',
     colorHex: colorHex || '#111827',
     sizes,
-    partnerPrice: Math.max(0, Math.round(price * 100)),
+    partnerPrice: Math.max(0, Math.round(wholesalePrice * 100)),
+    rrp: Math.max(0, Math.round(rrp)),
   };
 }
 
@@ -692,7 +746,8 @@ async function buildCollaborationDesignsFromForm(
         design.colorName.length > 0 ||
         design.colorHex.length > 0 ||
         design.sizes.length > 0 ||
-        design.partnerPrice > 0 ||
+        design.wholesalePrice > 0 ||
+        design.rrp > 0 ||
         resolvedImages.length > 0;
       if (!hasContent) {
         continue;
@@ -707,7 +762,8 @@ async function buildCollaborationDesignsFromForm(
         colorName: design.colorName || 'Collaboration',
         colorHex: design.colorHex || '#111827',
         sizes: design.sizes.length > 0 ? design.sizes : DEFAULT_SIZE_OPTIONS.slice(),
-        partnerPrice: Math.max(0, Math.round(design.partnerPrice)),
+        partnerPrice: Math.max(0, Math.round(design.wholesalePrice)),
+        rrp: Math.max(0, Math.round(design.rrp || design.wholesalePrice)),
       });
     }
 
@@ -1010,7 +1066,7 @@ export async function handleUpdateProduct(
     isEnabled?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: unknown;
-    colors?: Array<{ name?: string; hex?: string }>;
+    colors?: Array<{ name?: string; hex?: string; orderUrl?: string | null }>;
   };
   try {
     body = await request.json() as {
@@ -1035,7 +1091,7 @@ export async function handleUpdateProduct(
       isEnabled?: boolean;
       sizeGuideImage?: string | null;
       hiddenColors?: unknown;
-      colors?: Array<{ name?: string; hex?: string }>;
+      colors?: Array<{ name?: string; hex?: string; orderUrl?: string | null }>;
     };
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
@@ -1089,10 +1145,11 @@ export async function handleUpdateProduct(
       : undefined;
   const colors = body.colors !== undefined
     ? body.colors
-        .filter((color): color is { name: string; hex: string } => typeof color?.name === 'string')
+        .filter((color): color is { name: string; hex: string; orderUrl?: string | null } => typeof color?.name === 'string')
         .map((color) => ({
           name: color.name.trim(),
           hex: typeof color.hex === 'string' && color.hex.trim().length > 0 ? color.hex.trim() : '#111827',
+          orderUrl: typeof color.orderUrl === 'string' && color.orderUrl.trim().length > 0 ? color.orderUrl.trim() : undefined,
         }))
         .filter((color) => color.name.length > 0)
     : undefined;
@@ -1484,6 +1541,14 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
       return json({ error: 'Commission rate must be a non-negative number' }, 400);
     }
 
+    let logoUrl: string | null;
+    try {
+      logoUrl = await buildPartnerLogoUrlFromForm(env, form, slug);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return json({ error: message }, 400);
+    }
+
     let collaborationDesigns: PartnerCollaborationDesign[] | null;
     try {
       collaborationDesigns = await buildCollaborationDesignsFromForm(env, form, slug);
@@ -1496,6 +1561,7 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
       const partner = await createPartner(env.DB, {
         slug,
         name,
+        logoUrl,
         discountCode: readFormText(form.get('discountCode')) || null,
         accessToken,
         commissionRate,
@@ -1515,6 +1581,7 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
   let body: {
     slug?: string;
     name?: string;
+    logoUrl?: string | null;
     discountCode?: string | null;
     accessToken?: string;
     commissionRate?: number | string;
@@ -1547,6 +1614,7 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
     const partner = await createPartner(env.DB, {
       slug,
       name,
+      logoUrl: body.logoUrl?.trim() || null,
       discountCode: body.discountCode?.trim() || null,
       accessToken,
       commissionRate,
@@ -1583,6 +1651,14 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
       return json({ error: 'Commission rate must be a non-negative number' }, 400);
     }
 
+    let logoUrl: string | null;
+    try {
+      logoUrl = await buildPartnerLogoUrlFromForm(env, form, existing.slug, existing.logoUrl);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return json({ error: message }, 400);
+    }
+
     let collaborationDesigns: PartnerCollaborationDesign[] | null | undefined;
     try {
       collaborationDesigns = await buildCollaborationDesignsFromForm(env, form, existing.slug, existing.collaborationDesigns);
@@ -1595,6 +1671,7 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
       const partner = await updatePartner(env.DB, id, {
         slug,
         name,
+        logoUrl,
         discountCode: readFormText(form.get('discountCode')) || null,
         accessToken: accessToken || undefined,
         commissionRate,
@@ -1616,6 +1693,7 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
   let body: {
     slug?: string;
     name?: string;
+    logoUrl?: string | null;
     discountCode?: string | null;
     accessToken?: string;
     commissionRate?: number | string;
@@ -1650,6 +1728,7 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
     const partner = await updatePartner(env.DB, id, {
       slug,
       name,
+      logoUrl: body.logoUrl?.trim() || existing.logoUrl,
       discountCode: body.discountCode?.trim() || null,
       accessToken: accessToken || undefined,
       commissionRate,

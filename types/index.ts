@@ -25,6 +25,7 @@ export interface PrintifyVariant {
 export interface PrintifyColor {
   name: string;
   hex: string;
+  orderUrl?: string | null;
 }
 
 export interface PricingMatrixRow {
@@ -213,6 +214,7 @@ export interface OrderItem {
   size: string;
   quantity: number;
   unitPrice: number;
+  orderUrl?: string | null;
   imageSrc?: string;
   createdAt: string;
 }
@@ -255,6 +257,7 @@ export interface PartnerCollaborationDesignRow {
   color_hex: string;
   sizes: string;
   partner_price: number;
+  rrp_price?: number;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -284,6 +287,7 @@ export interface Partner {
   id: string;
   slug: string;
   name: string;
+  logoUrl: string | null;
   discountCode: string | null;
   commissionRate: number;
   description: string | null;
@@ -309,6 +313,7 @@ export interface PartnerCollaborationDesign {
   colorHex: string;
   sizes: string[];
   partnerPrice: number;
+  rrp: number;
 }
 
 export type PartnerCommissionStatus = 'pending' | 'paid' | 'void';
@@ -344,6 +349,7 @@ export interface PartnerPayoutRow {
 export interface PartnerInput {
   slug: string;
   name: string;
+  logoUrl?: string | null;
   discountCode?: string | null;
   accessToken?: string;
   commissionRate: number;

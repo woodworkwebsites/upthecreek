@@ -52,26 +52,26 @@ export default function PartnersFunnelPage() {
 
   return (
     <div className="min-h-screen bg-cream text-navy-900">
-      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(43,77,164,0.34),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(255,255,255,0.12),_transparent_26%),linear-gradient(180deg,_#06122c_0%,_#0a1736_52%,_#f8f7f3_52%,_#f8f7f3_100%)] text-white">
+      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(43,77,164,0.34),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(255,255,255,0.12),_transparent_26%),linear-gradient(180deg,_#06122c_0%,_#0a1736_100%)] text-white">
         <div className="absolute inset-0 opacity-25" aria-hidden>
           <div className="absolute -left-24 top-8 h-72 w-72 rounded-full bg-brand-400 blur-3xl" />
           <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 pb-8 pt-8 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <div aria-hidden className="hidden sm:block" />
+          <NavLink
+            to="/partners/login"
+            className="absolute right-4 top-8 inline-flex items-center rounded-full border border-white/20 bg-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-white backdrop-blur-md transition-colors hover:bg-white/20 sm:right-6 lg:right-8"
+          >
+            Partner login
+          </NavLink>
+
+          <div className="flex justify-center">
             <img
               src="/UTC_WordMark_White_Trans_BG.png"
               alt="Up the Creek Padel"
-              className="h-12 w-auto justify-self-center sm:h-14 lg:h-16"
+              className="h-12 w-auto sm:h-14 lg:h-16"
             />
-            <NavLink
-              to="/partners/login"
-              className="justify-self-end text-xs font-semibold uppercase tracking-[0.28em] text-white/70 transition-colors hover:text-white"
-            >
-              Partner login
-            </NavLink>
           </div>
 
           <div className="mx-auto max-w-4xl pt-14 text-center animate-fade-up">
@@ -94,7 +94,11 @@ export default function PartnersFunnelPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
 
+      <section className="mx-auto max-w-7xl px-4 pb-16 pt-6 text-navy-900 sm:px-6 lg:px-8">
+        <div className="rounded-[2rem] border border-gray-200 bg-white p-5 shadow-[0_25px_80px_rgba(5,13,31,0.08)] sm:p-6">
           <div className="mx-auto mt-12 max-w-6xl rounded-[2rem] border border-white/10 bg-navy-950/50 p-5 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-6">
             <p className="px-1 pb-4 text-xs font-bold uppercase tracking-[0.28em] text-white/50">Featured products</p>
 
@@ -119,9 +123,7 @@ export default function PartnersFunnelPage() {
             </div>
           </div>
         </div>
-      </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
         <h2 className="mx-auto max-w-3xl text-center text-2xl font-black tracking-tight text-navy-900 sm:text-3xl">
           Partners collect both margin from wholesale and commission from referrals.
         </h2>

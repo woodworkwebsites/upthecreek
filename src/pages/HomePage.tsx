@@ -146,7 +146,7 @@ export default function HomePage() {
                   Get offers and first access to new drops.
                 </h2>
                 <p className="mt-3 max-w-xl text-sm leading-7 text-white/75">
-                  Join the email list for launch notices, limited releases, and occasional offers from Up the Creek. If you want to stock UTC Apparel in your club, use the partner link alongside it.
+                  Join the email list for launch notices, limited releases, and occasional offers from Up the Creek.
                 </p>
               </div>
 

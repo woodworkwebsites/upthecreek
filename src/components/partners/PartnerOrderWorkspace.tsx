@@ -326,11 +326,11 @@ export function PartnerOrderWorkspace({
   accessToken: string;
 }) {
   const [basket, setBasket] = useState<BasketLineItem[]>([]);
-  const [query, setQuery] = useState('');
   const [hydrated, setHydrated] = useState(false);
   const [basketModalOpen, setBasketModalOpen] = useState(false);
   const [draftLines, setDraftLines] = useState<BasketLineItem[]>([]);
   const [draftColor, setDraftColor] = useState<string | null>(null);
+  const [draftImageIndex, setDraftImageIndex] = useState(0);
   const [orderNotes, setOrderNotes] = useState('');
   const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -346,23 +346,15 @@ export function PartnerOrderWorkspace({
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(basket));
   }, [basket, hydrated]);
 
-  const filteredProducts = useMemo(() => {
-    const search = query.trim().toLowerCase();
-    return products.filter((product) => {
-      if (!search) return true;
-      const colorText = visibleColors(product).map((color) => color.name).join(' ');
-      return [product.title, product.garment, product.productType, product.category, colorText]
-        .join(' ')
-        .toLowerCase()
-        .includes(search);
-    });
-  }, [products, query]);
+  useEffect(() => {
+    setDraftImageIndex(0);
+  }, [activeDraft?.productId, activeDraft?.color]);
 
   const groupedProducts = useMemo(() => {
     const productsByRange = new Map<string, Product[]>();
     const knownRangeIds = new Set(ranges.map((range) => range.id));
 
-    for (const product of filteredProducts) {
+    for (const product of products) {
       const key = product.rangeId?.trim() || 'evergreen';
       const bucket = productsByRange.get(key) ?? [];
       bucket.push(product);
@@ -389,7 +381,7 @@ export function PartnerOrderWorkspace({
       }))
       .filter((group) => group.products.length > 0);
 
-    const unmatchedProducts = filteredProducts.filter((product) => {
+    const unmatchedProducts = products.filter((product) => {
       const key = product.rangeId?.trim() || 'evergreen';
       return !knownRangeIds.has(key) && key !== 'evergreen';
     });
@@ -403,7 +395,7 @@ export function PartnerOrderWorkspace({
     }
 
     return groups;
-  }, [filteredProducts, ranges]);
+  }, [products, ranges]);
 
   const pieceCount = useMemo(() => basketCount(basket), [basket]);
   const value = useMemo(() => basketTotal(basket), [basket]);
@@ -411,6 +403,7 @@ export function PartnerOrderWorkspace({
   function openDraft(product: Product, color: string) {
     setDraftLines([buildLine(product, color)]);
     setDraftColor(color);
+    setDraftImageIndex(0);
   }
 
   function switchDraftColor(color: string) {
@@ -422,11 +415,13 @@ export function PartnerOrderWorkspace({
       return [...current, buildLine(product, color)];
     });
     setDraftColor(color);
+    setDraftImageIndex(0);
   }
 
   function closeDraft() {
     setDraftLines([]);
     setDraftColor(null);
+    setDraftImageIndex(0);
   }
 
   function commitDraft() {
@@ -451,6 +446,17 @@ export function PartnerOrderWorkspace({
       current.map((line) =>
         line.color === draftColor
           ? { ...line, sizes: line.sizes.map((entry) => (entry.size === size ? { ...entry, quantity: next } : entry)) }
+          : line,
+      ),
+    );
+  }
+
+  function updateDraftRrp(value: number) {
+    const next = Number.isFinite(value) ? Math.max(0, Math.round(value * 100)) : 0;
+    setDraftLines((current) =>
+      current.map((line) =>
+        line.color === draftColor
+          ? { ...line, rrp: next }
           : line,
       ),
     );
@@ -521,15 +527,6 @@ export function PartnerOrderWorkspace({
   return (
     <div>
       <section className="space-y-6">
-        <div className="flex justify-end">
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search design, garment or colour"
-            className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-navy-900 outline-none transition-colors placeholder:text-gray-400 focus:border-navy-800 md:max-w-[320px]"
-          />
-        </div>
-
         {collaborationProducts.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -779,9 +776,13 @@ export function PartnerOrderWorkspace({
       {activeDraft && (() => {
         const draftProduct = products.find((entry) => entry.id === activeDraft.productId);
         const draftColors = draftProduct ? visibleColors(draftProduct) : [];
+        const draftImages = draftProduct ? getImagesForColor(draftProduct, activeDraft.color) : [];
+        const carouselImages = draftImages.length > 0 ? draftImages : [activeDraft.imageSrc];
+        const activeCarouselImage = carouselImages[draftImageIndex % carouselImages.length] ?? activeDraft.imageSrc;
         const draftTotalPieces = draftLines.reduce((sum, line) => sum + lineCount(line), 0);
         const draftTotalValue = draftLines.reduce((sum, line) => sum + lineTotal(line), 0);
         const draftReferral = draftProduct ? getReferralPricing(draftProduct) : { purchaserPrice: 0, commission: 0 };
+        const isCollaborationDraft = draftProduct?.category === 'partner-collaboration';
         return (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/70 p-4 backdrop-blur-sm"
@@ -796,12 +797,61 @@ export function PartnerOrderWorkspace({
           >
             <div className="grid lg:grid-cols-[360px_minmax(0,1fr)]">
               <div className="relative bg-gray-950">
-                <img
-                  src={activeDraft.imageSrc}
-                  alt={`${activeDraft.title} ${activeDraft.color}`}
-                  className="h-full w-full object-cover object-top"
-                />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent p-5 text-white">
+                <div className="relative flex min-h-[22rem] items-center justify-center bg-white">
+                  <img
+                    src={activeCarouselImage}
+                    alt={`${activeDraft.title} ${activeDraft.color}`}
+                    className="h-full w-full object-contain p-4"
+                  />
+
+                  {carouselImages.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setDraftImageIndex((current) => (current - 1 + carouselImages.length) % carouselImages.length)}
+                        aria-label="Previous image"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-navy-900 shadow-lg transition-colors hover:bg-white"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDraftImageIndex((current) => (current + 1) % carouselImages.length)}
+                        aria-label="Next image"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-navy-900 shadow-lg transition-colors hover:bg-white"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+                </div>
+                <div className="border-t border-gray-100 bg-white p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto">
+                      {carouselImages.map((src, index) => (
+                        <button
+                          key={`${src}-${index}`}
+                          type="button"
+                          onClick={() => setDraftImageIndex(index)}
+                          className={cn(
+                            'h-14 w-14 shrink-0 overflow-hidden rounded-xl border transition-colors',
+                            index === draftImageIndex ? 'border-navy-800 ring-2 ring-navy-800/20' : 'border-gray-200 hover:border-navy-400',
+                          )}
+                        >
+                          <img src={src} alt="" className="h-full w-full object-cover object-top" />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">
+                      {draftImageIndex + 1}/{carouselImages.length}
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute inset-x-0 bottom-[72px] bg-gradient-to-t from-black/80 via-black/35 to-transparent p-5 text-white pointer-events-none">
                   <p className="text-[11px] font-bold uppercase tracking-[0.26em] text-white/70">{activeDraft.garment}</p>
                   <h3 className="mt-2 text-2xl font-black tracking-tight">{activeDraft.title}</h3>
                   <div className="mt-3 flex items-center gap-2">
@@ -818,10 +868,22 @@ export function PartnerOrderWorkspace({
                     <p className="mt-2 text-sm leading-7 text-gray-500">
                       Set quantities for this colour. Switch colours above to add more, then add everything to the basket at once.
                     </p>
-                    <div className="mt-3 space-y-1.5">
+                    <div className="mt-3 space-y-2">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={rowLabelClass}>RRP</span>
-                        <span className={rrpChipClass}>{formatPrice(activeDraft.rrp)} RRP</span>
+                        {isCollaborationDraft ? (
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={(activeDraft.rrp / 100).toFixed(2)}
+                            onChange={(event) => updateDraftRrp(Number(event.target.value))}
+                            className="h-8 w-28 rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-navy-900 outline-none transition-colors focus:border-navy-800"
+                            aria-label="Set collaboration RRP"
+                          />
+                        ) : (
+                          <span className={rrpChipClass}>{formatPrice(activeDraft.rrp)} RRP</span>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={rowLabelClass}>In-store</span>

@@ -13,15 +13,6 @@ import { usePartnerSession } from '../../hooks/usePartner.js';
 import type { PartnerDashboard, Product } from '../../../types/index.js';
 import { DEFAULT_SIZE_OPTIONS } from '../../../types/catalog.js';
 
-function StatCard({ label, value, tone = 'text-navy-900' }: { label: string; value: string; tone?: string }) {
-  return (
-    <div className="rounded-[1.5rem] border border-gray-200 bg-white p-5 shadow-[0_12px_40px_rgba(5,13,31,0.06)]">
-      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">{label}</p>
-      <p className={`mt-2 text-3xl font-black ${tone}`}>{value}</p>
-    </div>
-  );
-}
-
 function buildCollaborationProducts(partner: PartnerDashboard['partner']): Product[] {
   if (!partner.collaborationEnabled) return [];
 
@@ -33,8 +24,10 @@ function buildCollaborationProducts(partner: PartnerDashboard['partner']): Produ
 
   return designs.map((design, index) => {
     const sizes = design.sizes.length > 0 ? design.sizes : DEFAULT_SIZE_OPTIONS.slice();
-    const price = Math.max(0, design.partnerPrice);
-    const pricePounds = (price / 100).toFixed(2);
+    const wholesalePrice = Math.max(0, design.partnerPrice);
+    const rrp = Math.max(wholesalePrice, design.rrp ?? wholesalePrice);
+    const wholesalePricePounds = (wholesalePrice / 100).toFixed(2);
+    const rrpPounds = (rrp / 100).toFixed(2);
     const colorName = design.colorName.trim() || 'Collaboration';
     const imageUrls = design.imageUrls.length > 0
       ? design.imageUrls
@@ -62,8 +55,8 @@ function buildCollaborationProducts(partner: PartnerDashboard['partner']): Produ
         deliveryRetail: '',
         deliveryPartner: '',
         deliveryOnlinePartnership: '',
-        salePrice: pricePounds,
-        partnerPrice: pricePounds,
+        salePrice: rrpPounds,
+        partnerPrice: wholesalePricePounds,
       },
       images: imageUrls.length > 0
         ? imageUrls.map((src, imageIndex) => ({
@@ -84,7 +77,7 @@ function buildCollaborationProducts(partner: PartnerDashboard['partner']): Produ
         id: sizeIndex + 1,
         color: colorName,
         size,
-        price,
+        price: wholesalePrice,
         available: true,
       })),
       colors: [
@@ -95,8 +88,8 @@ function buildCollaborationProducts(partner: PartnerDashboard['partner']): Produ
       ],
       hiddenColors: [],
       sizes,
-      minPrice: price,
-      maxPrice: price,
+      minPrice: rrp,
+      maxPrice: rrp,
       isEnabled: true,
       sizeGuideImage: null,
       syncedAt: partner.updatedAt,
@@ -124,13 +117,14 @@ export default function PartnersDashboardPage() {
       navigate('/partners/login', { replace: true });
       return;
     }
+    const partnerSession = session;
 
     let active = true;
     async function loadDashboard() {
       try {
         setError(null);
         setLoading(true);
-        const data = await partnerFetchDashboard(session.slug, session.accessToken);
+        const data = await partnerFetchDashboard(partnerSession.slug, partnerSession.accessToken);
         if (!active) return;
         setDashboard(data);
       } catch (err) {
@@ -192,8 +186,20 @@ export default function PartnersDashboardPage() {
           <div className="absolute right-0 top-16 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
         </div>
         <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center">
-            <img src="/UTC_WordMark_White_Trans_BG.png" alt="Up the Creek Padel" className="h-10 w-auto" />
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/15">
+              <img
+                src={partner.logoUrl || '/UTC_WordMark_White_Trans_BG.png'}
+                alt={`${partner.name} logo`}
+                className="h-full w-full object-contain p-2"
+              />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-white/55">
+                Club Referral Code {partner.slug.toUpperCase()}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-white/90">{partner.name}</p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
@@ -217,27 +223,28 @@ export default function PartnersDashboardPage() {
               <h1 className="mt-3 text-3xl font-black tracking-tight text-navy-900 sm:text-4xl">
                 {partner.name}
               </h1>
-              <p className="mt-2 text-sm text-gray-600">
-                Club code: <span className="font-semibold text-navy-900">{partner.slug}</span> · ordering and commission tracking
-              </p>
             </div>
             <div className="flex flex-wrap gap-3">
             </div>
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <StatCard label="Total orders" value={String(summary.totalOrders)} />
-            <StatCard label="Gross sales" value={formatPrice(summary.grossSales)} />
-            <StatCard label="Commission due" value={formatPrice(summary.commissionDue)} tone="text-brand-500" />
-            <StatCard label="Commission paid" value={formatPrice(summary.commissionPaid)} tone="text-emerald-600" />
-            <StatCard label="Commission pending" value={formatPrice(summary.commissionPending)} tone="text-amber-600" />
+          <div className="mt-8 rounded-[1.5rem] border border-gray-200 bg-white p-5 shadow-[0_12px_40px_rgba(5,13,31,0.06)]">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">Club Referral Sales this period</p>
+                <p className="mt-2 text-3xl font-black text-navy-900">{formatPrice(summary.grossSales)}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">Commission due</p>
+                <p className="mt-2 text-3xl font-black text-brand-500">{formatPrice(summary.commissionDue)}</p>
+              </div>
+            </div>
           </div>
         </section>
 
         <section className="mt-8 grid gap-8">
           <article className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-[0_20px_70px_rgba(5,13,31,0.07)] sm:p-8">
             <p className="label">Your Orders</p>
-            <h2 className="mt-3 text-2xl font-black tracking-tight text-navy-900">Tracked automatically</h2>
             <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200">
               {recentOrders.length > 0 ? (
                 <div className="overflow-x-auto">

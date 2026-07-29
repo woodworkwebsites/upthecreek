@@ -77,14 +77,17 @@ function normalizeColorName(value: string): string {
 
 function normalizeColor(value: unknown): PrintifyColor | null {
   if (!value || typeof value !== 'object') return null;
-  const candidate = value as { name?: unknown; hex?: unknown };
+  const candidate = value as { name?: unknown; hex?: unknown; orderUrl?: unknown };
   if (typeof candidate.name !== 'string') return null;
   const name = candidate.name.trim();
   if (!name) return null;
   const hex = typeof candidate.hex === 'string' && candidate.hex.trim().length > 0
     ? candidate.hex.trim()
     : '#111827';
-  return { name, hex };
+  const orderUrl = typeof candidate.orderUrl === 'string' && candidate.orderUrl.trim().length > 0
+    ? candidate.orderUrl.trim()
+    : undefined;
+  return { name, hex, orderUrl };
 }
 
 function normalizeColors(colors: unknown[]): PrintifyColor[] {
@@ -117,6 +120,23 @@ function mergeColors(...groups: unknown[][]): PrintifyColor[] {
   }
 
   return merged;
+}
+
+function mergeColorsByName(existing: PrintifyColor[], incoming: PrintifyColor[]): PrintifyColor[] {
+  const existingByName = new Map(
+    existing.map((color) => [normalizeColorName(color.name), color] as const),
+  );
+
+  return incoming
+    .map((color) => {
+      const previous = existingByName.get(normalizeColorName(color.name));
+      return normalizeColor({
+        name: color.name,
+        hex: color.hex,
+        orderUrl: color.orderUrl ?? previous?.orderUrl,
+      });
+    })
+    .filter((color): color is PrintifyColor => Boolean(color));
 }
 
 function filterVisibleColors(colors: PrintifyColor[], hiddenColors: Set<string>): PrintifyColor[] {
@@ -624,6 +644,9 @@ export async function updateProductFields(
       ? categoryMetadata.colors
       : DEFAULT_FALLBACK_COLORS;
   const normalizedColors = normalizeColors(colorSource);
+  const nextColors = fields.colors !== undefined
+    ? mergeColorsByName(normalizedColors, fields.colors)
+    : normalizedColors;
 
   const setCategoryMetadata = (
     fields.category !== undefined ||
@@ -641,7 +664,7 @@ export async function updateProductFields(
         productType: fields.productType,
         garment: fields.garment,
         pricingMatrix: fields.pricingMatrix,
-        colors: fields.colors,
+        colors: fields.colors !== undefined ? nextColors : undefined,
       })
     : undefined;
 
@@ -685,7 +708,7 @@ export async function updateProductFields(
 
   if (fields.colors !== undefined) {
     sets.push('colors = ?');
-    values.push(JSON.stringify(normalizeColors(fields.colors)));
+    values.push(JSON.stringify(nextColors));
   }
 
   if (fields.pricingMatrix !== undefined) {
@@ -693,7 +716,7 @@ export async function updateProductFields(
     values.push(JSON.stringify(fields.pricingMatrix ?? {}));
   }
 
-  const effectiveColors = fields.colors !== undefined ? normalizeColors(fields.colors) : normalizedColors;
+  const effectiveColors = fields.colors !== undefined ? nextColors : normalizedColors;
 
   const nextSalePrice = (fields.pricingMatrix?.salePrice?.trim() || currentPricingMatrix?.salePrice?.trim() || '');
   if (nextSalePrice) {
@@ -734,7 +757,9 @@ export async function upsertProduct(
     .bind(data.printifyId)
     .first<{ colors: string | null }>();
   const existingColors = parseJsonArray<PrintifyColor>(existing?.colors);
-  const nextColors = data.colors.length > 0 ? data.colors : existingColors;
+  const nextColors = data.colors.length > 0
+    ? mergeColorsByName(existingColors, data.colors)
+    : existingColors;
   const category = serializeProductMetadata({
     baseCategory: data.category,
     audience: data.audience,

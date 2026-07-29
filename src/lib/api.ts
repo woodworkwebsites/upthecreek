@@ -217,7 +217,7 @@ export async function adminUpdateProduct(
     audience?: string;
     productType?: string;
     garment?: string;
-    colors?: Array<{ name: string; hex: string }>;
+    colors?: Array<{ name: string; hex: string; orderUrl?: string | null }>;
     pricingMatrix?: PricingMatrixRow | null;
     isEnabled?: boolean;
     sizeGuideImage?: string | null;

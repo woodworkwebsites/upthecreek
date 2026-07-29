@@ -24,6 +24,7 @@ type PartnerRow = {
   id: string;
   slug: string;
   name: string;
+  logo_url: string | null;
   discount_code: string | null;
   commission_rate: number;
   description: string | null;
@@ -78,6 +79,11 @@ function normalizeCollaborationDesign(design: Partial<PartnerCollaborationDesign
     : typeof design.partnerPrice === 'string'
       ? Number(design.partnerPrice)
       : NaN;
+  const rrp = typeof design.rrp === 'number'
+    ? design.rrp
+    : typeof (design as { rrp?: unknown }).rrp === 'string'
+      ? Number((design as { rrp?: string }).rrp)
+      : NaN;
   const normalizedImageUrls = normalizeCollaborationImages(
     Array.isArray(design.imageUrls) && design.imageUrls.length > 0
       ? design.imageUrls
@@ -96,6 +102,7 @@ function normalizeCollaborationDesign(design: Partial<PartnerCollaborationDesign
     colorHex: typeof design.colorHex === 'string' ? design.colorHex.trim() || '#111827' : '#111827',
     sizes: normalizeCollaborationSizes(design.sizes),
     partnerPrice: Number.isFinite(partnerPrice) && partnerPrice >= 0 ? Math.round(partnerPrice) : 0,
+    rrp: Number.isFinite(rrp) && rrp >= 0 ? Math.round(rrp) : (Number.isFinite(partnerPrice) && partnerPrice >= 0 ? Math.round(partnerPrice) : 0),
   };
 }
 
@@ -144,6 +151,7 @@ function serializeCollaborationDesigns(designs: PartnerCollaborationDesign[] | n
     colorHex: design.colorHex.trim() || '#111827',
     sizes: normalizeCollaborationSizes(design.sizes),
     partnerPrice: Math.max(0, Math.round(design.partnerPrice)),
+    rrp: Math.max(0, Math.round(design.rrp ?? design.partnerPrice)),
   })));
 }
 
@@ -158,16 +166,20 @@ function parseJsonStringArray(raw: string | null): string[] {
 }
 
 function parseCollaborationDesignRow(row: PartnerCollaborationDesignRow): PartnerCollaborationDesign {
+  const imageUrls = parseJsonStringArray(row.image_urls);
+  const partnerPrice = row.partner_price;
+  const rrp = typeof row.rrp_price === 'number' ? row.rrp_price : partnerPrice;
   return {
     title: row.title,
     description: row.description,
-    imageUrl: parseJsonStringArray(row.image_urls)[0] ?? null,
-    imageUrls: parseJsonStringArray(row.image_urls),
+    imageUrl: imageUrls[0] ?? null,
+    imageUrls,
     garment: row.garment,
     colorName: row.color_name,
     colorHex: row.color_hex,
     sizes: normalizeCollaborationSizes(parseJsonStringArray(row.sizes)),
-    partnerPrice: row.partner_price,
+    partnerPrice,
+    rrp,
   };
 }
 
@@ -204,6 +216,7 @@ function serializeCollaborationDesignRow(
     color_hex: normalized.colorHex.trim() || '#111827',
     sizes: JSON.stringify(normalizeCollaborationSizes(normalized.sizes)),
     partner_price: Math.max(0, Math.round(normalized.partnerPrice)),
+    rrp_price: Math.max(0, Math.round(normalized.rrp)),
     sort_order: sortOrder,
   };
 }
@@ -239,8 +252,8 @@ async function replacePartnerCollaborationDesignRows(
       const row = serializeCollaborationDesignRow(partnerId, design, index);
       return db.prepare(`
         INSERT INTO partner_collaboration_designs
-          (id, partner_id, title, description, image_urls, garment, color_name, color_hex, sizes, partner_price, sort_order, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+          (id, partner_id, title, description, image_urls, garment, color_name, color_hex, sizes, partner_price, rrp_price, sort_order, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
       `).bind(
         row.id,
         row.partner_id,
@@ -252,6 +265,7 @@ async function replacePartnerCollaborationDesignRows(
         row.color_hex,
         row.sizes,
         row.partner_price,
+        row.rrp_price,
         row.sort_order,
       );
     }),
@@ -312,6 +326,7 @@ export function parsePartnerRow(row: {
   id: string;
   slug: string;
   name: string;
+  logo_url: string | null;
   discount_code: string | null;
   commission_rate: number;
   description: string | null;
@@ -325,6 +340,7 @@ export function parsePartnerRow(row: {
     id: row.id,
     slug: row.slug,
     name: row.name,
+    logoUrl: row.logo_url,
     discountCode: row.discount_code,
     commissionRate: row.commission_rate,
     description: row.description,
@@ -406,6 +422,7 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
       id              TEXT PRIMARY KEY,
       slug            TEXT UNIQUE NOT NULL,
       name            TEXT NOT NULL,
+      logo_url        TEXT,
       discount_code   TEXT,
       access_token    TEXT UNIQUE NOT NULL,
       commission_rate INTEGER NOT NULL DEFAULT 10,
@@ -430,6 +447,7 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
       color_hex     TEXT NOT NULL DEFAULT '#111827',
       sizes         TEXT NOT NULL DEFAULT '[]',
       partner_price INTEGER NOT NULL DEFAULT 0,
+      rrp_price     INTEGER NOT NULL DEFAULT 0,
       sort_order    INTEGER NOT NULL DEFAULT 0,
       created_at    TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
@@ -484,6 +502,15 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
   if (!columnNames.has('collaboration_design')) {
     await db.prepare('ALTER TABLE partners ADD COLUMN collaboration_design TEXT').run();
   }
+  if (!columnNames.has('logo_url')) {
+    await db.prepare('ALTER TABLE partners ADD COLUMN logo_url TEXT').run();
+  }
+
+  const designColumns = await db.prepare('PRAGMA table_info(partner_collaboration_designs)').all<{ name: string }>();
+  const designColumnNames = new Set((designColumns.results ?? []).map((column) => column.name));
+  if (!designColumnNames.has('rrp_price')) {
+    await db.prepare('ALTER TABLE partner_collaboration_designs ADD COLUMN rrp_price INTEGER NOT NULL DEFAULT 0').run();
+  }
 }
 
 async function hydratePartnerRow(db: D1Database, row: PartnerRow): Promise<PartnerAdmin> {
@@ -505,7 +532,7 @@ export async function getPartnerByDiscountCode(db: D1Database, discountCode: str
 
   const row = await db
     .prepare(
-      'SELECT id, slug, name, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners WHERE discount_code IS NOT NULL AND UPPER(discount_code) = UPPER(?)',
+      'SELECT id, slug, name, logo_url, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners WHERE discount_code IS NOT NULL AND UPPER(discount_code) = UPPER(?)',
     )
     .bind(discountCode.trim())
     .first<PartnerRow>();
@@ -518,7 +545,7 @@ export async function getPartnerBySlug(db: D1Database, slug: string): Promise<Pa
 
   const row = await db
     .prepare(
-      'SELECT id, slug, name, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners WHERE slug = ?',
+      'SELECT id, slug, name, logo_url, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners WHERE slug = ?',
     )
     .bind(normalizeSlug(slug))
     .first<PartnerRow>();
@@ -535,7 +562,7 @@ export async function getPartnerBySlugAndToken(
 
   const row = await db
     .prepare(
-      'SELECT id, slug, name, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners WHERE slug = ? AND access_token = ?',
+      'SELECT id, slug, name, logo_url, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners WHERE slug = ? AND access_token = ?',
     )
     .bind(normalizeSlug(slug), normalizeToken(accessToken))
     .first<PartnerRow>();
@@ -548,7 +575,7 @@ export async function listPartners(db: D1Database): Promise<PartnerAdmin[]> {
 
   const result = await db
     .prepare(
-      'SELECT id, slug, name, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners ORDER BY created_at DESC',
+      'SELECT id, slug, name, logo_url, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners ORDER BY created_at DESC',
     )
     .all<PartnerRow>();
 
@@ -560,7 +587,7 @@ export async function getPartnerById(db: D1Database, id: string): Promise<Partne
 
   const row = await db
     .prepare(
-      'SELECT id, slug, name, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners WHERE id = ?',
+      'SELECT id, slug, name, logo_url, discount_code, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at FROM partners WHERE id = ?',
     )
     .bind(id)
     .first<PartnerRow>();
@@ -598,13 +625,14 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
   await db
     .prepare(`
       INSERT INTO partners
-        (id, slug, name, discount_code, access_token, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        (id, slug, name, logo_url, discount_code, access_token, commission_rate, description, active, collaboration_enabled, collaboration_design, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `)
     .bind(
       id,
       normalizeSlug(data.slug),
       data.name.trim(),
+      data.logoUrl?.trim() || null,
       data.discountCode?.trim() || null,
       normalizeToken(accessToken),
       Math.max(0, Math.round(data.commissionRate)),
@@ -654,6 +682,7 @@ export async function updatePartner(
       UPDATE partners
       SET slug = ?,
           name = ?,
+          logo_url = ?,
           discount_code = ?,
           access_token = ?,
           commission_rate = ?,
@@ -667,6 +696,7 @@ export async function updatePartner(
     .bind(
       normalizeSlug(data.slug),
       data.name.trim(),
+      data.logoUrl !== undefined ? data.logoUrl?.trim() || null : existing.logoUrl,
       data.discountCode?.trim() || null,
       normalizeToken(accessToken),
       Math.max(0, Math.round(data.commissionRate)),

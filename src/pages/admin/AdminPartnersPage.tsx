@@ -15,6 +15,7 @@ import { formatDate } from '../../lib/utils.js';
 type Draft = {
   slug: string;
   name: string;
+  logoImage: CollaborationImageRow | null;
   discountCode: string;
   accessToken: string;
   commissionRate: string;
@@ -40,7 +41,8 @@ interface CollaborationDesignDraft {
   frontImage: CollaborationImageRow | null;
   backImage: CollaborationImageRow | null;
   sizes: string;
-  price: string;
+  wholesalePrice: string;
+  rrp: string;
 }
 
 function emptyCollaborationDesignDraft(): CollaborationDesignDraft {
@@ -54,7 +56,8 @@ function emptyCollaborationDesignDraft(): CollaborationDesignDraft {
     frontImage: null,
     backImage: null,
     sizes: DEFAULT_SIZE_OPTIONS.join(', '),
-    price: '',
+    wholesalePrice: '',
+    rrp: '',
   };
 }
 
@@ -62,6 +65,7 @@ function emptyDraft(): Draft {
   return {
     slug: '',
     name: '',
+    logoImage: null,
     discountCode: '',
     accessToken: '',
     commissionRate: '10',
@@ -86,6 +90,112 @@ function imageFromUrl(url: string | null | undefined, isDefault: boolean): Colla
   };
 }
 
+function parseSizeList(value: string): string[] {
+  return Array.from(
+    new Set(
+      value
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function serializeSizeList(values: string[]): string {
+  return values.join(', ');
+}
+
+function CollaborationSizesEditor({
+  sizes,
+  onChange,
+}: {
+  sizes: string;
+  onChange: (value: string) => void;
+}) {
+  const [draftSize, setDraftSize] = useState('');
+  const parsedSizes = parseSizeList(sizes);
+
+  function addSize() {
+    const nextSize = draftSize.trim();
+    if (!nextSize) return;
+
+    const nextSizes = parseSizeList([...parsedSizes, nextSize].join(','));
+    onChange(serializeSizeList(nextSizes));
+    setDraftSize('');
+  }
+
+  function removeSize(size: string) {
+    onChange(serializeSizeList(parsedSizes.filter((entry) => entry !== size)));
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex min-h-11 flex-wrap gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+        {parsedSizes.length > 0 ? (
+          parsedSizes.map((size) => (
+            <button
+              key={size}
+              type="button"
+              onClick={() => removeSize(size)}
+              className="inline-flex items-center gap-1 rounded-full bg-navy-800 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-navy-700"
+              aria-label={`Remove size ${size}`}
+            >
+              {size}
+              <span aria-hidden className="text-[10px] leading-none">
+                ×
+              </span>
+            </button>
+          ))
+        ) : (
+          <span className="text-xs text-gray-400 dark:text-gray-500">Add sizes for this design</span>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <input
+          value={draftSize}
+          onChange={(event) => setDraftSize(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ',') {
+              event.preventDefault();
+              addSize();
+            }
+          }}
+          placeholder={DEFAULT_SIZE_OPTIONS.join(', ')}
+          className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+        />
+        <button
+          type="button"
+          onClick={addSize}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          Add
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {DEFAULT_SIZE_OPTIONS.map((size) => {
+          const isSelected = parsedSizes.includes(size);
+          return (
+            <button
+              key={size}
+              type="button"
+              onClick={() => (isSelected ? removeSize(size) : onChange(serializeSizeList([...parsedSizes, size])))}
+              className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
+                isSelected
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              {size}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function designDraftFromApi(design: PartnerCollaborationDesign | null | undefined): CollaborationDesignDraft {
   return {
     id: crypto.randomUUID(),
@@ -97,8 +207,13 @@ function designDraftFromApi(design: PartnerCollaborationDesign | null | undefine
     frontImage: imageFromUrl(design?.imageUrls?.[0] ?? design?.imageUrl, true),
     backImage: imageFromUrl(design?.imageUrls?.[1] ?? null, false),
     sizes: (design?.sizes ?? DEFAULT_SIZE_OPTIONS).join(', '),
-    price: formatPoundsInput(design?.partnerPrice),
+    wholesalePrice: formatPoundsInput(design?.partnerPrice),
+    rrp: formatPoundsInput(design?.rrp ?? design?.partnerPrice),
   };
+}
+
+function logoImageFromUrl(url: string | null | undefined): CollaborationImageRow | null {
+  return imageFromUrl(url, true);
 }
 
 export default function AdminPartnersPage() {
@@ -177,6 +292,7 @@ export default function AdminPartnersPage() {
     setDraft({
       slug: partner.slug,
       name: partner.name,
+      logoImage: logoImageFromUrl(partner.logoUrl),
       discountCode: partner.discountCode ?? '',
       accessToken: partner.accessToken ?? '',
       commissionRate: String(partner.commissionRate),
@@ -196,6 +312,34 @@ export default function AdminPartnersPage() {
     if (image?.previewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(image.previewUrl);
     }
+  }
+
+  function handleLogoSelected(fileList: FileList | null) {
+    if (!fileList) return;
+    const file = fileList[0];
+    if (!file) return;
+
+    setDraft((current) => {
+      revokeCollaborationPreview(current.logoImage);
+      return {
+        ...current,
+        logoImage: {
+          file,
+          previewUrl: URL.createObjectURL(file),
+          isDefault: true,
+        },
+      };
+    });
+  }
+
+  function removeLogoImage() {
+    setDraft((current) => {
+      revokeCollaborationPreview(current.logoImage);
+      return {
+        ...current,
+        logoImage: null,
+      };
+    });
   }
 
   function updateCollaborationDesign(
@@ -307,6 +451,11 @@ export default function AdminPartnersPage() {
       const form = new FormData();
       form.append('slug', slug);
       form.append('name', name);
+      if (draft.logoImage?.file) {
+        form.append('logoFile', draft.logoImage.file, draft.logoImage.file.name);
+      } else if (draft.logoImage?.previewUrl) {
+        form.append('logoUrl', draft.logoImage.previewUrl);
+      }
       form.append('discountCode', draft.discountCode.trim());
       form.append('commissionRate', String(commissionRate));
       form.append('description', draft.description.trim());
@@ -324,7 +473,8 @@ export default function AdminPartnersPage() {
         colorName: string;
         colorHex: string;
         sizes: string[];
-        partnerPrice: number;
+        wholesalePrice: number;
+        rrp: number;
         images: Array<
           | { type: 'file'; fileIndex: number; isDefault: boolean }
           | { type: 'url'; url: string; isDefault: boolean }
@@ -358,16 +508,18 @@ export default function AdminPartnersPage() {
           colorName: design.colorName.trim(),
           colorHex: design.colorHex.trim(),
           sizes: design.sizes.split(',').map((size) => size.trim()).filter(Boolean),
-          partnerPrice: Math.max(0, Math.round((Number(design.price) || 0) * 100)),
+          wholesalePrice: Math.max(0, Math.round((Number(design.wholesalePrice) || 0) * 100)),
+          rrp: Math.max(0, Math.round((Number(design.rrp) || 0) * 100)),
           images,
         });
       });
       form.append('collaborationDesignsMeta', JSON.stringify(collaborationDesignsMeta));
 
-      [
+      const legacyImageRows: Array<[CollaborationImageRow | null, boolean]> = [
         [legacyDesign.frontImage, true],
         [legacyDesign.backImage, false],
-      ].forEach(([image, isDefault]) => {
+      ];
+      legacyImageRows.forEach(([image, isDefault]) => {
         if (image?.file) {
           form.append('collaborationImages', image.file, image.file.name);
           legacyImages.push({ type: 'file', fileIndex: legacyImages.length, isDefault });
@@ -382,7 +534,8 @@ export default function AdminPartnersPage() {
       form.append('collaborationColorName', legacyDesign.colorName.trim());
       form.append('collaborationColorHex', legacyDesign.colorHex.trim());
       form.append('collaborationSizes', legacyDesign.sizes);
-      form.append('collaborationPrice', legacyDesign.price);
+      form.append('collaborationPrice', legacyDesign.wholesalePrice);
+      form.append('collaborationRrp', legacyDesign.rrp);
       form.append('collaborationImagesMeta', JSON.stringify(legacyImages));
       form.append(
         'collaborationImageUrls',
@@ -518,8 +671,19 @@ export default function AdminPartnersPage() {
                       }`}
                     >
                       <td className="px-3 py-3">
-                        <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{partner.name}</p>
-                        <p className="truncate text-xs text-gray-500 dark:text-gray-400">Code {partner.slug}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+                            {partner.logoUrl ? (
+                              <img src={partner.logoUrl} alt="" className="h-full w-full object-contain p-1.5" />
+                            ) : (
+                              <span className="text-xs font-black uppercase text-gray-400">{partner.name.slice(0, 1)}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{partner.name}</p>
+                            <p className="truncate text-xs text-gray-500 dark:text-gray-400">Code {partner.slug}</p>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.discountCode ?? '—'}</td>
                       <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.commissionRate}%</td>
@@ -613,6 +777,42 @@ export default function AdminPartnersPage() {
                       placeholder="Oxford Park Padel"
                       className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                     />
+                  </label>
+
+                  <label className="block space-y-2 sm:col-span-2">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Club logo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleLogoSelected(e.target.files)}
+                      className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-navy-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wider file:text-white hover:file:bg-navy-700"
+                    />
+                    {draft.logoImage ? (
+                      <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950">
+                        <img
+                          src={draft.logoImage.previewUrl}
+                          alt="Club logo preview"
+                          className="h-14 w-14 rounded-xl object-contain bg-white p-1.5"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Logo selected</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {draft.logoImage.file?.name ?? 'Existing logo'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={removeLogoImage}
+                          className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-white dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Upload the club badge or crest used across the portal and tables.
+                      </p>
+                    )}
                   </label>
 
                   <label className="block space-y-1">
@@ -828,27 +1028,6 @@ export default function AdminPartnersPage() {
                         </label>
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="block space-y-1">
-                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour name</span>
-                          <input
-                            value={design.colorName}
-                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, colorName: e.target.value }))}
-                            placeholder="Collaboration"
-                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                          />
-                        </label>
-                        <label className="block space-y-1">
-                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Colour hex</span>
-                          <input
-                            value={design.colorHex}
-                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, colorHex: e.target.value }))}
-                            placeholder="#111827"
-                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                          />
-                        </label>
-                      </div>
-
                       <label className="block space-y-1">
                         <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
                         <textarea
@@ -861,24 +1040,34 @@ export default function AdminPartnersPage() {
                       </label>
 
                       <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="block space-y-1">
-                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Sizes</span>
-                          <input
-                            value={design.sizes}
-                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, sizes: e.target.value }))}
-                            placeholder={DEFAULT_SIZE_OPTIONS.join(', ')}
-                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                        <div className="space-y-1 sm:col-span-2">
+                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Available sizes</span>
+                          <CollaborationSizesEditor
+                            sizes={design.sizes}
+                            onChange={(value) => updateCollaborationDesign(design.id, (current) => ({ ...current, sizes: value }))}
                           />
-                        </label>
+                        </div>
                         <label className="block space-y-1">
-                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Price</span>
+                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Wholesale price</span>
                           <input
                             type="number"
                             min="0"
                             step="0.01"
-                            value={design.price}
-                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, price: e.target.value }))}
+                            value={design.wholesalePrice}
+                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, wholesalePrice: e.target.value }))}
                             placeholder="18.00"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </label>
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">RRP</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={design.rrp}
+                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, rrp: e.target.value }))}
+                            placeholder="30.00"
                             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                           />
                         </label>
@@ -932,19 +1121,55 @@ export default function AdminPartnersPage() {
                 />
               </label>
 
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</span>
-                <input
-                  value={draft.name}
-                  onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
-                  placeholder="Oxford Park Padel"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                />
-              </label>
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</span>
+                    <input
+                      value={draft.name}
+                      onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
+                      placeholder="Oxford Park Padel"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    />
+                  </label>
 
-              <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Discount code</span>
-                <input
+                  <label className="block space-y-2 sm:col-span-2">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Club logo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleLogoSelected(e.target.files)}
+                      className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-navy-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wider file:text-white hover:file:bg-navy-700"
+                    />
+                    {draft.logoImage ? (
+                      <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950">
+                        <img
+                          src={draft.logoImage.previewUrl}
+                          alt="Club logo preview"
+                          className="h-14 w-14 rounded-xl object-contain bg-white p-1.5"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Logo selected</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {draft.logoImage.file?.name ?? 'Existing logo'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={removeLogoImage}
+                          className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Upload the club badge or crest used across the portal and tables.
+                      </p>
+                    )}
+                  </label>
+
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Discount code</span>
+                    <input
                   value={draft.discountCode}
                   onChange={(e) => setDraft((current) => ({ ...current, discountCode: e.target.value }))}
                   placeholder="OXFORD10"

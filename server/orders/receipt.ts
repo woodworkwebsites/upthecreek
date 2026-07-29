@@ -42,7 +42,7 @@ export function buildOrderReceiptHtml(order: Order): string {
   const itemRows = items.length > 0
     ? items.map((item) => `
         <tr>
-          <td>${escapeHtml(item.title)}</td>
+          <td>${escapeHtml(item.title)}${item.orderUrl ? ` <a href="${escapeHtml(item.orderUrl)}" target="_blank" rel="noreferrer">open</a>` : ''}</td>
           <td>${escapeHtml(item.color)}</td>
           <td>${escapeHtml(item.size)}</td>
           <td class="right">${item.quantity}</td>

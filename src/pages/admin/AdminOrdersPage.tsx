@@ -262,7 +262,20 @@ function OrderRow({
                     <div className="rounded-lg bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 p-3 text-xs text-gray-700 dark:text-gray-300 space-y-1.5">
                       {shown.items && shown.items.length > 0 ? shown.items.map((item) => (
                         <div key={item.id} className="flex justify-between gap-2">
-                          <span>{item.quantity}x {item.title} ({item.color}, {item.size})</span>
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span>{item.quantity}x {item.title} ({item.color}, {item.size})</span>
+                            {item.orderUrl && (
+                              <a
+                                href={item.orderUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-navy-800 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-blue-300"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                Open garment
+                              </a>
+                            )}
+                          </span>
                           <span className="text-gray-400 dark:text-gray-500">{formatPrice(item.unitPrice * item.quantity)}</span>
                         </div>
                       )) : (
