@@ -259,18 +259,41 @@ async function replacePartnerCollaborationDesignRows(
   const normalized = (designs ?? [])
     .map((design) => normalizeCollaborationDesign(design))
     .filter((entry): entry is PartnerCollaborationDesign => Boolean(entry));
+  if (normalized.length === 0) {
+    await db
+      .prepare('DELETE FROM partner_collaboration_designs WHERE partner_id = ?')
+      .bind(partnerId)
+      .run();
+    return;
+  }
 
-  const statements = [
-    db.prepare('DELETE FROM partner_collaboration_designs WHERE partner_id = ?').bind(partnerId),
-    ...normalized.map((design, index) => {
-      const row = serializeCollaborationDesignRow(partnerId, design, index);
+  const existingRows = await db
+    .prepare('SELECT id FROM partner_collaboration_designs WHERE partner_id = ? ORDER BY sort_order ASC, created_at ASC')
+    .bind(partnerId)
+    .all<{ id: string }>();
+
+  const existingIds = (existingRows.results ?? []).map((row) => row.id);
+  const statements = normalized.map((design, index) => {
+    const row = serializeCollaborationDesignRow(partnerId, design, index);
+    const existingId = existingIds[index];
+
+    if (existingId) {
       return db.prepare(`
-        INSERT INTO partner_collaboration_designs
-          (id, partner_id, title, description, image_urls, garment, order_url, color_name, color_hex, sizes, partner_price, rrp_price, sort_order, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        UPDATE partner_collaboration_designs
+        SET title = ?,
+            description = ?,
+            image_urls = ?,
+            garment = ?,
+            order_url = ?,
+            color_name = ?,
+            color_hex = ?,
+            sizes = ?,
+            partner_price = ?,
+            rrp_price = ?,
+            sort_order = ?,
+            updated_at = datetime('now')
+        WHERE id = ?
       `).bind(
-        row.id,
-        row.partner_id,
         row.title,
         row.description,
         row.image_urls,
@@ -282,9 +305,37 @@ async function replacePartnerCollaborationDesignRows(
         row.partner_price,
         row.rrp_price,
         row.sort_order,
+        existingId,
       );
-    }),
-  ];
+    }
+
+    return db.prepare(`
+      INSERT INTO partner_collaboration_designs
+        (id, partner_id, title, description, image_urls, garment, order_url, color_name, color_hex, sizes, partner_price, rrp_price, sort_order, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).bind(
+      row.id,
+      row.partner_id,
+      row.title,
+      row.description,
+      row.image_urls,
+      row.garment,
+      row.order_url,
+      row.color_name,
+      row.color_hex,
+      row.sizes,
+      row.partner_price,
+      row.rrp_price,
+      row.sort_order,
+    );
+  });
+
+  if (existingIds.length > normalized.length) {
+    statements.push(
+      db.prepare('DELETE FROM partner_collaboration_designs WHERE partner_id = ? AND sort_order >= ?')
+        .bind(partnerId, normalized.length),
+    );
+  }
 
   await db.batch(statements);
 }

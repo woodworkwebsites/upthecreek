@@ -85,6 +85,12 @@ function getReferralPricing(product: Product): { purchaserPrice: number; commiss
   };
 }
 
+function getCollaborationReferralPricing(rrp: number): { commission: number } {
+  return {
+    commission: Math.max(0, Math.round(rrp * 0.1)),
+  };
+}
+
 function buildSizeEntries(product: Product, color: string): BasketSizeEntry[] {
   const sizes = getProductSizes(product);
   const variants = getColorVariants(product, color);
@@ -203,6 +209,7 @@ function ProductMatrixCard({
   const [imageIndex, setImageIndex] = useState(0);
   const activeColor = colors.find((color) => color.name === selectedColorName) ?? colors[0];
   const rrp = getRrp(product);
+  const partnerPrice = getPartnerUnitPrice(product, rrp);
   const { commission } = getReferralPricing(product);
   const isCollaboration = product.category === 'partner-collaboration';
   const colorImages = useMemo(() => (activeColor ? getImagesForColor(product, activeColor.name) : []), [activeColor, product]);
@@ -265,17 +272,20 @@ function ProductMatrixCard({
         <h2 className="text-base font-black leading-snug tracking-tight text-navy-900">{product.title}</h2>
 
         <div className="mt-2.5 space-y-1.5">
-          {isCollaboration ? null : (
-            <>
-              <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={priceChipClass}>{formatPrice(partnerPrice)} partner</span>
+            {isCollaboration ? null : (
+              <>
                 <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
                 <span className={marginChipClass}>Margin</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className={rowLabelClass}>Referral</span>
-                <span className={commissionChipClass}>{formatPrice(commission)} referral</span>
-              </div>
-            </>
+              </>
+            )}
+          </div>
+          {!isCollaboration && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className={rowLabelClass}>Online Referral</span>
+              <span className={commissionChipClass}>{formatPrice(commission)} referral</span>
+            </div>
           )}
         </div>
         <p className="mt-2 text-xs text-gray-400">
@@ -819,7 +829,11 @@ export function PartnerOrderWorkspace({
         const activeCarouselImage = carouselImages[draftImageIndex % carouselImages.length] ?? activeDraft.imageSrc;
         const draftTotalPieces = draftLines.reduce((sum, line) => sum + lineCount(line), 0);
         const draftTotalValue = draftLines.reduce((sum, line) => sum + lineTotal(line), 0);
-        const draftReferral = draftProduct ? getReferralPricing(draftProduct) : { purchaserPrice: 0, commission: 0 };
+        const draftReferral = draftProduct
+          ? isCollaborationDraft
+            ? getCollaborationReferralPricing(activeDraft.rrp)
+            : getReferralPricing(draftProduct)
+          : { purchaserPrice: 0, commission: 0 };
         const isCollaborationDraft = draftProduct?.category === 'partner-collaboration';
         return (
         <div
@@ -926,7 +940,7 @@ export function PartnerOrderWorkspace({
                         <span className={marginChipClass}>Margin</span>
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={rowLabelClass}>Referral</span>
+                        <span className={rowLabelClass}>Online Referral</span>
                         <span className={commissionChipClass}>{formatPrice(draftReferral.commission)} referral</span>
                       </div>
                     </div>

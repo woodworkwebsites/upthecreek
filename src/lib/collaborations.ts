@@ -98,7 +98,7 @@ export function buildCollaborationProduct(
     printifyId: productId,
     title: design.title.trim() || `${partner.name} collaboration`,
     description: design.description ?? '',
-    category: 'collaboration',
+    category: 'partner-collaboration',
     rangeId: 'collabs',
     audience: 'Collaboration',
     productType: 'Collaboration',

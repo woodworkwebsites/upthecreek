@@ -115,34 +115,38 @@ export default function HomePage() {
       {/* ── Collection ──────────────────────────────────────────── */}
       <section id="collection" className="scroll-mt-0">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-20 sm:pt-12 sm:pb-28">
-
           <div className="mb-14 flex justify-center">
-            <div className="flex flex-col items-center gap-5 text-center lg:flex-row lg:items-end lg:gap-8">
-              <h2 className="mt-0 flex flex-col items-center gap-1 sm:gap-2 text-3xl sm:text-4xl font-black font-sans text-navy-800 tracking-tight text-center">
-                <span className="block">The</span>
-                <img
-                  src="/Up The Creek_Wordmark.png"
-                  alt="Up the Creek"
-                  className="h-16 w-auto object-contain sm:h-20 lg:h-24"
-                />
-                <span className="block">Collection</span>
-              </h2>
+            <h2 className="mt-0 flex flex-col items-center gap-1 text-center text-3xl font-black tracking-tight text-navy-800 sm:text-4xl">
+              <span className="block">The</span>
+              <img
+                src="/Up The Creek_Wordmark.png"
+                alt="Up the Creek"
+                className="h-16 w-auto object-contain sm:h-20 lg:h-24"
+              />
+              <span className="block">Collection</span>
+            </h2>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
+            <div>
+              {loading ? (
+                <PageLoader />
+              ) : error ? (
+                <ErrorMessage message={error} />
+              ) : (
+                <ProductGrid products={products} />
+              )}
+            </div>
+
+            <aside className="lg:pt-2">
               <Link
                 to="/collabs"
-                className="inline-flex items-center justify-center rounded-full border border-navy-800/15 bg-white px-5 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white"
+                className="inline-flex w-full items-center justify-center rounded-[1.5rem] border border-navy-800/15 bg-white px-5 py-4 text-center text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white lg:min-h-[5rem]"
               >
                 Shop collaborations
               </Link>
-            </div>
+            </aside>
           </div>
-
-          {loading ? (
-            <PageLoader />
-          ) : error ? (
-            <ErrorMessage message={error} />
-          ) : (
-            <ProductGrid products={products} />
-          )}
 
           <div className="mt-12 rounded-[2rem] border border-navy-800/10 bg-[linear-gradient(135deg,_#0b1437_0%,_#132552_52%,_#1e3a8a_100%)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(5,13,31,0.22)] sm:px-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -154,12 +158,6 @@ export default function HomePage() {
                 <p className="mt-3 max-w-xl text-sm leading-7 text-white/75">
                   Join the email list for launch notices, limited releases, and occasional offers from Up the Creek.
                 </p>
-                <Link
-                  to="/partners"
-                  className="mt-5 inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-white/10"
-                >
-                  Interested in stocking UTC Apparel?
-                </Link>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
@@ -171,6 +169,14 @@ export default function HomePage() {
                   Sign up for emails
                 </button>
               </div>
+            </div>
+            <div className="mt-6 flex justify-start">
+              <Link
+                to="/partners"
+                className="inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-white/10"
+              >
+                Interested in stocking UTC Apparel?
+              </Link>
             </div>
           </div>
         </div>
