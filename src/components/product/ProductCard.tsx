@@ -22,7 +22,7 @@ export function ProductCard({ product, priceLabel, toPrefix = '/product' }: Prod
   return (
     <Link
       to={`${toPrefix}/${encodeURIComponent(product.id)}`}
-      className="group block focus:outline-none"
+      className="group block w-full max-w-[18rem] focus:outline-none"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onFocus={() => setIsHovered(true)}
