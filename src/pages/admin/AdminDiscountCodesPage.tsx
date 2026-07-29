@@ -395,7 +395,6 @@ export default function AdminDiscountCodesPage() {
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 }
