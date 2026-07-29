@@ -33,7 +33,7 @@ const process = [
 
 const faqs = [
   {
-    q: 'How is commission paid?',
+    q: 'How is commission earnt?',
     a: 'Commission is calculated on attributed online orders and shown in the partner dashboard alongside paid and pending totals.',
   },
   {

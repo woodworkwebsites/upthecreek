@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminToken } from '../../hooks/useAdmin.js';
+import AdminLoginPage from '../../pages/admin/AdminLoginPage.js';
 import { adminFetchOrders } from '../../lib/api.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Order } from '../../../types/index.js';
@@ -69,10 +70,6 @@ export default function AdminLayout() {
   }, [isOrdersPage, markSeen, token]);
 
   useEffect(() => {
-    if (!token) navigate('/admin/login', { replace: true });
-  }, [token, navigate]);
-
-  useEffect(() => {
     if (!token) return;
     void refreshOrderAlert();
     const interval = window.setInterval(() => {
@@ -92,7 +89,7 @@ export default function AdminLayout() {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  if (!token) return null;
+  if (!token) return <AdminLoginPage />;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">

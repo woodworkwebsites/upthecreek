@@ -231,6 +231,35 @@ export interface DiscountCode {
   updatedAt: string;
 }
 
+export interface NewsletterSubscriptionInput {
+  email: string;
+  source?: string;
+}
+
+export interface NewsletterSubscriberRow {
+  id: string;
+  email: string;
+  source: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PartnerCollaborationDesignRow {
+  id: string;
+  partner_id: string;
+  title: string;
+  description: string | null;
+  image_urls: string;
+  garment: string | null;
+  color_name: string;
+  color_hex: string;
+  sizes: string;
+  partner_price: number;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CatalogRange {
   id: string;
   name: string;

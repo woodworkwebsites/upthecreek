@@ -1,13 +1,19 @@
-import { useEffect } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useProducts } from '../hooks/useProducts.js';
 import { ProductGrid } from '../components/product/ProductGrid.js';
 import { PageLoader } from '../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../components/ui/ErrorMessage.js';
+import { subscribeNewsletter } from '../lib/api.js';
 
 export default function HomePage() {
   const { products, loading, error } = useProducts('storefront');
   const { hash } = useLocation();
+  const [newsletterOpen, setNewsletterOpen] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+  const [newsletterError, setNewsletterError] = useState<string | null>(null);
+  const [newsletterSuccess, setNewsletterSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (hash === '#collection') {
@@ -15,6 +21,44 @@ export default function HomePage() {
       if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
   }, [hash]);
+
+  useEffect(() => {
+    if (!newsletterOpen) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setNewsletterOpen(false);
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [newsletterOpen]);
+
+  async function handleNewsletterSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const email = newsletterEmail.trim();
+    if (!email) {
+      setNewsletterError('Enter your email address');
+      return;
+    }
+
+    setNewsletterSubmitting(true);
+    setNewsletterError(null);
+    setNewsletterSuccess(null);
+
+    try {
+      const result = await subscribeNewsletter({ email, source: 'homepage-modal' });
+      setNewsletterSuccess(
+        result.alreadySubscribed
+          ? 'You’re already on the list.'
+          : 'You’re on the list. We’ll send offers and new drop updates.',
+      );
+      setNewsletterEmail('');
+    } catch (err) {
+      setNewsletterError(err instanceof Error ? err.message : 'Could not save your signup');
+    } finally {
+      setNewsletterSubmitting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-cream">
@@ -65,7 +109,39 @@ export default function HomePage() {
           <svg className="h-6 w-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
-        </a>
+          </a>
+      </section>
+
+      {/* ── Newsletter CTA ─────────────────────────────────────── */}
+      <section className="relative z-10 -mt-10 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl rounded-[2rem] border border-white/20 bg-[linear-gradient(135deg,_#0b1437_0%,_#132552_52%,_#1e3a8a_100%)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(5,13,31,0.22)] sm:px-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/45">Drop list</p>
+              <h2 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
+                Get offers and first access to new drops.
+              </h2>
+              <p className="mt-3 max-w-xl text-sm leading-7 text-white/75">
+                Join the email list for launch notices, limited releases, and occasional offers from Up the Creek.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => setNewsletterOpen(true)}
+                className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-900 transition-transform hover:scale-[1.02]"
+              >
+                Sign up for emails
+              </button>
+              <a
+                href="#collection"
+                className="inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-white/10"
+              >
+                View collection
+              </a>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ── Collection ──────────────────────────────────────────── */}
@@ -131,6 +207,69 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {newsletterOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-navy-950/70 p-4 backdrop-blur-sm sm:items-center"
+          onClick={() => setNewsletterOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Email signup"
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:p-8"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">Drop list</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-navy-900">
+                  Sign up for offers and updates
+                </h2>
+                <p className="mt-2 text-sm leading-7 text-gray-500">
+                  We’ll only use this for UTC drops, offers, and club updates.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNewsletterOpen(false)}
+                className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={handleNewsletterSubmit} className="mt-6 space-y-4">
+              <label className="block space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">Email address</span>
+                <input
+                  type="email"
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-navy-900 outline-none transition-colors placeholder:text-gray-400 focus:border-navy-800"
+                />
+              </label>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button
+                  type="submit"
+                  disabled={newsletterSubmitting}
+                  className="inline-flex items-center justify-center rounded-full bg-navy-900 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-navy-800 disabled:opacity-50"
+                >
+                  {newsletterSubmitting ? 'Signing up…' : 'Join the list'}
+                </button>
+                <p className="text-xs leading-6 text-gray-400">
+                  Unsubscribe anytime by replying to any email.
+                </p>
+              </div>
+
+              {newsletterError && <p className="text-sm text-red-600">{newsletterError}</p>}
+              {newsletterSuccess && <p className="text-sm text-emerald-600">{newsletterSuccess}</p>}
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

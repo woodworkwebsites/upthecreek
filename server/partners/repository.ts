@@ -5,6 +5,7 @@ import type {
   Partner,
   PartnerAdmin,
   PartnerCollaborationDesign,
+  PartnerCollaborationDesignRow,
   PartnerCommissionRow,
   PartnerCommissionStatus,
   PartnerDashboard,
@@ -144,6 +145,119 @@ function serializeCollaborationDesigns(designs: PartnerCollaborationDesign[] | n
     sizes: normalizeCollaborationSizes(design.sizes),
     partnerPrice: Math.max(0, Math.round(design.partnerPrice)),
   })));
+}
+
+function parseJsonStringArray(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return normalizeCollaborationImages(parsed);
+  } catch {
+    return [];
+  }
+}
+
+function parseCollaborationDesignRow(row: PartnerCollaborationDesignRow): PartnerCollaborationDesign {
+  return {
+    title: row.title,
+    description: row.description,
+    imageUrl: parseJsonStringArray(row.image_urls)[0] ?? null,
+    imageUrls: parseJsonStringArray(row.image_urls),
+    garment: row.garment,
+    colorName: row.color_name,
+    colorHex: row.color_hex,
+    sizes: normalizeCollaborationSizes(parseJsonStringArray(row.sizes)),
+    partnerPrice: row.partner_price,
+  };
+}
+
+function serializeCollaborationDesignRow(
+  partnerId: string,
+  design: PartnerCollaborationDesign,
+  sortOrder: number,
+): {
+  id: string;
+  partner_id: string;
+  title: string;
+  description: string | null;
+  image_urls: string;
+  garment: string | null;
+  color_name: string;
+  color_hex: string;
+  sizes: string;
+  partner_price: number;
+  sort_order: number;
+} {
+  const normalized = normalizeCollaborationDesign(design);
+  if (!normalized) {
+    throw new Error('Invalid collaboration design');
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    partner_id: partnerId,
+    title: normalized.title.trim(),
+    description: normalized.description?.trim() || null,
+    image_urls: JSON.stringify(normalized.imageUrls),
+    garment: normalized.garment?.trim() || null,
+    color_name: normalized.colorName.trim() || 'Collaboration',
+    color_hex: normalized.colorHex.trim() || '#111827',
+    sizes: JSON.stringify(normalizeCollaborationSizes(normalized.sizes)),
+    partner_price: Math.max(0, Math.round(normalized.partnerPrice)),
+    sort_order: sortOrder,
+  };
+}
+
+async function loadPartnerCollaborationDesignRows(
+  db: D1Database,
+  partnerId: string,
+): Promise<PartnerCollaborationDesign[]> {
+  await ensurePartnerSchema(db);
+
+  const rows = await db
+    .prepare('SELECT * FROM partner_collaboration_designs WHERE partner_id = ? ORDER BY sort_order ASC, created_at ASC')
+    .bind(partnerId)
+    .all<PartnerCollaborationDesignRow>();
+
+  return (rows.results ?? []).map(parseCollaborationDesignRow);
+}
+
+async function replacePartnerCollaborationDesignRows(
+  db: D1Database,
+  partnerId: string,
+  designs: PartnerCollaborationDesign[] | null | undefined,
+): Promise<void> {
+  await ensurePartnerSchema(db);
+
+  const normalized = (designs ?? [])
+    .map((design) => normalizeCollaborationDesign(design))
+    .filter((entry): entry is PartnerCollaborationDesign => Boolean(entry));
+
+  const statements = [
+    db.prepare('DELETE FROM partner_collaboration_designs WHERE partner_id = ?').bind(partnerId),
+    ...normalized.map((design, index) => {
+      const row = serializeCollaborationDesignRow(partnerId, design, index);
+      return db.prepare(`
+        INSERT INTO partner_collaboration_designs
+          (id, partner_id, title, description, image_urls, garment, color_name, color_hex, sizes, partner_price, sort_order, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).bind(
+        row.id,
+        row.partner_id,
+        row.title,
+        row.description,
+        row.image_urls,
+        row.garment,
+        row.color_name,
+        row.color_hex,
+        row.sizes,
+        row.partner_price,
+        row.sort_order,
+      );
+    }),
+  ];
+
+  await db.batch(statements);
 }
 
 function calcItemTotal(items: OrderItem[]): number {
@@ -305,6 +419,24 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
   `).run();
 
   await db.prepare(`
+    CREATE TABLE IF NOT EXISTS partner_collaboration_designs (
+      id            TEXT PRIMARY KEY,
+      partner_id    TEXT NOT NULL REFERENCES partners(id),
+      title         TEXT NOT NULL,
+      description   TEXT,
+      image_urls    TEXT NOT NULL DEFAULT '[]',
+      garment       TEXT,
+      color_name    TEXT NOT NULL DEFAULT 'Collaboration',
+      color_hex     TEXT NOT NULL DEFAULT '#111827',
+      sizes         TEXT NOT NULL DEFAULT '[]',
+      partner_price INTEGER NOT NULL DEFAULT 0,
+      sort_order    INTEGER NOT NULL DEFAULT 0,
+      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `).run();
+
+  await db.prepare(`
     CREATE TABLE IF NOT EXISTS partner_commissions (
       id                TEXT PRIMARY KEY,
       partner_id        TEXT NOT NULL,
@@ -342,6 +474,7 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_commissions_partner_id ON partner_commissions(partner_id)').run();
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_commissions_status ON partner_commissions(status)').run();
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_payouts_partner_id ON partner_payouts(partner_id)').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_collaboration_designs_partner_id ON partner_collaboration_designs(partner_id)').run();
 
   const columns = await db.prepare('PRAGMA table_info(partners)').all<{ name: string }>();
   const columnNames = new Set((columns.results ?? []).map((column) => column.name));
@@ -351,6 +484,20 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
   if (!columnNames.has('collaboration_design')) {
     await db.prepare('ALTER TABLE partners ADD COLUMN collaboration_design TEXT').run();
   }
+}
+
+async function hydratePartnerRow(db: D1Database, row: PartnerRow): Promise<PartnerAdmin> {
+  const tableDesigns = await loadPartnerCollaborationDesignRows(db, row.id);
+  const fallbackDesigns = tableDesigns.length > 0 ? tableDesigns : parseCollaborationDesigns(row.collaboration_design);
+
+  return {
+    ...parsePartnerRow({
+      ...row,
+      collaboration_design: fallbackDesigns.length > 0 ? serializeCollaborationDesigns(fallbackDesigns) : row.collaboration_design,
+    }),
+    collaborationDesigns: fallbackDesigns,
+    collaborationDesign: fallbackDesigns[0] ?? null,
+  };
 }
 
 export async function getPartnerByDiscountCode(db: D1Database, discountCode: string): Promise<Partner | null> {
@@ -363,7 +510,7 @@ export async function getPartnerByDiscountCode(db: D1Database, discountCode: str
     .bind(discountCode.trim())
     .first<PartnerRow>();
 
-  return row ? parsePartnerRow(row) : null;
+  return row ? hydratePartnerRow(db, row) : null;
 }
 
 export async function getPartnerBySlug(db: D1Database, slug: string): Promise<Partner | null> {
@@ -376,7 +523,7 @@ export async function getPartnerBySlug(db: D1Database, slug: string): Promise<Pa
     .bind(normalizeSlug(slug))
     .first<PartnerRow>();
 
-  return row ? parsePartnerRow(row) : null;
+  return row ? hydratePartnerRow(db, row) : null;
 }
 
 export async function getPartnerBySlugAndToken(
@@ -393,7 +540,7 @@ export async function getPartnerBySlugAndToken(
     .bind(normalizeSlug(slug), normalizeToken(accessToken))
     .first<PartnerRow>();
 
-  return row ? parsePartnerRow(row) : null;
+  return row ? hydratePartnerRow(db, row) : null;
 }
 
 export async function listPartners(db: D1Database): Promise<PartnerAdmin[]> {
@@ -405,7 +552,7 @@ export async function listPartners(db: D1Database): Promise<PartnerAdmin[]> {
     )
     .all<PartnerRow>();
 
-  return (result.results ?? []).map(parsePartnerRow);
+  return Promise.all((result.results ?? []).map((row) => hydratePartnerRow(db, row)));
 }
 
 export async function getPartnerById(db: D1Database, id: string): Promise<PartnerAdmin | null> {
@@ -418,7 +565,7 @@ export async function getPartnerById(db: D1Database, id: string): Promise<Partne
     .bind(id)
     .first<PartnerRow>();
 
-  return row ? parsePartnerRow(row) : null;
+  return row ? hydratePartnerRow(db, row) : null;
 }
 
 async function getPartnerSecretById(db: D1Database, id: string): Promise<(Partner & { accessToken: string }) | null> {
@@ -467,6 +614,8 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
       serializeCollaborationDesigns(collaborationDesigns),
     )
     .run();
+
+  await replacePartnerCollaborationDesignRows(db, id, collaborationDesigns);
 
   const created = await getPartnerById(db, id);
   if (!created) {
@@ -530,6 +679,7 @@ export async function updatePartner(
     .run();
 
   if (!result.success) return null;
+  await replacePartnerCollaborationDesignRows(db, id, collaborationDesigns);
   const updated = await getPartnerById(db, id);
   if (!updated) return null;
 
@@ -546,10 +696,11 @@ export async function deletePartner(db: D1Database, id: string): Promise<boolean
   await ensurePartnerSchema(db);
 
   const result = await db
-    .prepare('DELETE FROM partners WHERE id = ?')
-    .bind(id)
-    .run();
-  return result.success;
+    .batch([
+      db.prepare('DELETE FROM partner_collaboration_designs WHERE partner_id = ?').bind(id),
+      db.prepare('DELETE FROM partners WHERE id = ?').bind(id),
+    ]);
+  return result[1]?.success ?? false;
 }
 
 export async function createPartnerCommissionFromOrder(

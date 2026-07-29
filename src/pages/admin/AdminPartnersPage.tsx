@@ -110,7 +110,7 @@ export default function AdminPartnersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [saved, setSaved] = useState<string | null>(null);
-  const collaborationSectionRef = useRef<HTMLDivElement | null>(null);
+  const detailsSectionRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -132,7 +132,7 @@ export default function AdminPartnersPage() {
 
   useEffect(() => {
     if (!editingId) return;
-    collaborationSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    detailsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [editingId]);
 
   function startCreate() {
@@ -298,7 +298,7 @@ export default function AdminPartnersPage() {
         >;
       }> = [];
       let fileIndex = 0;
-      draft.collaborationDesigns.forEach((design, designIndex) => {
+      draft.collaborationDesigns.forEach((design) => {
         const images: Array<
           | { type: 'file'; fileIndex: number; isDefault: boolean }
           | { type: 'url'; url: string; isDefault: boolean }
@@ -405,8 +405,85 @@ export default function AdminPartnersPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <div className="space-y-4">
+      <div className="space-y-4">
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900">
+          {partners.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">No partners yet.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-[820px] divide-y divide-gray-100 dark:divide-gray-800">
+                <thead className="bg-gray-50 dark:bg-gray-950">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Partner</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Code</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Commission</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Collab</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Updated</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {partners.map((partner) => (
+                    <tr
+                      key={partner.id}
+                      onClick={() => startEdit(partner)}
+                      className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
+                        editingId === partner.id ? 'bg-gray-50 dark:bg-gray-800/40' : ''
+                      }`}
+                    >
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{partner.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Code {partner.slug}</p>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.discountCode ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.commissionRate}%</td>
+                      <td className="px-4 py-3">
+                        <Badge variant={partner.active ? 'success' : 'default'}>
+                          {partner.active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={partner.collaborationEnabled ? 'info' : 'default'}>
+                          {partner.collaborationEnabled ? 'Live' : 'Off'}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(partner.updatedAt)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              startEdit(partner);
+                            }}
+                            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleDelete(partner.id);
+                            }}
+                            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div ref={detailsSectionRef} className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_minmax(0,1fr)]">
           <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
             <div>
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -511,87 +588,8 @@ export default function AdminPartnersPage() {
               </button>
             </div>
           </div>
-        </div>
 
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900">
-            {partners.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400">No partners yet.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-[820px] divide-y divide-gray-100 dark:divide-gray-800">
-                  <thead className="bg-gray-50 dark:bg-gray-950">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Partner</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Code</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Commission</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Collab</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Updated</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {partners.map((partner) => (
-                      <tr
-                        key={partner.id}
-                        onClick={() => startEdit(partner)}
-                        className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
-                          editingId === partner.id ? 'bg-gray-50 dark:bg-gray-800/40' : ''
-                        }`}
-                      >
-                        <td className="px-4 py-3">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{partner.name}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Code {partner.slug}</p>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.discountCode ?? '—'}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.commissionRate}%</td>
-                        <td className="px-4 py-3">
-                          <Badge variant={partner.active ? 'success' : 'default'}>
-                            {partner.active ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge variant={partner.collaborationEnabled ? 'info' : 'default'}>
-                            {partner.collaborationEnabled ? 'Live' : 'Off'}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(partner.updatedAt)}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                startEdit(partner);
-                              }}
-                              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                void handleDelete(partner.id);
-                              }}
-                              className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          <div ref={collaborationSectionRef} className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+          <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -800,6 +798,7 @@ export default function AdminPartnersPage() {
               </button>
             </div>
           </div>
+
         </div>
       </div>
     </div>

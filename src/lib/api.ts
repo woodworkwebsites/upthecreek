@@ -19,6 +19,7 @@ import type {
   DiscountCode,
   DiscountCodeInput,
   CatalogRange,
+  NewsletterSubscriptionInput,
 } from '../../types/index.js';
 
 async function apiFetch<T>(
@@ -109,6 +110,19 @@ export async function validateDiscountCode(
   });
 
   return data.discount;
+}
+
+export async function subscribeNewsletter(data: NewsletterSubscriptionInput): Promise<{
+  subscription: { email: string; created: boolean };
+  alreadySubscribed: boolean;
+}> {
+  return apiFetch('/api/newsletter/subscribe', {
+    method: 'POST',
+    body: JSON.stringify({
+      email: data.email.trim(),
+      source: data.source?.trim() || 'homepage',
+    }),
+  });
 }
 
 // ─── Admin API ────────────────────────────────────────────────────────────────
