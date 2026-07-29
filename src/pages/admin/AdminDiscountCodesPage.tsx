@@ -196,14 +196,14 @@ export default function AdminDiscountCodesPage() {
       {saved && <p className="text-xs font-semibold text-green-600 dark:text-green-400">{saved}</p>}
       {error && <ErrorMessage message={error} onRetry={load} />}
 
-      <div className="-mx-3 overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900 sm:-mx-6 lg:-mx-8">
+      <div className="-mx-3 w-[calc(100%+1.5rem)] overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900 sm:-mx-6 sm:w-[calc(100%+3rem)] lg:-mx-8 lg:w-[calc(100%+4rem)]">
           {discountCodes.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-sm text-gray-400 dark:text-gray-500">No discount codes yet.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-[980px] divide-y divide-gray-100 dark:divide-gray-800">
+              <table className="w-full table-fixed divide-y divide-gray-100 dark:divide-gray-800">
                 <thead>
                   <tr className="bg-gray-50 dark:bg-gray-950/50">
                     {['Code', 'Type', 'Value', 'Usage', 'Expiry', 'Status', 'Notes', 'Actions'].map((h) => (

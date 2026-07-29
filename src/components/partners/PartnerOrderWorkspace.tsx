@@ -202,9 +202,7 @@ function ProductMatrixCard({
   const [selectedColorName, setSelectedColorName] = useState(colors[0]?.name ?? '');
   const [imageIndex, setImageIndex] = useState(0);
   const activeColor = colors.find((color) => color.name === selectedColorName) ?? colors[0];
-  const partnerPrice = getPartnerUnitPrice(product, product.minPrice);
   const rrp = getRrp(product);
-  const margin = rrp - partnerPrice;
   const { commission } = getReferralPricing(product);
   const isCollaboration = product.category === 'partner-collaboration';
   const colorImages = useMemo(() => (activeColor ? getImagesForColor(product, activeColor.name) : []), [activeColor, product]);
@@ -271,7 +269,7 @@ function ProductMatrixCard({
             <>
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
-                <span className={marginChipClass}>{formatPrice(margin)} Margin</span>
+                <span className={marginChipClass}>Margin</span>
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className={rowLabelClass}>Referral</span>
@@ -572,10 +570,7 @@ export function PartnerOrderWorkspace({
       <section className="space-y-6">
         {collaborationProducts.length > 0 && (
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Badge variant="info">Pinned first</Badge>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">Collaboration designs</p>
-            </div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">Collaboration designs</p>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {collaborationProducts.map((product) => (
                 <ProductMatrixCard
@@ -928,9 +923,7 @@ export function PartnerOrderWorkspace({
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={rowLabelClass}>In-store</span>
                         <span className={priceChipClass}>{formatPrice(activeDraft.sizes[0]?.unitPrice ?? 0)} partner</span>
-                        <span className={marginChipClass}>
-                          {formatPrice(activeDraft.rrp - (activeDraft.sizes[0]?.unitPrice ?? 0))} margin
-                        </span>
+                        <span className={marginChipClass}>Margin</span>
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={rowLabelClass}>Referral</span>

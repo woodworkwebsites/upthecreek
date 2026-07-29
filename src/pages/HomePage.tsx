@@ -127,6 +127,12 @@ export default function HomePage() {
                 />
                 <span className="block">Collection</span>
               </h2>
+              <Link
+                to="/collabs"
+                className="inline-flex items-center justify-center rounded-full border border-navy-800/15 bg-white px-5 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white"
+              >
+                Shop collaborations
+              </Link>
             </div>
           </div>
 
@@ -148,6 +154,12 @@ export default function HomePage() {
                 <p className="mt-3 max-w-xl text-sm leading-7 text-white/75">
                   Join the email list for launch notices, limited releases, and occasional offers from Up the Creek.
                 </p>
+                <Link
+                  to="/partners"
+                  className="mt-5 inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-white/10"
+                >
+                  Interested in stocking UTC Apparel?
+                </Link>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
@@ -158,18 +170,6 @@ export default function HomePage() {
                 >
                   Sign up for emails
                 </button>
-                <Link
-                  to="/partners"
-                  className="inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-white/10"
-                >
-                  Interested in stocking UTC Apparel?
-                </Link>
-                <Link
-                  to="/collabs"
-                  className="inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-white/10"
-                >
-                  Shop collaborations
-                </Link>
               </div>
             </div>
           </div>

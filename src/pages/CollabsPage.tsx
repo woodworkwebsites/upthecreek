@@ -18,23 +18,14 @@ export default function CollabsPage() {
           <div className="max-w-3xl space-y-5">
             <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-white/50">Collabs</p>
             <h1 className="max-w-2xl text-4xl font-black tracking-tight text-white sm:text-5xl">
-              Collaboration drops, direct to customers.
+              Shop all of our collaboration tshirts here
             </h1>
-            <p className="max-w-2xl text-sm leading-7 text-white/75 sm:text-base">
-              Shop the full collaboration range from UTC and our partner clubs. Every sale is credited to the collaboration partner at their fixed commission rate.
-            </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <Link
                 to="/#collection"
                 className="inline-flex items-center justify-center rounded-full bg-white px-5 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-900 transition-transform hover:scale-[1.02]"
               >
                 Shop main range
-              </Link>
-              <Link
-                to="/partners"
-                className="inline-flex items-center justify-center rounded-full border border-white/20 px-5 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-white/10"
-              >
-                Partner portal
               </Link>
             </div>
           </div>

@@ -1011,7 +1011,7 @@ export default function AdminPartnersPage() {
                         ))}
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                         <label className="block space-y-1">
                           <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Title</span>
                           <input
@@ -1030,7 +1030,7 @@ export default function AdminPartnersPage() {
                             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                           />
                         </label>
-                        <label className="block space-y-1 sm:col-span-2 xl:col-span-1">
+                        <label className="block space-y-1">
                           <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">SellShirts product ID</span>
                           <input
                             inputMode="numeric"
@@ -1039,6 +1039,24 @@ export default function AdminPartnersPage() {
                             placeholder="16653"
                             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                           />
+                        </label>
+                        <label className="block space-y-1 sm:col-span-2 xl:col-span-1">
+                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Button colour</span>
+                          <div className="flex gap-2">
+                            <input
+                              type="color"
+                              value={design.colorHex}
+                              onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, colorHex: e.target.value }))}
+                              aria-label="Button colour picker"
+                              className="h-10 w-12 shrink-0 rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-800"
+                            />
+                            <input
+                              value={design.colorHex}
+                              onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, colorHex: e.target.value }))}
+                              placeholder="#111827"
+                              className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                            />
+                          </div>
                         </label>
                       </div>
 
