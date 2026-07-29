@@ -137,15 +137,15 @@ export default function HomePage() {
                 <ProductGrid products={products} />
               )}
             </div>
+          </div>
 
-            <aside className="lg:pt-2">
-              <Link
-                to="/collabs"
-                className="inline-flex w-full items-center justify-center rounded-[1.5rem] border border-navy-800/15 bg-white px-5 py-4 text-center text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white lg:min-h-[5rem]"
-              >
-                Shop collaborations
-              </Link>
-            </aside>
+          <div className="mt-10 flex justify-center">
+            <Link
+              to="/collabs"
+              className="inline-flex items-center justify-center rounded-[1.5rem] border border-navy-800/15 bg-white px-5 py-4 text-center text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white"
+            >
+              Shop collaborations
+            </Link>
           </div>
 
           <div className="mt-12 rounded-[2rem] border border-navy-800/10 bg-[linear-gradient(135deg,_#0b1437_0%,_#132552_52%,_#1e3a8a_100%)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(5,13,31,0.22)] sm:px-8">
@@ -170,14 +170,15 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
-            <div className="mt-6 flex justify-start">
-              <Link
-                to="/partners"
-                className="inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-white/10"
-              >
-                Interested in stocking UTC Apparel?
-              </Link>
-            </div>
+          </div>
+
+          <div className="mt-4 flex justify-start">
+            <Link
+              to="/partners"
+              className="inline-flex items-center justify-center rounded-full border border-navy-800/15 bg-white px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white"
+            >
+              Interested in stocking UTC Apparel?
+            </Link>
           </div>
         </div>
       </section>

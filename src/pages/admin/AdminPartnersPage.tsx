@@ -15,7 +15,6 @@ import { formatDate } from '../../lib/utils.js';
 const SELLSHIRTS_PRODUCT_URL_STUB = 'https://sellshirts.com/product/';
 
 type Draft = {
-  slug: string;
   name: string;
   logoImage: CollaborationImageRow | null;
   discountCode: string;
@@ -67,7 +66,6 @@ function emptyCollaborationDesignDraft(): CollaborationDesignDraft {
 
 function emptyDraft(): Draft {
   return {
-    slug: '',
     name: '',
     logoImage: null,
     discountCode: '',
@@ -95,6 +93,10 @@ function extractSellShirtsProductId(url: string | null | undefined): string {
 
 function buildSellShirtsProductUrl(productId: string): string {
   return `${SELLSHIRTS_PRODUCT_URL_STUB}${productId.trim()}`;
+}
+
+function normalizePartnerCode(value: string): string {
+  return value.trim().toUpperCase();
 }
 
 function imageFromUrl(url: string | null | undefined, isDefault: boolean): CollaborationImageRow | null {
@@ -328,10 +330,9 @@ export default function AdminPartnersPage() {
         : [];
     setEditingId(partner.id);
     setDraft({
-      slug: partner.slug,
       name: partner.name,
       logoImage: logoImageFromUrl(partner.logoUrl),
-      discountCode: partner.discountCode ?? '',
+      discountCode: partner.discountCode ?? partner.slug.toUpperCase(),
       accessToken: partner.accessToken ?? '',
       commissionRate: String(partner.commissionRate),
       description: partner.description ?? '',
@@ -460,13 +461,14 @@ export default function AdminPartnersPage() {
 
   async function handleSubmit() {
     if (!token) return;
-    const slug = draft.slug.trim();
     const name = draft.name.trim();
+    const discountCode = normalizePartnerCode(draft.discountCode);
+    const slug = discountCode.toLowerCase();
     const accessToken = draft.accessToken.trim();
     const commissionRate = Number(draft.commissionRate);
 
-    if (!slug) {
-      setError('Partner code is required');
+    if (!discountCode) {
+      setError('Discount code is required');
       return;
     }
     if (!name) {
@@ -493,14 +495,13 @@ export default function AdminPartnersPage() {
 
     try {
       const form = new FormData();
-      form.append('slug', slug);
       form.append('name', name);
       if (draft.logoImage?.file) {
         form.append('logoFile', draft.logoImage.file, draft.logoImage.file.name);
       } else if (draft.logoImage?.previewUrl) {
         form.append('logoUrl', draft.logoImage.previewUrl);
       }
-      form.append('discountCode', draft.discountCode.trim());
+      form.append('discountCode', discountCode);
       form.append('commissionRate', String(commissionRate));
       form.append('description', draft.description.trim());
       form.append('active', String(draft.active));
@@ -628,7 +629,7 @@ export default function AdminPartnersPage() {
       await adminDeletePartner(token, id);
       await load();
       if (editingId === id) startCreate();
-    setSaved('Partner deleted');
+      setSaved('Partner deleted');
       setSaveWarning(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete partner');
@@ -743,7 +744,9 @@ export default function AdminPartnersPage() {
                           </div>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{partner.name}</p>
-                            <p className="truncate text-xs text-gray-500 dark:text-gray-400">Code {partner.slug}</p>
+                            <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                              Code {partner.discountCode ?? partner.slug.toUpperCase()}
+                            </p>
                           </div>
                         </div>
                       </td>
@@ -841,19 +844,9 @@ export default function AdminPartnersPage() {
               <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <label className="block space-y-1">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Partner code</span>
-                    <input
-                      autoFocus
-                      value={draft.slug}
-                      onChange={(e) => setDraft((current) => ({ ...current, slug: e.target.value }))}
-                      placeholder="oxford-park"
-                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                    />
-                  </label>
-
-                  <label className="block space-y-1">
                     <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</span>
                     <input
+                      autoFocus
                       value={draft.name}
                       onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
                       placeholder="Oxford Park Padel"
@@ -862,7 +855,7 @@ export default function AdminPartnersPage() {
                   </label>
 
                   <label className="block space-y-1">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Discount code</span>
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Discount / club code</span>
                     <input
                       value={draft.discountCode}
                       onChange={(e) => setDraft((current) => ({ ...current, discountCode: e.target.value }))}
@@ -1171,7 +1164,7 @@ export default function AdminPartnersPage() {
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">New partner</p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Create the club record first. Add collaboration products from the inline editor after it is saved.
+                  Create the club record first. The discount code also becomes the club login code.
                 </p>
               </div>
               <button
@@ -1185,29 +1178,19 @@ export default function AdminPartnersPage() {
 
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="block space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Partner code</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</span>
                 <input
                   autoFocus
-                  value={draft.slug}
-                  onChange={(e) => setDraft((current) => ({ ...current, slug: e.target.value }))}
-                  placeholder="oxford-park"
+                  value={draft.name}
+                  onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
+                  placeholder="Oxford Park Padel"
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                 />
               </label>
 
-                  <label className="block space-y-1">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</span>
-                    <input
-                      value={draft.name}
-                      onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
-                      placeholder="Oxford Park Padel"
-                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                    />
-                  </label>
-
-                  <label className="block space-y-1">
-                    <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Discount code</span>
-                    <input
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Discount / club code</span>
+                <input
                   value={draft.discountCode}
                   onChange={(e) => setDraft((current) => ({ ...current, discountCode: e.target.value }))}
                   placeholder="OXFORD10"

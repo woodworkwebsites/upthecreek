@@ -55,6 +55,7 @@ async function apiFetch<T>(
 function adminFetch<T>(path: string, token: string, options?: RequestInit): Promise<T> {
   return apiFetch<T>(path, {
     ...options,
+    cache: 'no-store',
     headers: {
       Authorization: `Bearer ${token}`,
       ...options?.headers,

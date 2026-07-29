@@ -259,43 +259,19 @@ async function replacePartnerCollaborationDesignRows(
   const normalized = (designs ?? [])
     .map((design) => normalizeCollaborationDesign(design))
     .filter((entry): entry is PartnerCollaborationDesign => Boolean(entry));
-  if (normalized.length === 0) {
-    await db
-      .prepare('DELETE FROM partner_collaboration_designs WHERE partner_id = ?')
-      .bind(partnerId)
-      .run();
-    return;
-  }
-
-  const existingRows = await db
-    .prepare('SELECT id FROM partner_collaboration_designs WHERE partner_id = ? ORDER BY sort_order ASC, created_at ASC')
-    .bind(partnerId)
-    .all<{ id: string }>();
-
-  const existingIds = (existingRows.results ?? []).map((row) => row.id);
-  for (const [index, design] of normalized.entries()) {
-    const row = serializeCollaborationDesignRow(partnerId, design, index);
-    const existingId = existingIds[index];
-
-    if (existingId) {
-      await db
+  const statements = [
+    db.prepare('DELETE FROM partner_collaboration_designs WHERE partner_id = ?').bind(partnerId),
+    ...normalized.map((design, index) => {
+      const row = serializeCollaborationDesignRow(partnerId, design, index);
+      return db
         .prepare(`
-          UPDATE partner_collaboration_designs
-          SET title = ?,
-              description = ?,
-              image_urls = ?,
-              garment = ?,
-              order_url = ?,
-              color_name = ?,
-              color_hex = ?,
-              sizes = ?,
-              partner_price = ?,
-              rrp_price = ?,
-              sort_order = ?,
-              updated_at = datetime('now')
-          WHERE id = ?
+          INSERT INTO partner_collaboration_designs
+            (id, partner_id, title, description, image_urls, garment, order_url, color_name, color_hex, sizes, partner_price, rrp_price, sort_order, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
         `)
         .bind(
+          row.id,
+          row.partner_id,
           row.title,
           row.description,
           row.image_urls,
@@ -307,42 +283,11 @@ async function replacePartnerCollaborationDesignRows(
           row.partner_price,
           row.rrp_price,
           row.sort_order,
-          existingId,
-        )
-        .run();
-      continue;
-    }
+        );
+    }),
+  ];
 
-    await db
-      .prepare(`
-        INSERT INTO partner_collaboration_designs
-          (id, partner_id, title, description, image_urls, garment, order_url, color_name, color_hex, sizes, partner_price, rrp_price, sort_order, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-      `)
-      .bind(
-        row.id,
-        row.partner_id,
-        row.title,
-        row.description,
-        row.image_urls,
-        row.garment,
-        row.order_url,
-        row.color_name,
-        row.color_hex,
-        row.sizes,
-        row.partner_price,
-        row.rrp_price,
-        row.sort_order,
-      )
-      .run();
-  }
-
-  if (existingIds.length > normalized.length) {
-    await db
-      .prepare('DELETE FROM partner_collaboration_designs WHERE partner_id = ? AND sort_order >= ?')
-      .bind(partnerId, normalized.length)
-      .run();
-  }
+  await db.batch(statements);
 }
 
 function calcItemTotal(items: OrderItem[]): number {
@@ -631,7 +576,8 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
 
 async function hydratePartnerRow(db: D1Database, row: PartnerRow): Promise<PartnerAdmin> {
   const tableDesigns = await loadPartnerCollaborationDesignRows(db, row.id);
-  const fallbackDesigns = tableDesigns.length > 0 ? tableDesigns : parseCollaborationDesigns(row.collaboration_design);
+  const serializedDesigns = parseCollaborationDesigns(row.collaboration_design);
+  const fallbackDesigns = tableDesigns.length >= serializedDesigns.length ? tableDesigns : serializedDesigns;
 
   return {
     ...parsePartnerRow({
@@ -736,6 +682,11 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
   }
 
   const id = crypto.randomUUID();
+  const slug = normalizeSlug(data.slug || data.discountCode || '');
+  const discountCode = data.discountCode?.trim() || slug;
+  if (!slug) {
+    throw new Error('Partner code is required');
+  }
   const collaborationDesigns = data.collaborationDesigns ?? (data.collaborationDesign ? [data.collaborationDesign] : []);
   const collaborationEnabled = Boolean(data.collaborationEnabled ?? false) || collaborationDesigns.length > 0;
   await db
@@ -746,10 +697,10 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
     `)
     .bind(
       id,
-      normalizeSlug(data.slug),
+      slug,
       data.name.trim(),
       data.logoUrl?.trim() || null,
-      data.discountCode?.trim() || null,
+      discountCode || null,
       normalizeToken(accessToken),
       Math.max(0, Math.round(data.commissionRate)),
       data.description?.trim() || null,
@@ -764,10 +715,10 @@ export async function createPartner(db: D1Database, data: PartnerInput): Promise
   const timestamp = new Date().toISOString();
   const created: PartnerAdmin = {
     id,
-    slug: normalizeSlug(data.slug),
+    slug,
     name: data.name.trim(),
     logoUrl: data.logoUrl?.trim() || null,
-    discountCode: data.discountCode?.trim() || null,
+    discountCode: discountCode || null,
     commissionRate: Math.max(0, Math.round(data.commissionRate)),
     description: data.description?.trim() || null,
     active: data.active === false ? false : true,
@@ -798,6 +749,8 @@ export async function updatePartner(
   if (!existing) return null;
 
   const accessToken = data.accessToken?.trim() || existing.accessToken;
+  const slug = normalizeSlug(data.slug || data.discountCode || existing.slug);
+  const discountCode = data.discountCode?.trim() || slug;
   const collaborationDesigns = data.collaborationDesigns !== undefined
     ? (data.collaborationDesigns ?? existing.collaborationDesigns)
     : data.collaborationDesign !== undefined
@@ -822,10 +775,10 @@ export async function updatePartner(
       WHERE id = ?
     `)
     .bind(
-      normalizeSlug(data.slug),
+      slug,
       data.name.trim(),
       data.logoUrl !== undefined ? data.logoUrl?.trim() || null : existing.logoUrl,
-      data.discountCode?.trim() || null,
+      discountCode || null,
       normalizeToken(accessToken),
       Math.max(0, Math.round(data.commissionRate)),
       data.description?.trim() || null,
@@ -841,10 +794,10 @@ export async function updatePartner(
   const updatedAt = new Date().toISOString();
   const updated: PartnerAdmin = {
     id,
-    slug: normalizeSlug(data.slug),
+    slug,
     name: data.name.trim(),
     logoUrl: data.logoUrl !== undefined ? data.logoUrl?.trim() || null : existing.logoUrl,
-    discountCode: data.discountCode?.trim() || null,
+    discountCode: discountCode || null,
     commissionRate: Math.max(0, Math.round(data.commissionRate)),
     description: data.description?.trim() || null,
     active: data.active === false ? false : true,

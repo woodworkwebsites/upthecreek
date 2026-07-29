@@ -211,8 +211,10 @@ function ProductMatrixCard({
   const rrp = getRrp(product);
   const partnerPrice = getPartnerUnitPrice(product, rrp);
   const margin = Math.max(0, rrp - partnerPrice);
-  const { commission } = getReferralPricing(product);
   const isCollaboration = product.category === 'partner-collaboration';
+  const { commission } = isCollaboration
+    ? getCollaborationReferralPricing(rrp)
+    : getReferralPricing(product);
   const colorImages = useMemo(() => (activeColor ? getImagesForColor(product, activeColor.name) : []), [activeColor, product]);
   const activeImageSrc = colorImages.length > 0 ? colorImages[imageIndex % colorImages.length] : getImageForColor(product, activeColor?.name ?? '');
 
@@ -824,12 +826,12 @@ export function PartnerOrderWorkspace({
         const activeCarouselImage = carouselImages[draftImageIndex % carouselImages.length] ?? activeDraft.imageSrc;
         const draftTotalPieces = draftLines.reduce((sum, line) => sum + lineCount(line), 0);
         const draftTotalValue = draftLines.reduce((sum, line) => sum + lineTotal(line), 0);
+        const isCollaborationDraft = draftProduct?.category === 'partner-collaboration';
         const draftReferral = draftProduct
           ? isCollaborationDraft
             ? getCollaborationReferralPricing(activeDraft.rrp)
             : getReferralPricing(draftProduct)
           : { purchaserPrice: 0, commission: 0 };
-        const isCollaborationDraft = draftProduct?.category === 'partner-collaboration';
         return (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/70 p-4 backdrop-blur-sm"

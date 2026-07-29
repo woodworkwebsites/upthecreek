@@ -1554,7 +1554,8 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
   const contentType = request.headers.get('content-type') ?? '';
   if (contentType.includes('multipart/form-data')) {
     const form = await request.formData();
-    const slug = readFormText(form.get('slug'));
+    const discountCode = readFormText(form.get('discountCode'));
+    const slug = readFormText(form.get('slug')) || discountCode.trim().toLowerCase();
     const name = readFormText(form.get('name'));
     const accessToken = readFormText(form.get('accessToken'));
     const commissionRateRaw = readFormText(form.get('commissionRate'));
@@ -1589,7 +1590,7 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
         slug,
         name,
         logoUrl,
-        discountCode: readFormText(form.get('discountCode')) || null,
+        discountCode: discountCode || null,
         accessToken,
         commissionRate,
         description: readFormText(form.get('description')) || null,
@@ -1626,23 +1627,26 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
   }
 
   const slug = body.slug?.trim();
+  const discountCode = body.discountCode?.trim() || '';
   const name = body.name?.trim();
   const accessToken = body.accessToken?.trim();
   const commissionRate = typeof body.commissionRate === 'string' ? Number(body.commissionRate) : body.commissionRate;
 
-  if (!slug) return json({ error: 'Partner code is required' }, 400);
+  if (!slug && !discountCode) return json({ error: 'Partner code is required' }, 400);
   if (!name) return json({ error: 'Name is required' }, 400);
   if (!accessToken) return json({ error: 'Access token is required' }, 400);
   if (typeof commissionRate !== 'number' || !Number.isFinite(commissionRate) || commissionRate < 0) {
     return json({ error: 'Commission rate must be a non-negative number' }, 400);
   }
 
+  const normalizedSlug = slug || discountCode.toLowerCase();
+
   try {
     const partner = await createPartner(env.DB, {
-      slug,
+      slug: normalizedSlug,
       name,
       logoUrl: body.logoUrl?.trim() || null,
-      discountCode: body.discountCode?.trim() || null,
+      discountCode: discountCode || null,
       accessToken,
       commissionRate,
       description: body.description?.trim() || null,
@@ -1665,7 +1669,8 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
     if (!existing) return json({ error: 'Partner not found' }, 404);
 
     const form = await request.formData();
-    const slug = readFormText(form.get('slug')) || existing.slug;
+    const discountCode = readFormText(form.get('discountCode'));
+    const slug = readFormText(form.get('slug')) || discountCode.trim().toLowerCase() || existing.slug;
     const name = readFormText(form.get('name')) || existing.name;
     const accessToken = readFormText(form.get('accessToken'));
     const commissionRateRaw = readFormText(form.get('commissionRate'));
@@ -1699,7 +1704,7 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
         slug,
         name,
         logoUrl,
-        discountCode: readFormText(form.get('discountCode')) || null,
+        discountCode: discountCode || null,
         accessToken: accessToken || undefined,
         commissionRate,
         description: readFormText(form.get('description')) || null,
@@ -1740,7 +1745,8 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
   const existing = await getPartnerById(env.DB, id);
   if (!existing) return json({ error: 'Partner not found' }, 404);
 
-  const slug = body.slug?.trim() ?? existing.slug;
+  const discountCode = body.discountCode?.trim() || '';
+  const slug = body.slug?.trim() || (discountCode ? discountCode.toLowerCase() : existing.slug);
   const name = body.name?.trim() ?? existing.name;
   const accessToken = body.accessToken?.trim();
   const commissionRate = typeof body.commissionRate === 'string' ? Number(body.commissionRate) : (body.commissionRate ?? existing.commissionRate);
@@ -1756,7 +1762,7 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
       slug,
       name,
       logoUrl: body.logoUrl?.trim() || existing.logoUrl,
-      discountCode: body.discountCode?.trim() || null,
+      discountCode: discountCode || null,
       accessToken: accessToken || undefined,
       commissionRate,
       description: body.description?.trim() || null,

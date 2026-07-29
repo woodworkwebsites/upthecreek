@@ -303,21 +303,12 @@ export default function AdminCatalogPage() {
       />
 
       <PricingMatrixTable
-        title="In-store pricing (partners)"
-        hint="What clubs pay per garment for stock they sell in the clubhouse. Partner margin is Sale price (RRP) minus partner price — what you're giving up versus a retail sale. Net profit is partner price minus manufacturing cost and delivery — what you actually keep. New rows come from adding a garment above."
+        title="Collaboration pricing (online + in-store)"
+        hint="Use this as the shared collaboration reference: online club-code orders use sale cost plus online delivery, while in-store orders use partner price plus in-store delivery. The table shows both sale paths side by side."
         pricingRows={pricingRows}
         onUpdateRow={updatePricingRow}
         onRemoveRow={removePricingRow}
-        channel="partner"
-      />
-
-      <PricingMatrixTable
-        title="Online partnership orders (club discount code)"
-        hint="A player buys online using the club's code. Purchaser price is Sale cost plus delivery, less 10%. Club commission is 10% of that discounted price. My margin is what's left after the commission, manufacturing cost and delivery. New rows come from adding a garment above."
-        pricingRows={pricingRows}
-        onUpdateRow={updatePricingRow}
-        onRemoveRow={removePricingRow}
-        channel="online-partnership"
+        channel="collaboration"
       />
 
       {garmentModalOpen && (
@@ -548,7 +539,7 @@ function PricingMatrixTable({
   pricingRows: PricingRowOption[];
   onUpdateRow: (index: number, patch: Partial<PricingRowOption>) => void;
   onRemoveRow: (index: number) => void;
-  channel: 'partner' | 'retail' | 'online-partnership';
+  channel: 'partner' | 'retail' | 'online-partnership' | 'collaboration';
 }) {
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
@@ -567,7 +558,8 @@ function PricingMatrixTable({
               <th className="px-2 py-2">Print surface</th>
               <th className="px-2 py-2">Manufacturing</th>
               {channel === 'retail' && <th className="px-2 py-2">Sale cost</th>}
-              <th className="px-2 py-2">Delivery</th>
+              {(channel === 'retail' || channel === 'online-partnership') && <th className="px-2 py-2">Delivery</th>}
+              {channel === 'partner' && <th className="px-2 py-2">In-store delivery</th>}
               {channel === 'partner' && (
                 <>
                   <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
@@ -589,6 +581,19 @@ function PricingMatrixTable({
                   <th className="px-2 py-2" title="Purchaser price minus club commission, manufacturing cost and delivery">My margin</th>
                 </>
               )}
+              {channel === 'collaboration' && (
+                <>
+                  <th className="px-2 py-2">Sale cost</th>
+                  <th className="px-2 py-2">Online delivery</th>
+                  <th className="px-2 py-2" title="Sale cost plus online delivery, less the purchaser's 10% club discount">Online purchaser price (−10%)</th>
+                  <th className="px-2 py-2" title="10% of the discounted online purchaser price">Online commission (10%)</th>
+                  <th className="px-2 py-2" title="Purchaser price minus commission, manufacturing cost and online delivery">Online margin</th>
+                  <th className="px-2 py-2">In-store delivery</th>
+                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
+                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Sale price (RRP) minus partner price">Partner margin</th>
+                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Partner price minus manufacturing cost and in-store delivery — your actual profit on a partner order">Net profit</th>
+                </>
+              )}
               <th className="px-2 py-2">Actions</th>
             </tr>
           </thead>
@@ -603,12 +608,14 @@ function PricingMatrixTable({
                   ? row.deliveryPartner
                   : row.deliveryOnlinePartnership;
               const delivery = Number.parseFloat(deliveryValue || '0');
+              const onlineDelivery = Number.parseFloat(row.deliveryOnlinePartnership || '0');
+              const partnerDelivery = Number.parseFloat(row.deliveryPartner || '0');
               const margin = salePrice - manufacturingCost - delivery;
               const partnerMargin = salePrice - Number.parseFloat(row.partnerPrice || '0');
-              const partnerNetProfit = Number.parseFloat(row.partnerPrice || '0') - manufacturingCost - delivery;
-              const purchaserPrice = (saleCost + delivery) * 0.9;
+              const partnerNetProfit = Number.parseFloat(row.partnerPrice || '0') - manufacturingCost - partnerDelivery;
+              const purchaserPrice = (saleCost + onlineDelivery) * 0.9;
               const clubCommission = purchaserPrice * 0.1;
-              const onlinePartnershipMargin = purchaserPrice - clubCommission - manufacturingCost - delivery;
+              const onlinePartnershipMargin = purchaserPrice - clubCommission - manufacturingCost - onlineDelivery;
               return (
                 <tr key={index} className="border-t border-gray-100 dark:border-gray-800">
                   <PricingIdentityCells row={row} onChange={(patch) => onUpdateRow(index, patch)} />
@@ -620,17 +627,19 @@ function PricingMatrixTable({
                       <input value={row.saleCost} onChange={(e) => onUpdateRow(index, { saleCost: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
                     </td>
                   )}
-                  <td className="px-2 py-1.5">
-                    <input
-                      value={deliveryValue}
-                      onChange={(e) => onUpdateRow(index, channel === 'retail'
-                        ? { deliveryRetail: e.target.value }
-                        : channel === 'partner'
-                          ? { deliveryPartner: e.target.value }
-                          : { deliveryOnlinePartnership: e.target.value })}
-                      className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                    />
-                  </td>
+                  {channel !== 'collaboration' && (
+                    <td className="px-2 py-1.5">
+                      <input
+                        value={deliveryValue}
+                        onChange={(e) => onUpdateRow(index, channel === 'retail'
+                          ? { deliveryRetail: e.target.value }
+                          : channel === 'partner'
+                            ? { deliveryPartner: e.target.value }
+                            : { deliveryOnlinePartnership: e.target.value })}
+                        className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                      />
+                    </td>
+                  )}
                   {channel === 'partner' && (
                     <>
                       <td className="px-2 py-1.5">
@@ -680,6 +689,64 @@ function PricingMatrixTable({
                       <td className="px-2 py-1.5">
                         <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${onlinePartnershipMargin >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
                           £{onlinePartnershipMargin.toFixed(2)}
+                        </div>
+                      </td>
+                    </>
+                  )}
+                  {channel === 'collaboration' && (
+                    <>
+                      <td className="px-2 py-1.5">
+                        <input
+                          value={row.saleCost}
+                          onChange={(e) => onUpdateRow(index, { saleCost: e.target.value })}
+                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                        />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input
+                          value={row.deliveryOnlinePartnership}
+                          onChange={(e) => onUpdateRow(index, { deliveryOnlinePartnership: e.target.value })}
+                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                        />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <div className="rounded-lg bg-gray-100 px-2 py-1.5 text-xs font-semibold text-gray-900 dark:bg-gray-800 dark:text-gray-100">
+                          £{purchaserPrice.toFixed(2)}
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <div className="rounded-lg bg-gray-100 px-2 py-1.5 text-xs font-semibold text-gray-900 dark:bg-gray-800 dark:text-gray-100">
+                          £{clubCommission.toFixed(2)}
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${onlinePartnershipMargin >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                          £{onlinePartnershipMargin.toFixed(2)}
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input
+                          value={row.deliveryPartner}
+                          onChange={(e) => onUpdateRow(index, { deliveryPartner: e.target.value })}
+                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                        />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input
+                          value={row.partnerPrice}
+                          onChange={(e) => onUpdateRow(index, { partnerPrice: e.target.value })}
+                          placeholder="e.g. 11.29"
+                          className="w-full min-w-0 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-gray-100"
+                        />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerMargin >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                          £{partnerMargin.toFixed(2)}
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerNetProfit >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
+                          £{partnerNetProfit.toFixed(2)}
                         </div>
                       </td>
                     </>
