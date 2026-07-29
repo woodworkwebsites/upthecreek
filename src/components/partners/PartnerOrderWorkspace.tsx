@@ -210,6 +210,7 @@ function ProductMatrixCard({
   const activeColor = colors.find((color) => color.name === selectedColorName) ?? colors[0];
   const rrp = getRrp(product);
   const partnerPrice = getPartnerUnitPrice(product, rrp);
+  const margin = Math.max(0, rrp - partnerPrice);
   const { commission } = getReferralPricing(product);
   const isCollaboration = product.category === 'partner-collaboration';
   const colorImages = useMemo(() => (activeColor ? getImagesForColor(product, activeColor.name) : []), [activeColor, product]);
@@ -275,7 +276,7 @@ function ProductMatrixCard({
           <div className="flex flex-wrap items-center gap-1.5">
             <span className={priceChipClass}>{formatPrice(partnerPrice)} partner</span>
             <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
-            <span className={marginChipClass}>Margin</span>
+            <span className={marginChipClass}>{formatPrice(margin)} Margin</span>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             <span className={rowLabelClass}>Online Referral</span>
@@ -931,7 +932,9 @@ export function PartnerOrderWorkspace({
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={rowLabelClass}>In-store</span>
                         <span className={priceChipClass}>{formatPrice(activeDraft.sizes[0]?.unitPrice ?? 0)} partner</span>
-                        <span className={marginChipClass}>Margin</span>
+                        <span className={marginChipClass}>
+                          {formatPrice(Math.max(0, activeDraft.rrp - (activeDraft.sizes[0]?.unitPrice ?? 0)))} Margin
+                        </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={rowLabelClass}>Online Referral</span>
