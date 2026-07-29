@@ -812,16 +812,11 @@ function ProductRow({
                 </div>
 
                 <div className="w-full max-w-[28rem] rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900/40 dark:bg-amber-900/10">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">Pricing</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">Pricing</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950 dark:text-amber-200">
                       {pricingMatrix.salePrice ? `£${pricingMatrix.salePrice}` : formatPriceRange(product.minPrice, product.maxPrice)}
                     </span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-                    {pricingCustomRef.current ? 'Custom' : 'Catalog'}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
                     <button
                       type="button"
                       onClick={() => setPricingModalOpen(true)}
@@ -834,7 +829,7 @@ function ProductRow({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+            <div className="flex flex-wrap items-center justify-end gap-4 border-t border-gray-100 pt-3 dark:border-gray-800">
               {saved && <span className="self-center text-[11px] text-green-600 dark:text-green-400">Saved</span>}
               {error && <span className="self-center text-[11px] text-red-600 dark:text-red-400">{error}</span>}
               <button onClick={() => void handleSaveRow()} className="rounded-full bg-navy-800 px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-navy-700 transition-colors">

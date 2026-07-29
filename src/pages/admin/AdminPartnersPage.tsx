@@ -108,6 +108,7 @@ export default function AdminPartnersPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [saved, setSaved] = useState<string | null>(null);
   const detailsSectionRef = useRef<HTMLDivElement | null>(null);
@@ -135,13 +136,43 @@ export default function AdminPartnersPage() {
     detailsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [editingId]);
 
+  useEffect(() => {
+    if (!createModalOpen) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setCreateModalOpen(false);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [createModalOpen]);
+
+  function resetDraft() {
+    setDraft(emptyDraft());
+    setError(null);
+  }
+
   function startCreate() {
     setEditingId(null);
-    setDraft(emptyDraft());
+    resetDraft();
+  }
+
+  function openCreateModal() {
+    setEditingId(null);
     setSaved(null);
+    resetDraft();
+    setCreateModalOpen(true);
+  }
+
+  function closeCreateModal() {
+    setCreateModalOpen(false);
+    resetDraft();
   }
 
   function startEdit(partner: PartnerAdmin) {
+    setCreateModalOpen(false);
+    setError(null);
     const collaboration = partner.collaborationDesigns.length > 0
       ? partner.collaborationDesigns
       : partner.collaborationDesign
@@ -339,10 +370,10 @@ export default function AdminPartnersPage() {
         form.append('accessToken', accessToken);
         await adminCreatePartner(token, form);
         setSaved('Partner created');
+        closeCreateModal();
       }
 
       await load();
-      startCreate();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save partner');
     } finally {
@@ -397,6 +428,13 @@ export default function AdminPartnersPage() {
         >
           Refresh
         </button>
+        <button
+          type="button"
+          onClick={openCreateModal}
+          className="rounded-full bg-navy-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-700"
+        >
+          Add new partner
+        </button>
       </div>
 
       {saved && (
@@ -413,16 +451,25 @@ export default function AdminPartnersPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-[820px] divide-y divide-gray-100 dark:divide-gray-800">
+              <table className="w-full table-fixed divide-y divide-gray-100 dark:divide-gray-800">
+                <colgroup>
+                  <col className="w-[26%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[14%]" />
+                </colgroup>
                 <thead className="bg-gray-50 dark:bg-gray-950">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Partner</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Code</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Commission</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Collab</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Updated</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Partner</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Code</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Commission</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Status</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Collab</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Updated</th>
+                    <th className="px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -434,24 +481,24 @@ export default function AdminPartnersPage() {
                         editingId === partner.id ? 'bg-gray-50 dark:bg-gray-800/40' : ''
                       }`}
                     >
-                      <td className="px-4 py-3">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{partner.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Code {partner.slug}</p>
+                      <td className="px-3 py-3">
+                        <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{partner.name}</p>
+                        <p className="truncate text-xs text-gray-500 dark:text-gray-400">Code {partner.slug}</p>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.discountCode ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.commissionRate}%</td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.discountCode ?? '—'}</td>
+                      <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.commissionRate}%</td>
+                      <td className="px-3 py-3">
                         <Badge variant={partner.active ? 'success' : 'default'}>
                           {partner.active ? 'Active' : 'Inactive'}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3">
                         <Badge variant={partner.collaborationEnabled ? 'info' : 'default'}>
                           {partner.collaborationEnabled ? 'Live' : 'Off'}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(partner.updatedAt)}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(partner.updatedAt)}</td>
+                      <td className="px-3 py-3">
                         <div className="flex justify-end gap-2">
                           <button
                             type="button"
@@ -459,7 +506,7 @@ export default function AdminPartnersPage() {
                               event.stopPropagation();
                               startEdit(partner);
                             }}
-                            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+                            className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
                           >
                             Edit
                           </button>
@@ -469,7 +516,7 @@ export default function AdminPartnersPage() {
                               event.stopPropagation();
                               void handleDelete(partner.id);
                             }}
-                            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+                            className="rounded-lg border border-red-200 px-2.5 py-1.5 text-[11px] font-semibold text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
                           >
                             Delete
                           </button>
@@ -483,38 +530,49 @@ export default function AdminPartnersPage() {
           )}
         </div>
 
-        <div ref={detailsSectionRef} className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_minmax(0,1fr)]">
-          <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-            <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {editingId ? 'Edit partner' : 'New partner'}
-              </p>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Clubs use the access token to open their portal. Leave it blank while editing to keep the current token.
-              </p>
+
+      {editingId ? (
+        <div ref={detailsSectionRef} className="space-y-4">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {partners.find((partner) => partner.id === editingId)?.name ?? 'Edit partner'}
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Clubs use the access token to open their portal. Leave it blank while editing to keep the current token.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={startCreate}
+                className="rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+              >
+                Close editor
+              </button>
             </div>
 
-            <label className="block space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Partner code</span>
-              <input
-                value={draft.slug}
-                onChange={(e) => setDraft((current) => ({ ...current, slug: e.target.value }))}
-                placeholder="oxford-park"
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-              />
-            </label>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Partner code</span>
+                <input
+                  value={draft.slug}
+                  onChange={(e) => setDraft((current) => ({ ...current, slug: e.target.value }))}
+                  placeholder="oxford-park"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
 
-            <label className="block space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</span>
-              <input
-                value={draft.name}
-                onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
-                placeholder="Oxford Park Padel"
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-              />
-            </label>
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</span>
+                <input
+                  value={draft.name}
+                  onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
+                  placeholder="Oxford Park Padel"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="block space-y-1">
                 <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Discount code</span>
                 <input
@@ -536,57 +594,59 @@ export default function AdminPartnersPage() {
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                 />
               </label>
+
+              <label className="block space-y-1 sm:col-span-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Access token</span>
+                <input
+                  value={draft.accessToken}
+                  onChange={(e) => setDraft((current) => ({ ...current, accessToken: e.target.value }))}
+                  placeholder="Leave blank to keep current token"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+
+              <label className="block space-y-1 sm:col-span-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
+                <textarea
+                  value={draft.description}
+                  onChange={(e) => setDraft((current) => ({ ...current, description: e.target.value }))}
+                  rows={4}
+                  placeholder="Optional notes for this club"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
             </div>
 
-            <label className="block space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Access token</span>
-              <input
-                value={draft.accessToken}
-                onChange={(e) => setDraft((current) => ({ ...current, accessToken: e.target.value }))}
-                placeholder={editingId ? 'Leave blank to keep current token' : 'partner token'}
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-              />
-            </label>
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={draft.active}
+                  onChange={(e) => setDraft((current) => ({ ...current, active: e.target.checked }))}
+                />
+                Active partner
+              </label>
 
-            <label className="block space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
-              <textarea
-                value={draft.description}
-                onChange={(e) => setDraft((current) => ({ ...current, description: e.target.value }))}
-                rows={4}
-                placeholder="Optional notes for this club"
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-              />
-            </label>
-
-            <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-              <input
-                type="checkbox"
-                checked={draft.active}
-                onChange={(e) => setDraft((current) => ({ ...current, active: e.target.checked }))}
-              />
-              Active partner
-            </label>
-
-            {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <button
-                type="button"
-                onClick={() => void handleSubmit()}
-                disabled={saving}
-                className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
-              >
-                {saving ? 'Saving…' : editingId ? 'Update partner' : 'Create partner'}
-              </button>
-              <button
-                type="button"
-                onClick={startCreate}
-                className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
-              >
-                Reset
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => void handleSubmit()}
+                  disabled={saving}
+                  className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
+                >
+                  {saving ? 'Saving…' : 'Update partner'}
+                </button>
+                <button
+                  type="button"
+                  onClick={startCreate}
+                  className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
             </div>
+
+            {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
           </div>
 
           <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
@@ -662,6 +722,7 @@ export default function AdminPartnersPage() {
                       >
                         <input
                           type="file"
+                          name="collaborationDesignFiles"
                           accept="image/*"
                           onChange={(e) => handleCollaborationFilesSelected(design.id, side, e.target.files)}
                           className="sr-only"
@@ -787,7 +848,7 @@ export default function AdminPartnersPage() {
                 disabled={saving}
                 className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
               >
-                {saving ? 'Saving…' : editingId ? 'Update partner' : 'Create partner'}
+                {saving ? 'Saving…' : 'Update partner'}
               </button>
               <button
                 type="button"
@@ -798,8 +859,140 @@ export default function AdminPartnersPage() {
               </button>
             </div>
           </div>
-
         </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-8 text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
+          Select a partner row to edit details and collaboration products.
+        </div>
+      )}
+
+      {createModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center"
+          onClick={closeCreateModal}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add partner"
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-800 dark:bg-gray-900"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">New partner</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Create the club record first. Collaboration products can be added after the partner exists.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeCreateModal}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Partner code</span>
+                <input
+                  autoFocus
+                  value={draft.slug}
+                  onChange={(e) => setDraft((current) => ({ ...current, slug: e.target.value }))}
+                  placeholder="oxford-park"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</span>
+                <input
+                  value={draft.name}
+                  onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
+                  placeholder="Oxford Park Padel"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Discount code</span>
+                <input
+                  value={draft.discountCode}
+                  onChange={(e) => setDraft((current) => ({ ...current, discountCode: e.target.value }))}
+                  placeholder="OXFORD10"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Commission %</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={draft.commissionRate}
+                  onChange={(e) => setDraft((current) => ({ ...current, commissionRate: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+
+              <label className="block space-y-1 sm:col-span-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Access token</span>
+                <input
+                  value={draft.accessToken}
+                  onChange={(e) => setDraft((current) => ({ ...current, accessToken: e.target.value }))}
+                  placeholder="partner token"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+
+              <label className="block space-y-1 sm:col-span-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</span>
+                <textarea
+                  value={draft.description}
+                  onChange={(e) => setDraft((current) => ({ ...current, description: e.target.value }))}
+                  rows={4}
+                  placeholder="Optional notes for this club"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                />
+              </label>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={draft.active}
+                  onChange={(e) => setDraft((current) => ({ ...current, active: e.target.checked }))}
+                />
+                Active partner
+              </label>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => void handleSubmit()}
+                  disabled={saving}
+                  className="rounded-full bg-navy-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-50"
+                >
+                  {saving ? 'Saving…' : 'Create partner'}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeCreateModal}
+                  className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

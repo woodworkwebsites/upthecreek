@@ -112,38 +112,6 @@ export default function HomePage() {
           </a>
       </section>
 
-      {/* ── Newsletter CTA ─────────────────────────────────────── */}
-      <section className="relative z-10 -mt-10 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl rounded-[2rem] border border-white/20 bg-[linear-gradient(135deg,_#0b1437_0%,_#132552_52%,_#1e3a8a_100%)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(5,13,31,0.22)] sm:px-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/45">Drop list</p>
-              <h2 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
-                Get offers and first access to new drops.
-              </h2>
-              <p className="mt-3 max-w-xl text-sm leading-7 text-white/75">
-                Join the email list for launch notices, limited releases, and occasional offers from Up the Creek.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => setNewsletterOpen(true)}
-                className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-900 transition-transform hover:scale-[1.02]"
-              >
-                Sign up for emails
-              </button>
-              <a
-                href="#collection"
-                className="inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-white/10"
-              >
-                View collection
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── Collection ──────────────────────────────────────────── */}
       <section id="collection" className="scroll-mt-0">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-20 sm:pt-12 sm:pb-28">
@@ -170,13 +138,34 @@ export default function HomePage() {
             <ProductGrid products={products} />
           )}
 
-          <div className="mt-12 flex justify-center">
-            <Link
-              to="/partners"
-              className="inline-flex items-center justify-center rounded-full border-2 border-navy-800 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white"
-            >
-              Interested in stocking UTC Apparel?
-            </Link>
+          <div className="mt-12 rounded-[2rem] border border-navy-800/10 bg-[linear-gradient(135deg,_#0b1437_0%,_#132552_52%,_#1e3a8a_100%)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(5,13,31,0.22)] sm:px-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/45">Drop list</p>
+                <h2 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
+                  Get offers and first access to new drops.
+                </h2>
+                <p className="mt-3 max-w-xl text-sm leading-7 text-white/75">
+                  Join the email list for launch notices, limited releases, and occasional offers from Up the Creek. If you want to stock UTC Apparel in your club, use the partner link alongside it.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
+                <button
+                  type="button"
+                  onClick={() => setNewsletterOpen(true)}
+                  className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-900 transition-transform hover:scale-[1.02]"
+                >
+                  Sign up for emails
+                </button>
+                <Link
+                  to="/partners"
+                  className="inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-white/10"
+                >
+                  Interested in stocking UTC Apparel?
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
