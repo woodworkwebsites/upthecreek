@@ -64,9 +64,9 @@ function adminFetch<T>(path: string, token: string, options?: RequestInit): Prom
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function fetchProducts(channel: 'storefront' | 'partner' = 'storefront'): Promise<Product[]> {
+export async function fetchProducts(channel: 'storefront' | 'partner' | 'collabs' = 'storefront'): Promise<Product[]> {
   const url = new URL('/api/products', window.location.origin);
-  if (channel === 'partner') {
+  if (channel !== 'storefront') {
     url.searchParams.set('channel', channel);
   }
   const data = await apiFetch<{ products: Product[] }>(url.pathname + url.search, {
@@ -86,8 +86,12 @@ export async function fetchRanges(channel: 'storefront' | 'partner' = 'storefron
   return data.ranges;
 }
 
-export async function fetchProduct(id: string): Promise<Product> {
-  const data = await apiFetch<{ product: Product }>(`/api/products/${id}`, {
+export async function fetchProduct(id: string, channel: 'storefront' | 'partner' | 'collabs' = 'storefront'): Promise<Product> {
+  const url = new URL(`/api/products/${encodeURIComponent(id)}`, window.location.origin);
+  if (channel !== 'storefront') {
+    url.searchParams.set('channel', channel);
+  }
+  const data = await apiFetch<{ product: Product }>(url.pathname + url.search, {
     cache: 'no-store',
   });
   return data.product;

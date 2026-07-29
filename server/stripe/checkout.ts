@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import type { D1Database } from '@cloudflare/workers-types';
 import type { CheckoutItem } from '../../types/index.js';
 import { getProductByPrintifyId } from '../products/repository.js';
+import { getCollaborationProductById } from '../collaborations/repository.js';
 import {
   getDiscountCodeByCode,
   incrementDiscountCodeUsage,
@@ -52,7 +53,8 @@ export async function resolveLineItems(
   const resolved: ResolvedLineItem[] = [];
 
   for (const item of items) {
-    const product = await getProductByPrintifyId(db, item.printifyId);
+    const product = await getProductByPrintifyId(db, item.printifyId)
+      ?? await getCollaborationProductById(db, item.printifyId);
     if (!product) {
       throw Object.assign(
         new Error(`Product not found: ${item.printifyId}`),

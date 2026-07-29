@@ -8,7 +8,10 @@ interface UseProductResult {
   error: string | null;
 }
 
-export function useProduct(id: string | undefined): UseProductResult {
+export function useProduct(
+  id: string | undefined,
+  channel: 'storefront' | 'partner' | 'collabs' = 'storefront',
+): UseProductResult {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
@@ -23,7 +26,7 @@ export function useProduct(id: string | undefined): UseProductResult {
     setLoading(true);
     setError(null);
 
-    fetchProduct(id)
+    fetchProduct(id, channel)
       .then((data) => {
         if (!cancelled) {
           setProduct(data);
@@ -38,7 +41,7 @@ export function useProduct(id: string | undefined): UseProductResult {
       });
 
     return () => { cancelled = true; };
-  }, [id]);
+  }, [channel, id]);
 
   return { product, loading, error };
 }

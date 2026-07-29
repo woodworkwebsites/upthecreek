@@ -8,7 +8,7 @@ interface UseProductsResult {
   error: string | null;
 }
 
-export function useProducts(channel: 'storefront' | 'partner' = 'storefront'): UseProductsResult {
+export function useProducts(channel: 'storefront' | 'partner' | 'collabs' = 'storefront'): UseProductsResult {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);

@@ -6,9 +6,10 @@ import { formatPriceRange, cn } from '../../lib/utils.js';
 interface ProductCardProps {
   product: Product;
   priceLabel?: string;
+  toPrefix?: string;
 }
 
-export function ProductCard({ product, priceLabel }: ProductCardProps) {
+export function ProductCard({ product, priceLabel, toPrefix = '/product' }: ProductCardProps) {
   const defaultImage = product.images.find((i) => i.isDefault) ?? product.images[0];
   const altImage     = product.images.find((i) => !i.isDefault && i !== defaultImage) ?? null;
   const [isHovered, setIsHovered] = useState(false);
@@ -20,7 +21,7 @@ export function ProductCard({ product, priceLabel }: ProductCardProps) {
 
   return (
     <Link
-      to={`/product/${product.id}`}
+      to={`${toPrefix}/${encodeURIComponent(product.id)}`}
       className="group block focus:outline-none"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

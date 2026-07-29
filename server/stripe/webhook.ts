@@ -16,6 +16,7 @@ import { sendPushoverNotification } from '../notifications/pushover.js';
 import { logger } from '../logging.js';
 import {
   createPartnerCommissionFromOrder,
+  createCollaborationCommissionsFromOrder,
   getPartnerByDiscountCode,
   syncPartnerCommissionStatusByOrderId,
 } from '../partners/repository.js';
@@ -246,6 +247,20 @@ export async function processCompletedSession(
           error: message,
         });
       }
+    }
+  }
+
+  const collaborationOrder = await getOrderWithItems(env.DB, orderId);
+  if (collaborationOrder) {
+    try {
+      await createCollaborationCommissionsFromOrder(env.DB, collaborationOrder);
+      await syncPartnerCommissionStatusByOrderId(env.DB, orderId, collaborationOrder.status);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error('Failed to persist collaboration commissions', {
+        orderId,
+        error: message,
+      });
     }
   }
 

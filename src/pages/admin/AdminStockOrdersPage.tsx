@@ -291,7 +291,7 @@ export default function AdminStockOrdersPage() {
           <p className="text-gray-500 dark:text-gray-400">No partner stock orders yet.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800">
+        <div className="-mx-3 overflow-hidden border border-gray-100 dark:border-gray-800 sm:-mx-6 lg:-mx-8">
           <div className="overflow-x-auto">
             <table className="min-w-[760px] divide-y divide-gray-100 dark:divide-gray-800">
               <thead>

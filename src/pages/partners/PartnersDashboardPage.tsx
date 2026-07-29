@@ -10,107 +10,8 @@ import { useProducts } from '../../hooks/useProducts.js';
 import { useRanges } from '../../hooks/useRanges.js';
 import { PartnerOrderWorkspace } from '../../components/partners/PartnerOrderWorkspace.js';
 import { usePartnerSession } from '../../hooks/usePartner.js';
-import type { PartnerDashboard, Product } from '../../../types/index.js';
-import { DEFAULT_SIZE_OPTIONS } from '../../../types/catalog.js';
-
-const SELLSHIRTS_PRODUCT_URL_STUB = 'https://sellshirts.com/product/';
-
-function extractSellShirtsProductId(url: string | null | undefined): string {
-  const value = url?.trim() || '';
-  if (!value) return '';
-  return value.startsWith(SELLSHIRTS_PRODUCT_URL_STUB)
-    ? value.slice(SELLSHIRTS_PRODUCT_URL_STUB.length)
-    : value;
-}
-
-function buildCollaborationProducts(partner: PartnerDashboard['partner']): Product[] {
-  if (!partner.collaborationEnabled) return [];
-
-  const designs = partner.collaborationDesigns.length > 0
-    ? partner.collaborationDesigns
-    : partner.collaborationDesign
-      ? [partner.collaborationDesign]
-      : [];
-
-  return designs.map((design, index) => {
-    const sizes = design.sizes.length > 0 ? design.sizes : DEFAULT_SIZE_OPTIONS.slice();
-    const wholesalePrice = Math.max(0, design.partnerPrice);
-    const rrp = Math.max(wholesalePrice, design.rrp ?? wholesalePrice);
-    const wholesalePricePounds = (wholesalePrice / 100).toFixed(2);
-    const rrpPounds = (rrp / 100).toFixed(2);
-    const colorName = design.colorName.trim() || 'Collaboration';
-    const imageUrls = design.imageUrls.length > 0
-      ? design.imageUrls
-      : design.imageUrl
-        ? [design.imageUrl]
-        : [];
-    const orderUrl = design.orderUrl?.trim() || null;
-    const productId = extractSellShirtsProductId(orderUrl) || `partner-collab:${partner.slug}:${index}`;
-
-    return {
-      id: `partner-collab:${partner.slug}:${index}`,
-      printifyId: productId,
-      title: design.title.trim() || `${partner.name} collaboration`,
-      description: design.description ?? '',
-      category: 'partner-collaboration',
-      rangeId: null,
-      audience: 'Partner',
-      productType: 'Collaboration',
-      garment: design.garment?.trim() || 'Collaboration Shirt',
-      pricingMatrix: {
-        audience: 'Partner',
-        product: 'Collaboration',
-        garment: design.garment?.trim() || 'Collaboration Shirt',
-        printSurface: 'Partner exclusive',
-        manufacturingCost: '',
-        saleCost: '',
-        deliveryRetail: '',
-        deliveryPartner: '',
-        deliveryOnlinePartnership: '',
-        salePrice: rrpPounds,
-        partnerPrice: wholesalePricePounds,
-      },
-      images: imageUrls.length > 0
-        ? imageUrls.map((src, imageIndex) => ({
-          src: src.trim() || '/UTC_Logo.png',
-          isDefault: imageIndex === 0,
-          variantIds: sizes.map((_, variantIndex) => variantIndex + 1),
-          color: colorName,
-        }))
-        : [
-          {
-            src: '/UTC_Logo.png',
-            isDefault: true,
-            variantIds: [1],
-            color: colorName,
-          },
-        ],
-      variants: sizes.map((size, sizeIndex) => ({
-        id: sizeIndex + 1,
-        color: colorName,
-        size,
-        price: wholesalePrice,
-        available: true,
-      })),
-      colors: [
-        {
-          name: colorName,
-          hex: design.colorHex?.trim() || '#111827',
-          orderUrl,
-        },
-      ],
-      hiddenColors: [],
-      sizes,
-      minPrice: rrp,
-      maxPrice: rrp,
-      isEnabled: true,
-      sizeGuideImage: null,
-      syncedAt: partner.updatedAt,
-      createdAt: partner.createdAt,
-      updatedAt: partner.updatedAt,
-    };
-  });
-}
+import type { PartnerDashboard } from '../../../types/index.js';
+import { buildCollaborationProducts } from '../../lib/collaborations.js';
 
 export default function PartnersDashboardPage() {
   const navigate = useNavigate();
@@ -190,6 +91,7 @@ export default function PartnersDashboardPage() {
   }
 
   const { partner, summary, recentOrders } = dashboard;
+  const qualifyingSalesCount = recentOrders.filter((order) => order.commissionStatus !== 'void').length;
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,_#06122c_0%,_#0a1736_18%,_#f8f7f3_18%,_#f8f7f3_100%)] text-navy-900">
@@ -206,12 +108,6 @@ export default function PartnersDashboardPage() {
                 alt={`${partner.name} logo`}
                 className="h-full w-full object-contain p-2"
               />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-white/55">
-                Club Referral Code {partner.slug.toUpperCase()}
-              </p>
-              <p className="mt-1 text-sm font-semibold text-white/90">{partner.name}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -245,7 +141,7 @@ export default function PartnersDashboardPage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">Club referral sales this period</p>
-                  <p className="mt-2 text-3xl font-black text-navy-900">{summary.totalOrders.toLocaleString('en-GB')}</p>
+                  <p className="mt-2 text-3xl font-black text-navy-900">{qualifyingSalesCount.toLocaleString('en-GB')}</p>
                   <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Sales count</p>
                 </div>
                 <div>

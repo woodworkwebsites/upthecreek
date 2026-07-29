@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import HomePage       from './pages/HomePage.js';
 import ProductPage    from './pages/ProductPage.js';
+import CollabsPage from './pages/CollabsPage.js';
 import BasketPage     from './pages/BasketPage.js';
 import SuccessPage    from './pages/SuccessPage.js';
 import NotFoundPage   from './pages/NotFoundPage.js';
@@ -43,6 +44,8 @@ export default function App() {
           <Routes>
             <Route path="/"              element={<HomePage />} />
             <Route path="/product/:id"  element={<ProductPage />} />
+            <Route path="/collabs"      element={<CollabsPage />} />
+            <Route path="/collabs/:id"  element={<ProductPage channel="collabs" backHref="/collabs" backLabel="Back to collabs" />} />
             <Route path="/checkout"     element={<BasketPage />} />
             <Route path="/basket"       element={<Navigate to="/checkout" replace />} />
             <Route path="/success"      element={<SuccessPage />} />

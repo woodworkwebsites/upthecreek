@@ -4,9 +4,10 @@ import { ProductCard } from './ProductCard.js';
 interface ProductGridProps {
   products: Product[];
   priceLabel?: string;
+  toPrefix?: string;
 }
 
-export function ProductGrid({ products, priceLabel }: ProductGridProps) {
+export function ProductGrid({ products, priceLabel, toPrefix }: ProductGridProps) {
   if (products.length === 0) {
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center text-center gap-3">
@@ -25,7 +26,7 @@ export function ProductGrid({ products, priceLabel }: ProductGridProps) {
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-14">
       {products.map((product) => (
-        <ProductCard key={product.id} product={product} priceLabel={priceLabel} />
+        <ProductCard key={product.id} product={product} priceLabel={priceLabel} toPrefix={toPrefix} />
       ))}
     </div>
   );

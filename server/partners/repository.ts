@@ -19,6 +19,7 @@ import {
   getDiscountCodeByCode,
   updateDiscountCode,
 } from '../discount-codes/repository.js';
+import { parseCollaborationProductId } from '../../src/lib/collaborations.js';
 
 type PartnerRow = {
   id: string;
@@ -288,6 +289,46 @@ function calcCommission(netSales: number, commissionRate: number): number {
   return Math.max(0, Math.round((netSales * commissionRate) / 100));
 }
 
+async function upsertPartnerCommission(
+  db: D1Database,
+  partnerId: string,
+  order: Order,
+  grossSales: number,
+  discountAmount: number,
+  commissionRate: number,
+): Promise<void> {
+  const netSales = Math.max(0, grossSales - discountAmount);
+  const commissionAmount = calcCommission(netSales, commissionRate);
+  const status = commissionStatusFromOrderStatus(order.status);
+
+  await db
+    .prepare(`
+      INSERT INTO partner_commissions
+        (id, partner_id, order_id, order_status, gross_sales, discount_amount, commission_rate, commission_amount, status, payout_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, datetime('now'), datetime('now'))
+      ON CONFLICT(order_id, partner_id) DO UPDATE SET
+        order_status = excluded.order_status,
+        gross_sales = excluded.gross_sales,
+        discount_amount = excluded.discount_amount,
+        commission_rate = excluded.commission_rate,
+        commission_amount = excluded.commission_amount,
+        status = excluded.status,
+        updated_at = datetime('now')
+    `)
+    .bind(
+      crypto.randomUUID(),
+      partnerId,
+      order.id,
+      order.status,
+      grossSales,
+      discountAmount,
+      commissionRate,
+      commissionAmount,
+      status,
+    )
+    .run();
+}
+
 function commissionStatusFromOrderStatus(status: Order['status']): PartnerCommissionStatus {
   switch (status) {
     case 'fulfilled':
@@ -465,7 +506,7 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
     CREATE TABLE IF NOT EXISTS partner_commissions (
       id                TEXT PRIMARY KEY,
       partner_id        TEXT NOT NULL,
-      order_id          TEXT NOT NULL UNIQUE,
+      order_id          TEXT NOT NULL,
       order_status      TEXT NOT NULL,
       gross_sales       INTEGER NOT NULL,
       discount_amount   INTEGER NOT NULL DEFAULT 0,
@@ -474,7 +515,8 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
       status            TEXT NOT NULL DEFAULT 'pending',
       payout_id         TEXT,
       created_at        TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
+      updated_at        TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(order_id, partner_id)
     )
   `).run();
 
@@ -778,37 +820,38 @@ export async function createPartnerCommissionFromOrder(
 
   const items = order.items ?? [];
   const grossSales = calcItemTotal(items);
-  const netSales = Math.max(0, grossSales - (order.discountAmount ?? 0));
-  const commissionAmount = calcCommission(netSales, partner.commissionRate);
-  const status = commissionStatusFromOrderStatus(order.status);
+  await upsertPartnerCommission(db, partner.id, order, grossSales, order.discountAmount ?? 0, partner.commissionRate);
+}
 
-  await db
-    .prepare(`
-      INSERT INTO partner_commissions
-        (id, partner_id, order_id, order_status, gross_sales, discount_amount, commission_rate, commission_amount, status, payout_id, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, datetime('now'), datetime('now'))
-      ON CONFLICT(order_id) DO UPDATE SET
-        partner_id = excluded.partner_id,
-        order_status = excluded.order_status,
-        gross_sales = excluded.gross_sales,
-        discount_amount = excluded.discount_amount,
-        commission_rate = excluded.commission_rate,
-        commission_amount = excluded.commission_amount,
-        status = excluded.status,
-        updated_at = datetime('now')
-    `)
-    .bind(
-      crypto.randomUUID(),
-      partner.id,
-      order.id,
-      order.status,
-      grossSales,
-      order.discountAmount ?? 0,
-      partner.commissionRate,
-      commissionAmount,
-      status,
-    )
-    .run();
+export async function createCollaborationCommissionsFromOrder(
+  db: D1Database,
+  order: Order,
+): Promise<void> {
+  await ensurePartnerSchema(db);
+
+  const collabItems = (order.items ?? [])
+    .map((item) => ({ item, collab: parseCollaborationProductId(item.printifyId) }))
+    .filter((entry): entry is { item: OrderItem; collab: { partnerId: string; designIndex: number } } => Boolean(entry.collab));
+
+  if (collabItems.length === 0) return;
+
+  const grossTotal = collabItems.reduce((sum, entry) => sum + (entry.item.unitPrice * entry.item.quantity), 0);
+  if (grossTotal <= 0) return;
+
+  const byPartner = new Map<string, number>();
+  for (const entry of collabItems) {
+    const gross = entry.item.unitPrice * entry.item.quantity;
+    byPartner.set(entry.collab.partnerId, (byPartner.get(entry.collab.partnerId) ?? 0) + gross);
+  }
+
+  const discountAmount = order.discountAmount ?? 0;
+  for (const [partnerId, grossSales] of byPartner.entries()) {
+    const partner = await getPartnerById(db, partnerId);
+    if (!partner || !partner.active) continue;
+
+    const discountShare = Math.round((discountAmount * grossSales) / grossTotal);
+    await upsertPartnerCommission(db, partner.id, order, grossSales, discountShare, partner.commissionRate);
+  }
 }
 
 export async function syncPartnerCommissionStatusByOrderId(

@@ -164,6 +164,12 @@ export default function HomePage() {
                 >
                   Interested in stocking UTC Apparel?
                 </Link>
+                <Link
+                  to="/collabs"
+                  className="inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-white/10"
+                >
+                  Shop collaborations
+                </Link>
               </div>
             </div>
           </div>

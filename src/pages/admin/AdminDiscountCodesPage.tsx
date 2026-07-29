@@ -196,7 +196,7 @@ export default function AdminDiscountCodesPage() {
       {saved && <p className="text-xs font-semibold text-green-600 dark:text-green-400">{saved}</p>}
       {error && <ErrorMessage message={error} onRetry={load} />}
 
-      <div className="rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
+      <div className="-mx-3 overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900 sm:-mx-6 lg:-mx-8">
           {discountCodes.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-sm text-gray-400 dark:text-gray-500">No discount codes yet.</p>

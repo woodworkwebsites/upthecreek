@@ -42,9 +42,20 @@ const ProductDescription = memo(function ProductDescription({ html }: { html: st
   );
 });
 
-export default function ProductPage() {
+interface ProductPageProps {
+  channel?: 'storefront' | 'partner' | 'collabs';
+  backHref?: string;
+  backLabel?: string;
+}
+
+export default function ProductPage({
+  channel = 'storefront',
+  backHref = '/#collection',
+  backLabel = 'Back to shop',
+}: ProductPageProps) {
   const { id } = useParams<{ id: string }>();
-  const { product, loading, error } = useProduct(id);
+  const productId = id ? decodeURIComponent(id) : undefined;
+  const { product, loading, error } = useProduct(productId, channel);
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize,  setSelectedSize]  = useState<string | null>(null);
@@ -195,10 +206,10 @@ export default function ProductPage() {
 
             {/* Back link — always visible, pushed right */}
             <Link
-              to="/#collection"
+              to={backHref}
               className="ml-auto flex-shrink-0 text-xs font-bold tracking-widest uppercase text-gray-400 hover:text-navy-800 transition-colors"
             >
-              ← Back to shop
+              ← {backLabel}
             </Link>
 
           </div>
