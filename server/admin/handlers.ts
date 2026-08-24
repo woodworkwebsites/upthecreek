@@ -760,21 +760,6 @@ async function buildCollaborationDesignsFromForm(
         return a.isDefault ? -1 : 1;
       });
 
-      const hasContent =
-        design.title.length > 0 ||
-        design.description.length > 0 ||
-        design.garment.length > 0 ||
-        design.orderUrl.length > 0 ||
-        design.colorName.length > 0 ||
-        design.colorHex.length > 0 ||
-        design.sizes.length > 0 ||
-        design.wholesalePrice > 0 ||
-        design.rrp > 0 ||
-        resolvedImages.length > 0;
-      if (!hasContent) {
-        continue;
-      }
-
       resolved.push({
         title: design.title || 'Collaboration Shirt',
         description: design.description || null,

@@ -778,8 +778,30 @@ function ProductRow({
   return (
     <>
       <article className="h-full min-w-0 overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_34px_rgba(5,13,31,0.05)] transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+        <div className="border-b border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:hidden">
+          <div className="flex items-start gap-3">
+            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950">
+              {img ? (
+                <img src={img.src} alt={product.title} className="h-full w-full object-cover object-center" loading="lazy" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">No image</div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{product.title}</p>
+              <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">{formatDate(product.syncedAt)}</p>
+              <button
+                type="button"
+                onClick={() => setImageModalOpen(true)}
+                className="mt-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Images
+              </button>
+            </div>
+          </div>
+        </div>
         <div className="grid gap-0 min-w-0 lg:grid-cols-[160px_minmax(0,1fr)]">
-          <div className="flex flex-col border-b border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:border-b-0 lg:border-r">
+          <div className="hidden flex-col border-b border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:flex lg:border-b-0 lg:border-r">
             <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950">
               <div className="aspect-[4/5]">
                 {img ? (

@@ -24,7 +24,7 @@ export function ProductGrid({ products, priceLabel, toPrefix }: ProductGridProps
   }
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(10rem,18rem))] justify-center justify-items-center gap-x-4 gap-y-10 sm:gap-x-6 lg:gap-x-8 lg:gap-y-14">
+    <div className="mx-auto grid max-w-7xl grid-cols-2 justify-items-center gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-14">
       {products.map((product) => (
         <ProductCard key={product.id} product={product} priceLabel={priceLabel} toPrefix={toPrefix} />
       ))}
