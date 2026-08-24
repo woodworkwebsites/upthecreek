@@ -264,6 +264,20 @@ export interface PartnerCollaborationDesignRow {
   updated_at: string;
 }
 
+export type PartnerOnboardingAssetType = 'literature' | 'signage';
+
+export interface PartnerOnboardingAsset {
+  id: string;
+  partnerId: string;
+  assetType: PartnerOnboardingAssetType;
+  title: string;
+  url: string;
+  r2Key: string;
+  contentType: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CatalogRange {
   id: string;
   name: string;
@@ -296,6 +310,7 @@ export interface Partner {
   collaborationEnabled: boolean;
   collaborationDesign: PartnerCollaborationDesign | null;
   collaborationDesigns: PartnerCollaborationDesign[];
+  onboardingAssets?: PartnerOnboardingAsset[];
   createdAt: string;
   updatedAt: string;
 }

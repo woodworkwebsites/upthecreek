@@ -899,6 +899,43 @@ export default function AdminPartnersPage() {
               </button>
             </div>
 
+            {selectedPartner.onboardingAssets && selectedPartner.onboardingAssets.length > 0 && (
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Onboarding assets</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Generated placeholders stored in R2 and indexed in D1 for recall.
+                    </p>
+                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
+                    {selectedPartner.discountCode ?? selectedPartner.slug.toUpperCase()}
+                  </p>
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {selectedPartner.onboardingAssets.map((asset) => (
+                    <a
+                      key={asset.id}
+                      href={asset.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-xl border border-gray-200 bg-white px-4 py-3 transition-colors hover:border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600 dark:hover:bg-gray-800"
+                    >
+                      <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400 dark:text-gray-500">
+                        {asset.assetType}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {asset.title}
+                      </p>
+                      <p className="mt-1 break-all text-xs text-gray-500 dark:text-gray-400">
+                        {asset.url}
+                      </p>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
               <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

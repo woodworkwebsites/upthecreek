@@ -51,6 +51,7 @@ import {
   getPartnerAdminById,
   syncPartnerCommissionStatusByOrderId,
 } from '../partners/repository.js';
+import { generatePartnerOnboardingAssets } from '../partners/onboarding.js';
 import {
   listRanges,
   createRange,
@@ -1166,6 +1167,10 @@ export async function handleUpdateProduct(
         .filter((color) => color.name.length > 0)
     : undefined;
 
+  if (body.colors !== undefined && (!colors || colors.length === 0)) {
+    return json({ error: 'Select at least one colour' }, 400);
+  }
+
   if (rangeId !== undefined && rangeId !== null) {
     const range = await getRangeById(env.DB, rangeId);
     if (!range) return json({ error: 'Selected range not found' }, 400);
@@ -1591,7 +1596,15 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
         collaborationDesigns,
         collaborationDesign: collaborationDesigns?.[0] ?? null,
       });
-      return json({ partner }, 201);
+      try {
+        await generatePartnerOnboardingAssets(env, partner);
+      } catch (err) {
+        await deletePartner(env.DB, partner.id);
+        throw err;
+      }
+
+      const refreshed = await getPartnerAdminById(env.DB, partner.id);
+      return json({ partner: refreshed ?? partner }, 201);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return json({ error: message }, 400);
@@ -1647,7 +1660,15 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
       collaborationDesign: body.collaborationDesign ?? null,
       collaborationDesigns: body.collaborationDesigns ?? (body.collaborationDesign ? [body.collaborationDesign] : null),
     });
-    return json({ partner }, 201);
+    try {
+      await generatePartnerOnboardingAssets(env, partner);
+    } catch (err) {
+      await deletePartner(env.DB, partner.id);
+      throw err;
+    }
+
+    const refreshed = await getPartnerAdminById(env.DB, partner.id);
+    return json({ partner: refreshed ?? partner }, 201);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return json({ error: message }, 400);
@@ -1707,7 +1728,9 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
       });
 
       if (!partner) return json({ error: 'Partner not found' }, 404);
-      return json({ partner });
+      await generatePartnerOnboardingAssets(env, partner);
+      const refreshed = await getPartnerAdminById(env.DB, partner.id);
+      return json({ partner: refreshed ?? partner });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return json({ error: message }, 400);
@@ -1767,7 +1790,9 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
     });
 
     if (!partner) return json({ error: 'Partner not found' }, 404);
-    return json({ partner });
+    await generatePartnerOnboardingAssets(env, partner);
+    const refreshed = await getPartnerAdminById(env.DB, partner.id);
+    return json({ partner: refreshed ?? partner });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return json({ error: message }, 400);

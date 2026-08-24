@@ -461,6 +461,11 @@ function ProductRow({
   };
   const [pricingMatrix, setPricingMatrix] = useState(initialPricingMatrix);
   const [hiddenColors, setHiddenColors] = useState<string[]>(product.hiddenColors ?? []);
+  const [selectedColorNames, setSelectedColorNames] = useState<string[]>(() =>
+    product.colors
+      .filter((color) => !(product.hiddenColors ?? []).includes(color.name))
+      .map((color) => color.name),
+  );
   const [colorOrderUrls, setColorOrderUrls] = useState<Record<string, string>>(() => buildColorOrderUrlMap(product.colors));
   const [selectedSizes, setSelectedSizes] = useState<string[]>(product.sizes.length > 0 ? product.sizes : DEFAULT_SIZE_OPTIONS);
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
@@ -496,6 +501,11 @@ function ProductRow({
     setPricingMatrix(product.pricingMatrix ?? nextPreset);
     pricingCustomRef.current = Boolean(product.pricingMatrix);
     setHiddenColors(product.hiddenColors ?? []);
+    setSelectedColorNames(
+      product.colors
+        .filter((color) => !(product.hiddenColors ?? []).includes(color.name))
+        .map((color) => color.name),
+    );
     setColorOrderUrls(buildColorOrderUrlMap(product.colors));
     setSelectedSizes(product.sizes.length > 0 ? product.sizes : DEFAULT_SIZE_OPTIONS);
     setIsEnabled(product.isEnabled);
@@ -548,11 +558,12 @@ function ProductRow({
   }
 
   function toggleColor(colorName: string) {
-    setHiddenColors((current) =>
+    setSelectedColorNames((current) =>
       current.includes(colorName)
         ? current.filter((value) => value !== colorName)
         : [...current, colorName],
     );
+    setHiddenColors((current) => current.filter((value) => value !== colorName));
   }
 
   function toggleSize(size: string) {
@@ -657,7 +668,7 @@ function ProductRow({
   }
 
   const allColors = (() => {
-    const combined = [...catalog.colors];
+    const combined = [...product.colors, ...catalog.colors];
     const seen = new Set<string>();
     return combined.filter((color) => {
       const key = normalizeColorKey(color.name);
@@ -666,8 +677,9 @@ function ProductRow({
       return true;
     });
   })();
+  const selectedColorSet = new Set(selectedColorNames.map(normalizeColorKey));
   const visibleColors = allColors
-    .filter((color) => !hiddenColors.includes(color.name))
+    .filter((color) => selectedColorSet.has(normalizeColorKey(color.name)))
     .map((color) => {
       const key = normalizeColorKey(color.name);
       return {
@@ -707,8 +719,7 @@ function ProductRow({
     || currentPricingSignature !== originalPricingSignature
     || currentSizeSignature !== originalSizeSignature
     || currentColorSignature !== originalColorSignature
-    || hiddenColors.length !== (product.hiddenColors ?? []).length
-    || hiddenColors.some((color) => !(product.hiddenColors ?? []).includes(color));
+    || hiddenColors.length !== 0;
 
   async function handleSaveRow(closeDetails = false) {
     if (saving) return false;
@@ -716,6 +727,11 @@ function ProductRow({
 
     if (title.trim().length === 0) {
       setError('Title cannot be empty');
+      return false;
+    }
+
+    if (visibleColors.length === 0) {
+      setError('Select at least one colour');
       return false;
     }
 
@@ -737,7 +753,7 @@ function ProductRow({
           hex: color.hex,
           orderUrl: color.orderProductId?.trim() ? buildSellShirtsProductUrl(color.orderProductId) : undefined,
         })),
-        hiddenColors,
+        hiddenColors: [],
         isEnabled,
       });
       setSaved(true);

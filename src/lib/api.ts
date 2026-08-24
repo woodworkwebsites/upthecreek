@@ -26,7 +26,7 @@ async function apiFetch<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
-  const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
+  const isFormData = isFormDataBody(options?.body);
   const res = await fetch(path, {
     ...options,
     credentials: 'include',
@@ -50,6 +50,12 @@ async function apiFetch<T>(
   }
 
   return res.json() as Promise<T>;
+}
+
+function isFormDataBody(body: BodyInit | null | undefined): body is FormData {
+  if (typeof FormData === 'undefined' || !body) return false;
+  if (body instanceof FormData) return true;
+  return Object.prototype.toString.call(body) === '[object FormData]';
 }
 
 function adminFetch<T>(path: string, token: string, options?: RequestInit): Promise<T> {
@@ -464,9 +470,10 @@ export async function adminCreatePartner(
   token: string,
   data: PartnerInput | FormData,
 ): Promise<PartnerAdmin> {
+  const body = isFormDataBody(data) ? data : JSON.stringify(data);
   const response = await adminFetch<{ partner: PartnerAdmin }>('/api/admin/partners', token, {
     method: 'POST',
-    body: data instanceof FormData ? data : JSON.stringify(data),
+    body,
   });
   return response.partner;
 }
@@ -520,9 +527,10 @@ export async function adminUpdatePartner(
   id: string,
   data: Partial<PartnerInput> | FormData,
 ): Promise<PartnerAdmin> {
+  const body = isFormDataBody(data) ? data : JSON.stringify(data);
   const response = await adminFetch<{ partner: PartnerAdmin }>(`/api/admin/partners/${id}`, token, {
     method: 'PATCH',
-    body: data instanceof FormData ? data : JSON.stringify(data),
+    body,
   });
   return response.partner;
 }

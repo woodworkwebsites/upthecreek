@@ -6,6 +6,8 @@ import type {
   PartnerAdmin,
   PartnerCollaborationDesign,
   PartnerCollaborationDesignRow,
+  PartnerOnboardingAsset,
+  PartnerOnboardingAssetType,
   PartnerCommissionRow,
   PartnerCommissionStatus,
   PartnerDashboard,
@@ -32,6 +34,18 @@ type PartnerRow = {
   active: number;
   collaboration_enabled: number;
   collaboration_design: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type PartnerOnboardingAssetRow = {
+  id: string;
+  partner_id: string;
+  asset_type: PartnerOnboardingAssetType;
+  title: string;
+  url: string;
+  r2_key: string;
+  content_type: string;
   created_at: string;
   updated_at: string;
 };
@@ -70,6 +84,20 @@ function normalizeCollaborationImages(value: unknown): string[] {
         .filter(Boolean),
     ),
   );
+}
+
+function parsePartnerOnboardingAssetRow(row: PartnerOnboardingAssetRow): PartnerOnboardingAsset {
+  return {
+    id: row.id,
+    partnerId: row.partner_id,
+    assetType: row.asset_type,
+    title: row.title,
+    url: row.url,
+    r2Key: row.r2_key,
+    contentType: row.content_type,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 function normalizeCollaborationMoney(value: unknown): number {
@@ -247,6 +275,48 @@ async function loadPartnerCollaborationDesignRows(
     .all<PartnerCollaborationDesignRow>();
 
   return (rows.results ?? []).map(parseCollaborationDesignRow);
+}
+
+async function loadPartnerOnboardingAssetRows(
+  db: D1Database,
+  partnerId: string,
+): Promise<PartnerOnboardingAsset[]> {
+  await ensurePartnerSchema(db);
+
+  const rows = await db
+    .prepare('SELECT * FROM partner_onboarding_assets WHERE partner_id = ? ORDER BY asset_type ASC, created_at ASC')
+    .bind(partnerId)
+    .all<PartnerOnboardingAssetRow>();
+
+  return (rows.results ?? []).map(parsePartnerOnboardingAssetRow);
+}
+
+export async function replacePartnerOnboardingAssets(
+  db: D1Database,
+  partnerId: string,
+  assets: PartnerOnboardingAsset[],
+): Promise<void> {
+  await ensurePartnerSchema(db);
+
+  const normalized = assets.filter((asset) => asset.partnerId === partnerId);
+  const statements = [
+    db.prepare('DELETE FROM partner_onboarding_assets WHERE partner_id = ?').bind(partnerId),
+    ...normalized.map((asset) => db.prepare(`
+      INSERT INTO partner_onboarding_assets
+        (id, partner_id, asset_type, title, url, r2_key, content_type, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).bind(
+      asset.id,
+      asset.partnerId,
+      asset.assetType,
+      asset.title,
+      asset.url,
+      asset.r2Key,
+      asset.contentType,
+    )),
+  ];
+
+  await db.batch(statements);
 }
 
 async function replacePartnerCollaborationDesignRows(
@@ -512,6 +582,21 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
   `).run();
 
   await db.prepare(`
+    CREATE TABLE IF NOT EXISTS partner_onboarding_assets (
+      id            TEXT PRIMARY KEY,
+      partner_id    TEXT NOT NULL REFERENCES partners(id),
+      asset_type    TEXT NOT NULL,
+      title         TEXT NOT NULL,
+      url           TEXT NOT NULL,
+      r2_key        TEXT NOT NULL,
+      content_type  TEXT NOT NULL,
+      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(partner_id, asset_type)
+    )
+  `).run();
+
+  await db.prepare(`
     CREATE TABLE IF NOT EXISTS partner_commissions (
       id                TEXT PRIMARY KEY,
       partner_id        TEXT NOT NULL,
@@ -551,6 +636,7 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_commissions_status ON partner_commissions(status)').run();
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_payouts_partner_id ON partner_payouts(partner_id)').run();
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_collaboration_designs_partner_id ON partner_collaboration_designs(partner_id)').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_partner_onboarding_assets_partner_id ON partner_onboarding_assets(partner_id)').run();
 
   const columns = await db.prepare('PRAGMA table_info(partners)').all<{ name: string }>();
   const columnNames = new Set((columns.results ?? []).map((column) => column.name));
@@ -578,6 +664,7 @@ async function hydratePartnerRow(db: D1Database, row: PartnerRow): Promise<Partn
   const tableDesigns = await loadPartnerCollaborationDesignRows(db, row.id);
   const serializedDesigns = parseCollaborationDesigns(row.collaboration_design);
   const fallbackDesigns = tableDesigns.length >= serializedDesigns.length ? tableDesigns : serializedDesigns;
+  const onboardingAssets = await loadPartnerOnboardingAssetRows(db, row.id);
 
   return {
     ...parsePartnerRow({
@@ -586,6 +673,7 @@ async function hydratePartnerRow(db: D1Database, row: PartnerRow): Promise<Partn
     }),
     collaborationDesigns: fallbackDesigns,
     collaborationDesign: fallbackDesigns[0] ?? null,
+    onboardingAssets,
   };
 }
 

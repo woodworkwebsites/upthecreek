@@ -1,6 +1,11 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
 
-export type AssetKind = 'product-image' | 'size-guide' | 'partner-collab-image';
+export type AssetKind =
+  | 'product-image'
+  | 'size-guide'
+  | 'partner-collab-image'
+  | 'partner-onboarding-literature'
+  | 'partner-onboarding-signage';
 
 export interface StoredAsset {
   key: string;
@@ -101,6 +106,7 @@ function extensionFromContentType(contentType: string, sourceUrl: string): strin
   if (contentType.includes('jpeg') || contentType.includes('jpg')) return 'jpg';
   if (contentType.includes('webp')) return 'webp';
   if (contentType.includes('gif')) return 'gif';
+  if (contentType.includes('svg')) return 'svg';
 
   const urlExt = sourceUrl.split('?')[0]?.split('.').pop()?.toLowerCase();
   if (urlExt && urlExt.length <= 5) return urlExt;
