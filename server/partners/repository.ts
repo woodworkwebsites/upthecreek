@@ -673,6 +673,19 @@ async function getPartnerSecretById(db: D1Database, id: string): Promise<(Partne
   };
 }
 
+export async function getPartnerAdminById(db: D1Database, id: string): Promise<PartnerAdmin | null> {
+  await ensurePartnerSchema(db);
+
+  const row = await db
+    .prepare('SELECT * FROM partners WHERE id = ?')
+    .bind(id)
+    .first<PartnerSecretRow>();
+
+  if (!row) return null;
+
+  return hydratePartnerRow(db, row);
+}
+
 export async function createPartner(db: D1Database, data: PartnerInput): Promise<PartnerAdmin> {
   await ensurePartnerSchema(db);
 

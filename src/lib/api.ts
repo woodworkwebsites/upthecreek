@@ -455,6 +455,11 @@ export async function adminFetchPartners(token: string): Promise<PartnerAdmin[]>
   return data.partners;
 }
 
+export async function adminFetchPartner(token: string, id: string): Promise<PartnerAdmin> {
+  const data = await adminFetch<{ partner: PartnerAdmin }>(`/api/admin/partners/${id}`, token);
+  return data.partner;
+}
+
 export async function adminCreatePartner(
   token: string,
   data: PartnerInput | FormData,

@@ -4,6 +4,7 @@ import {
   adminCreatePartner,
   adminDeletePartner,
   adminFetchPartners,
+  adminFetchPartner,
   adminUpdatePartner,
 } from '../../lib/api.js';
 import { DEFAULT_SIZE_OPTIONS } from '../../../types/catalog.js';
@@ -82,6 +83,12 @@ function emptyDraft(): Draft {
 function cloneCollaborationDesignDraft(source: CollaborationDesignDraft): CollaborationDesignDraft {
   return {
     ...source,
+    frontImage: source.frontImage
+      ? { ...source.frontImage, file: source.frontImage.file, previewUrl: source.frontImage.previewUrl, isDefault: source.frontImage.isDefault }
+      : null,
+    backImage: source.backImage
+      ? { ...source.backImage, file: source.backImage.file, previewUrl: source.backImage.previewUrl, isDefault: source.backImage.isDefault }
+      : null,
     id: crypto.randomUUID(),
     title: source.title ? `${source.title} copy` : '',
   };
@@ -363,9 +370,40 @@ export default function AdminPartnersPage() {
     });
     setSaved(null);
     setSaveWarning(null);
-    setShowAccessToken(false);
     setCreateModalOpen(false);
   }
+
+  useEffect(() => {
+    if (!token || !editingId) return;
+
+    let cancelled = false;
+
+    void adminFetchPartner(token, editingId)
+      .then((partner) => {
+        if (cancelled) return;
+        setDraft((current) => ({
+          ...current,
+          name: partner.name,
+          logoImage: logoImageFromUrl(partner.logoUrl),
+          discountCode: partner.discountCode ?? partner.slug.toUpperCase(),
+          accessToken: partner.accessToken ?? current.accessToken,
+          commissionRate: String(partner.commissionRate),
+          description: partner.description ?? '',
+          active: partner.active,
+          collaborationEnabled: partner.collaborationEnabled,
+          collaborationDesigns: partner.collaborationDesigns.length > 0
+            ? partner.collaborationDesigns.map((entry) => designDraftFromApi(entry))
+            : [emptyCollaborationDesignDraft()],
+        }));
+      })
+      .catch(() => {
+        // Keep the list-derived draft if the detail fetch fails.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editingId, token]);
 
   function revokeCollaborationPreview(image: CollaborationImageRow | null) {
     if (image?.previewUrl.startsWith('blob:')) {
@@ -854,7 +892,6 @@ export default function AdminPartnersPage() {
                 onClick={() => {
                   setEditingId(null);
                   setError(null);
-                  setShowAccessToken(false);
                 }}
                 className="rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
               >

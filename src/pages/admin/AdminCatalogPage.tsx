@@ -304,15 +304,29 @@ export default function AdminCatalogPage() {
         channel="retail"
       />
 
-      <PricingMatrixTable
-        title="Collaboration pricing (online + in-store)"
-        hint="Use this as the shared collaboration reference: online club-code orders use sale cost plus online delivery, while in-store orders use partner price plus in-store delivery. The table shows both sale paths side by side."
-        pricingRows={pricingRows}
-        onUpdateRow={updatePricingRow}
-        onRemoveRow={removePricingRow}
-        onAddRow={() => addPricingRow()}
-        channel="collaboration"
-      />
+      <div className="grid gap-4 xl:grid-cols-2">
+        <PricingMatrixTable
+          title="Collaboration pricing (online)"
+          hint="Club-code orders use sale cost plus online delivery. RRP is shown as the shared reference for both collaboration paths."
+          pricingRows={pricingRows}
+          onUpdateRow={updatePricingRow}
+          onRemoveRow={removePricingRow}
+          onAddRow={() => addPricingRow()}
+          channel="collaboration"
+          collaborationMode="online"
+        />
+
+        <PricingMatrixTable
+          title="Collaboration pricing (in-store)"
+          hint="Partner orders use partner price plus in-store delivery. RRP stays shared with the online table."
+          pricingRows={pricingRows}
+          onUpdateRow={updatePricingRow}
+          onRemoveRow={removePricingRow}
+          onAddRow={() => addPricingRow()}
+          channel="collaboration"
+          collaborationMode="instore"
+        />
+      </div>
 
       {garmentModalOpen && (
         <GarmentPricingModal
@@ -537,6 +551,7 @@ function PricingMatrixTable({
   onRemoveRow,
   onAddRow,
   channel,
+  collaborationMode,
 }: {
   title: string;
   hint: string;
@@ -545,7 +560,11 @@ function PricingMatrixTable({
   onRemoveRow: (index: number) => void;
   onAddRow: () => void;
   channel: 'partner' | 'retail' | 'online-partnership' | 'collaboration';
+  collaborationMode?: 'online' | 'instore';
 }) {
+  const isCollaborationOnline = channel === 'collaboration' && collaborationMode === 'online';
+  const isCollaborationInStore = channel === 'collaboration' && collaborationMode === 'instore';
+
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -574,6 +593,25 @@ function PricingMatrixTable({
               {channel === 'retail' && <th className="px-2 py-2">Sale cost</th>}
               {(channel === 'retail' || channel === 'online-partnership') && <th className="px-2 py-2">Delivery</th>}
               {channel === 'partner' && <th className="px-2 py-2">In-store delivery</th>}
+              {channel === 'collaboration' && isCollaborationOnline && (
+                <>
+                  <th className="px-2 py-2">Sale cost</th>
+                  <th className="px-2 py-2">Online delivery</th>
+                  <th className="px-2 py-2">Sale price (RRP)</th>
+                  <th className="px-2 py-2" title="Sale cost plus online delivery, less the purchaser's 10% club discount and VAT">Purchaser price (−10%)</th>
+                  <th className="px-2 py-2" title="10% of the discounted purchaser price, excluding VAT">Club commission (10%)</th>
+                  <th className="px-2 py-2" title="Post-discount purchaser price excluding VAT, minus commission, manufacturing cost and online delivery">My margin</th>
+                </>
+              )}
+              {channel === 'collaboration' && isCollaborationInStore && (
+                <>
+                  <th className="px-2 py-2">In-store delivery</th>
+                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
+                  <th className="px-2 py-2">Sale price (RRP)</th>
+                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Sale price (RRP) minus partner price">Partner margin</th>
+                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="RRP minus wholesale price minus 20% VAT on RRP">Net profit</th>
+                </>
+              )}
               {channel === 'partner' && (
                 <>
                   <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
@@ -593,19 +631,6 @@ function PricingMatrixTable({
                   <th className="px-2 py-2" title="Sale cost plus delivery, less the purchaser's 10% club discount and VAT">Purchaser price (−10%)</th>
                   <th className="px-2 py-2" title="10% of the discounted purchaser price, excluding VAT">Club commission (10%)</th>
                   <th className="px-2 py-2" title="Post-discount purchaser price excluding VAT, minus commission, manufacturing cost and delivery">My margin</th>
-                </>
-              )}
-              {channel === 'collaboration' && (
-                <>
-                  <th className="px-2 py-2">Sale cost</th>
-                  <th className="px-2 py-2">Online delivery</th>
-                  <th className="px-2 py-2" title="Sale cost plus online delivery, less the purchaser's 10% club discount and VAT">Online purchaser price (−10%)</th>
-                  <th className="px-2 py-2" title="10% of the discounted online purchaser price, excluding VAT">Online commission (10%)</th>
-                  <th className="px-2 py-2" title="Post-discount purchaser price excluding VAT, minus commission, manufacturing cost and online delivery">Online margin</th>
-                  <th className="px-2 py-2">In-store delivery</th>
-                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
-                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Sale price (RRP) minus partner price">Partner margin</th>
-                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="RRP minus wholesale price minus 20% VAT on RRP">Net profit</th>
                 </>
               )}
               <th className="px-2 py-2">Actions</th>
@@ -707,7 +732,7 @@ function PricingMatrixTable({
                       </td>
                     </>
                   )}
-                  {channel === 'collaboration' && (
+                  {channel === 'collaboration' && isCollaborationOnline && (
                     <>
                       <td className="px-2 py-1.5">
                         <input
@@ -720,6 +745,13 @@ function PricingMatrixTable({
                         <input
                           value={row.deliveryOnlinePartnership}
                           onChange={(e) => onUpdateRow(index, { deliveryOnlinePartnership: e.target.value })}
+                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                        />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input
+                          value={row.salePrice}
+                          onChange={(e) => onUpdateRow(index, { salePrice: e.target.value })}
                           className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                         />
                       </td>
@@ -738,6 +770,10 @@ function PricingMatrixTable({
                           £{onlinePartnershipMargin.toFixed(2)}
                         </div>
                       </td>
+                    </>
+                  )}
+                  {channel === 'collaboration' && isCollaborationInStore && (
+                    <>
                       <td className="px-2 py-1.5">
                         <input
                           value={row.deliveryPartner}
@@ -751,6 +787,13 @@ function PricingMatrixTable({
                           onChange={(e) => onUpdateRow(index, { partnerPrice: e.target.value })}
                           placeholder="e.g. 11.29"
                           className="w-full min-w-0 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-gray-100"
+                        />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input
+                          value={row.salePrice}
+                          onChange={(e) => onUpdateRow(index, { salePrice: e.target.value })}
+                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                         />
                       </td>
                       <td className="px-2 py-1.5">

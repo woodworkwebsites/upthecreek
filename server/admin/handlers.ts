@@ -48,6 +48,7 @@ import {
   updatePartner,
   deletePartner,
   getPartnerById,
+  getPartnerAdminById,
   syncPartnerCommissionStatusByOrderId,
 } from '../partners/repository.js';
 import {
@@ -1548,6 +1549,12 @@ export async function handleDeleteDiscountCode(env: Env, id: string): Promise<Re
 export async function handleListPartners(env: Env): Promise<Response> {
   const partners = await listPartners(env.DB);
   return json({ partners });
+}
+
+export async function handleGetPartner(env: Env, id: string): Promise<Response> {
+  const partner = await getPartnerAdminById(env.DB, id);
+  if (!partner) return json({ error: 'Partner not found' }, 404);
+  return json({ partner });
 }
 
 export async function handleCreatePartner(env: Env, request: Request): Promise<Response> {
