@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { adminGetSettings, adminUpdateSettings } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -26,22 +26,22 @@ const emptyGarmentDraft = {
   partnerPrice: '',
 };
 
-const sheetTableClass = 'w-full min-w-[1180px] border-collapse text-left';
+const sheetTableClass = 'w-full min-w-[1150px] border-collapse text-left';
 const sheetHeaderClass = 'sticky top-0 z-20 border-b border-gray-200 bg-gray-50 px-2 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-400';
 const sheetBodyRowClass = 'border-b border-gray-200 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-950/40';
 const sheetCellClass = 'border-b border-gray-200 px-2 py-1 align-middle dark:border-gray-800';
 const sheetInputClass = 'w-full min-w-0 border border-transparent bg-transparent px-2 py-1.5 text-xs text-gray-900 outline-none transition-colors focus:border-navy-300 focus:bg-white dark:text-gray-100 dark:focus:bg-gray-950';
 const sheetMetricClass = 'flex min-h-[2.25rem] items-center border-b border-gray-200 bg-transparent px-2 py-1.5 text-xs font-semibold dark:border-gray-800 dark:text-gray-100';
 const sheetActionButtonClass = 'inline-flex items-center justify-center rounded-none border border-red-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:bg-gray-950 dark:text-red-400';
-const frozenAudienceWidthClass = 'w-[150px] min-w-[150px]';
-const frozenProductWidthClass = 'w-[150px] min-w-[150px]';
-const frozenGarmentWidthClass = 'w-[220px] min-w-[220px]';
+const frozenAudienceWidthClass = 'w-[120px] min-w-[120px]';
+const frozenProductWidthClass = 'w-[130px] min-w-[130px]';
+const frozenGarmentWidthClass = 'w-[170px] min-w-[170px]';
 const frozenAudienceCellClass = `${sheetCellClass} sticky left-0 z-20 bg-white dark:bg-gray-900`;
-const frozenProductCellClass = `${sheetCellClass} sticky left-[150px] z-20 bg-white dark:bg-gray-900`;
-const frozenGarmentCellClass = `${sheetCellClass} sticky left-[300px] z-20 border-r border-gray-200 bg-white shadow-[2px_0_0_rgba(15,23,42,0.06)] dark:border-gray-800 dark:bg-gray-900 dark:shadow-[2px_0_0_rgba(255,255,255,0.08)]`;
+const frozenProductCellClass = `${sheetCellClass} sticky left-[120px] z-20 bg-white dark:bg-gray-900`;
+const frozenGarmentCellClass = `${sheetCellClass} sticky left-[250px] z-20 border-r border-gray-200 bg-white shadow-[2px_0_0_rgba(15,23,42,0.06)] dark:border-gray-800 dark:bg-gray-900 dark:shadow-[2px_0_0_rgba(255,255,255,0.08)]`;
 const frozenAudienceHeaderClass = `${sheetHeaderClass} sticky left-0 z-30 bg-gray-50 dark:bg-gray-950`;
-const frozenProductHeaderClass = `${sheetHeaderClass} sticky left-[150px] z-30 bg-gray-50 dark:bg-gray-950`;
-const frozenGarmentHeaderClass = `${sheetHeaderClass} sticky left-[300px] z-30 border-r border-gray-200 bg-gray-50 shadow-[2px_0_0_rgba(15,23,42,0.06)] dark:border-gray-800 dark:bg-gray-950 dark:shadow-[2px_0_0_rgba(255,255,255,0.08)]`;
+const frozenProductHeaderClass = `${sheetHeaderClass} sticky left-[120px] z-30 bg-gray-50 dark:bg-gray-950`;
+const frozenGarmentHeaderClass = `${sheetHeaderClass} sticky left-[250px] z-30 border-r border-gray-200 bg-gray-50 shadow-[2px_0_0_rgba(15,23,42,0.06)] dark:border-gray-800 dark:bg-gray-950 dark:shadow-[2px_0_0_rgba(255,255,255,0.08)]`;
 
 export default function AdminCatalogPage() {
   const { token } = useAdminToken();
@@ -54,6 +54,10 @@ export default function AdminCatalogPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [audienceModalOpen, setAudienceModalOpen] = useState(false);
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [garmentListModalOpen, setGarmentListModalOpen] = useState(false);
+  const [colorsModalOpen, setColorsModalOpen] = useState(false);
   const [garmentModalOpen, setGarmentModalOpen] = useState(false);
   const [garmentDraft, setGarmentDraft] = useState(emptyGarmentDraft);
 
@@ -215,99 +219,49 @@ export default function AdminCatalogPage() {
       {saved && <p className="text-sm font-semibold text-green-600 dark:text-green-400">Saved</p>}
       {error && <p className="text-sm font-semibold text-red-600 dark:text-red-400">{error}</p>}
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <EditableListBox
-          label="Audience"
-          hint="Men / Womens / Kids"
-          items={audiences}
-          onUpdate={(index, value) => updateListItem(setAudiences, index, value)}
-          onAdd={() => addListItem(setAudiences)}
-          onRemove={(index) => removeListItem(setAudiences, index)}
-        />
-
-        <EditableListBox
-          label="Product"
-          hint="Tshirt / Hoody / Sweatshirt"
-          items={products}
-          onUpdate={(index, value) => updateListItem(setProducts, index, value)}
-          onAdd={() => addListItem(setProducts)}
-          onRemove={(index) => removeListItem(setProducts, index)}
-        />
-
-        <EditableListBox
-          label="Garment"
-          hint="Adding a garment opens the pricing matrix modal"
-          items={garments}
-          onUpdate={(index, value) => updateListItem(setGarments, index, value)}
-          onAdd={openGarmentModal}
-          onRemove={(index) => removeListItem(setGarments, index)}
-        />
-      </div>
-
       <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 dark:border-gray-800 dark:bg-gray-900">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Colours</p>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Name plus hex swatch for the admin table.</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Catalog option lists</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Audience, product, garment and colour editors are tucked away in modals so the page stays focused on the pricing sheets.
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={addColor}
-            className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white"
-          >
-            Add colour
-          </button>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {colors.map((color, index) => (
-            <div
-              key={index}
-              className="rounded-xl border border-gray-100 bg-gray-50 p-3 shadow-sm dark:border-gray-800 dark:bg-gray-950"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <button
-                    type="button"
-                    aria-label={`Colour swatch for ${color.name || 'untitled colour'}`}
-                    className="h-10 w-10 flex-shrink-0 rounded-full border border-black/10 shadow-inner"
-                    style={{ backgroundColor: color.hex }}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
-                      Colour
-                    </p>
-                    <input
-                      value={color.name}
-                      onChange={(e) => updateColor(index, { name: e.target.value })}
-                      placeholder="Colour name"
-                      className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                    />
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeColor(index)}
-                  className="rounded-full border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-red-400"
-                >
-                  X
-                </button>
-              </div>
-              <div className="mt-3 grid grid-cols-[44px_minmax(0,1fr)] gap-2">
-                <input
-                  type="color"
-                  value={color.hex}
-                  onChange={(e) => updateColor(index, { hex: e.target.value })}
-                  className="h-11 w-11 rounded-lg border border-gray-200 bg-transparent p-1 dark:border-gray-700"
-                />
-                <input
-                  value={color.hex}
-                  onChange={(e) => updateColor(index, { hex: e.target.value })}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-mono text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                />
-              </div>
-            </div>
-          ))}
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <button
+            type="button"
+            onClick={() => setAudienceModalOpen(true)}
+            className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-950 dark:hover:bg-gray-900"
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">Audience</p>
+            <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{audiences.length} options</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setProductModalOpen(true)}
+            className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-950 dark:hover:bg-gray-900"
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">Product</p>
+            <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{products.length} options</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setGarmentListModalOpen(true)}
+            className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-950 dark:hover:bg-gray-900"
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">Garment</p>
+            <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{garments.length} options</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setColorsModalOpen(true)}
+            className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-950 dark:hover:bg-gray-900"
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">Colours</p>
+            <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{colors.length} swatches</p>
+          </button>
         </div>
       </div>
 
@@ -344,6 +298,58 @@ export default function AdminCatalogPage() {
           collaborationMode="instore"
         />
       </div>
+
+      {audienceModalOpen && (
+        <CatalogListModal
+          title="Audience options"
+          hint="These values feed the audience dropdowns across admin and product flows."
+          items={audiences}
+          addButtonLabel="Add audience"
+          onUpdate={(index, value) => updateListItem(setAudiences, index, value)}
+          onAdd={() => addListItem(setAudiences)}
+          onRemove={(index) => removeListItem(setAudiences, index)}
+          onClose={() => setAudienceModalOpen(false)}
+        />
+      )}
+
+      {productModalOpen && (
+        <CatalogListModal
+          title="Product options"
+          hint="These values feed the product dropdowns across admin and product flows."
+          items={products}
+          addButtonLabel="Add product"
+          onUpdate={(index, value) => updateListItem(setProducts, index, value)}
+          onAdd={() => addListItem(setProducts)}
+          onRemove={(index) => removeListItem(setProducts, index)}
+          onClose={() => setProductModalOpen(false)}
+        />
+      )}
+
+      {garmentListModalOpen && (
+        <CatalogListModal
+          title="Garment options"
+          hint="These values are used by the pricing matrix and the product creation flow."
+          items={garments}
+          addButtonLabel="Add garment row"
+          onUpdate={(index, value) => updateListItem(setGarments, index, value)}
+          onAdd={() => {
+            setGarmentListModalOpen(false);
+            openGarmentModal();
+          }}
+          onRemove={(index) => removeListItem(setGarments, index)}
+          onClose={() => setGarmentListModalOpen(false)}
+        />
+      )}
+
+      {colorsModalOpen && (
+        <ColorListModal
+          colors={colors}
+          onAdd={addColor}
+          onUpdate={updateColor}
+          onRemove={removeColor}
+          onClose={() => setColorsModalOpen(false)}
+        />
+      )}
 
       {garmentModalOpen && (
         <GarmentPricingModal
@@ -532,6 +538,193 @@ function GarmentPricingModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function ModalFrame({
+  title,
+  hint,
+  onClose,
+  children,
+  actions,
+}: {
+  title: string;
+  hint: string;
+  onClose: () => void;
+  children: ReactNode;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-navy-950/70 p-4 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(event) => event.stopPropagation()}
+        className="w-full max-w-4xl rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl dark:border-gray-800 dark:bg-gray-900 sm:p-6"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">{title}</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{hint}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="mt-4">{children}</div>
+
+        {actions && <div className="mt-5 flex items-center justify-end gap-2">{actions}</div>}
+      </div>
+    </div>
+  );
+}
+
+function CatalogListModal({
+  title,
+  hint,
+  items,
+  addButtonLabel,
+  onUpdate,
+  onAdd,
+  onRemove,
+  onClose,
+}: {
+  title: string;
+  hint: string;
+  items: string[];
+  addButtonLabel: string;
+  onUpdate: (index: number, value: string) => void;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <ModalFrame
+      title={title}
+      hint={hint}
+      onClose={onClose}
+      actions={(
+        <>
+          <button
+            type="button"
+            onClick={onAdd}
+            className="rounded-lg bg-navy-800 px-3 py-2 text-sm font-semibold text-white"
+          >
+            {addButtonLabel}
+          </button>
+        </>
+      )}
+    >
+      <div className="max-h-[65vh] space-y-2 overflow-y-auto pr-1">
+        {items.map((item, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <input
+              value={item}
+              onChange={(event) => onUpdate(index, event.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            />
+            <button
+              type="button"
+              onClick={() => onRemove(index)}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-red-400"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+    </ModalFrame>
+  );
+}
+
+function ColorListModal({
+  colors,
+  onAdd,
+  onUpdate,
+  onRemove,
+  onClose,
+}: {
+  colors: CatalogColorOption[];
+  onAdd: () => void;
+  onUpdate: (index: number, patch: Partial<CatalogColorOption>) => void;
+  onRemove: (index: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <ModalFrame
+      title="Colour options"
+      hint="Name plus hex swatch for the admin table."
+      onClose={onClose}
+      actions={(
+        <button
+          type="button"
+          onClick={onAdd}
+          className="rounded-lg bg-navy-800 px-3 py-2 text-sm font-semibold text-white"
+        >
+          Add colour
+        </button>
+      )}
+    >
+      <div className="grid max-h-[65vh] gap-3 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+        {colors.map((color, index) => (
+          <div
+            key={index}
+            className="rounded-xl border border-gray-100 bg-gray-50 p-3 shadow-sm dark:border-gray-800 dark:bg-gray-950"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <button
+                  type="button"
+                  aria-label={`Colour swatch for ${color.name || 'untitled colour'}`}
+                  className="h-10 w-10 flex-shrink-0 rounded-full border border-black/10 shadow-inner"
+                  style={{ backgroundColor: color.hex }}
+                />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                    Colour
+                  </p>
+                  <input
+                    value={color.name}
+                    onChange={(event) => onUpdate(index, { name: event.target.value })}
+                    placeholder="Colour name"
+                    className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onRemove(index)}
+                className="rounded-full border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-red-400"
+              >
+                X
+              </button>
+            </div>
+            <div className="mt-3 grid grid-cols-[44px_minmax(0,1fr)] gap-2">
+              <input
+                type="color"
+                value={color.hex}
+                onChange={(event) => onUpdate(index, { hex: event.target.value })}
+                className="h-11 w-11 rounded-lg border border-gray-200 bg-transparent p-1 dark:border-gray-700"
+              />
+              <input
+                value={color.hex}
+                onChange={(event) => onUpdate(index, { hex: event.target.value })}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-mono text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </ModalFrame>
   );
 }
 
