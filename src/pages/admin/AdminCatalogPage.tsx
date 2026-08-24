@@ -26,6 +26,23 @@ const emptyGarmentDraft = {
   partnerPrice: '',
 };
 
+const sheetTableClass = 'w-full min-w-[1180px] border-collapse text-left';
+const sheetHeaderClass = 'sticky top-0 z-20 border-b border-gray-200 bg-gray-50 px-2 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-400';
+const sheetBodyRowClass = 'border-b border-gray-200 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-950/40';
+const sheetCellClass = 'border-b border-gray-200 px-2 py-1 align-middle dark:border-gray-800';
+const sheetInputClass = 'w-full min-w-0 border border-transparent bg-transparent px-2 py-1.5 text-xs text-gray-900 outline-none transition-colors focus:border-navy-300 focus:bg-white dark:text-gray-100 dark:focus:bg-gray-950';
+const sheetMetricClass = 'flex min-h-[2.25rem] items-center border-b border-gray-200 bg-transparent px-2 py-1.5 text-xs font-semibold dark:border-gray-800 dark:text-gray-100';
+const sheetActionButtonClass = 'inline-flex items-center justify-center rounded-none border border-red-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:bg-gray-950 dark:text-red-400';
+const frozenAudienceWidthClass = 'w-[150px] min-w-[150px]';
+const frozenProductWidthClass = 'w-[150px] min-w-[150px]';
+const frozenGarmentWidthClass = 'w-[220px] min-w-[220px]';
+const frozenAudienceCellClass = `${sheetCellClass} sticky left-0 z-20 bg-white dark:bg-gray-900`;
+const frozenProductCellClass = `${sheetCellClass} sticky left-[150px] z-20 bg-white dark:bg-gray-900`;
+const frozenGarmentCellClass = `${sheetCellClass} sticky left-[300px] z-20 border-r border-gray-200 bg-white shadow-[2px_0_0_rgba(15,23,42,0.06)] dark:border-gray-800 dark:bg-gray-900 dark:shadow-[2px_0_0_rgba(255,255,255,0.08)]`;
+const frozenAudienceHeaderClass = `${sheetHeaderClass} sticky left-0 z-30 bg-gray-50 dark:bg-gray-950`;
+const frozenProductHeaderClass = `${sheetHeaderClass} sticky left-[150px] z-30 bg-gray-50 dark:bg-gray-950`;
+const frozenGarmentHeaderClass = `${sheetHeaderClass} sticky left-[300px] z-30 border-r border-gray-200 bg-gray-50 shadow-[2px_0_0_rgba(15,23,42,0.06)] dark:border-gray-800 dark:bg-gray-950 dark:shadow-[2px_0_0_rgba(255,255,255,0.08)]`;
+
 export default function AdminCatalogPage() {
   const { token } = useAdminToken();
   const [audiences, setAudiences] = useState(DEFAULT_CATALOG_OPTIONS.audiences);
@@ -304,7 +321,7 @@ export default function AdminCatalogPage() {
         channel="retail"
       />
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="space-y-4">
         <PricingMatrixTable
           title="Collaboration pricing (online)"
           hint="Club-code orders use sale cost plus online delivery. RRP is shown as the shared reference for both collaboration paths."
@@ -527,19 +544,222 @@ function PricingIdentityCells({
 }) {
   return (
     <>
-      <td className="px-2 py-1.5">
-        <input value={row.audience} onChange={(e) => onChange({ audience: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+      <td className={`${frozenAudienceCellClass} ${frozenAudienceWidthClass}`}>
+        <input value={row.audience} onChange={(e) => onChange({ audience: e.target.value })} className={sheetInputClass} />
       </td>
-      <td className="px-2 py-1.5">
-        <input value={row.product} onChange={(e) => onChange({ product: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+      <td className={`${frozenProductCellClass} ${frozenProductWidthClass}`}>
+        <input value={row.product} onChange={(e) => onChange({ product: e.target.value })} className={sheetInputClass} />
       </td>
-      <td className="px-2 py-1.5">
-        <input value={row.garment} onChange={(e) => onChange({ garment: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+      <td className={`${frozenGarmentCellClass} ${frozenGarmentWidthClass}`}>
+        <input value={row.garment} onChange={(e) => onChange({ garment: e.target.value })} className={sheetInputClass} />
       </td>
-      <td className="px-2 py-1.5">
-        <input value={row.printSurface} onChange={(e) => onChange({ printSurface: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+      <td className={sheetCellClass}>
+        <input value={row.printSurface} onChange={(e) => onChange({ printSurface: e.target.value })} className={sheetInputClass} />
       </td>
     </>
+  );
+}
+
+function formatMoney(value: number): string {
+  return `£${value.toFixed(2)}`;
+}
+
+function getPricingRowMetrics(
+  row: PricingRowOption,
+  channel: 'partner' | 'retail' | 'online-partnership' | 'collaboration',
+  collaborationMode?: 'online' | 'instore',
+) {
+  const salePrice = Number.parseFloat(row.salePrice || '0');
+  const saleCost = Number.parseFloat(row.saleCost || '0');
+  const manufacturingCost = Number.parseFloat(row.manufacturingCost || '0');
+  const deliveryValue = channel === 'retail'
+    ? row.deliveryRetail
+    : channel === 'partner'
+      ? row.deliveryPartner
+      : row.deliveryOnlinePartnership;
+  const delivery = Number.parseFloat(deliveryValue || '0');
+  const onlineDelivery = Number.parseFloat(row.deliveryOnlinePartnership || '0');
+  const margin = salePrice - manufacturingCost - delivery;
+  const partnerMargin = salePrice - Number.parseFloat(row.partnerPrice || '0');
+  const partnerNetProfit = calculateNetProfitFromRrp(salePrice, Number.parseFloat(row.partnerPrice || '0'));
+  const purchaserPrice = (saleCost + onlineDelivery) * 0.9;
+  const netPurchaserPrice = excludeVat(purchaserPrice);
+  const clubCommission = calculateCommissionFromGross(purchaserPrice);
+  const onlinePartnershipMargin = netPurchaserPrice - clubCommission - manufacturingCost - onlineDelivery;
+
+  return {
+    salePrice,
+    saleCost,
+    manufacturingCost,
+    deliveryValue,
+    delivery,
+    onlineDelivery,
+    margin,
+    partnerMargin,
+    partnerNetProfit,
+    purchaserPrice,
+    clubCommission,
+    onlinePartnershipMargin,
+    isCollaborationOnline: channel === 'collaboration' && collaborationMode === 'online',
+    isCollaborationInStore: channel === 'collaboration' && collaborationMode === 'instore',
+  };
+}
+
+function PricingValue({
+  label,
+  value,
+  tone = 'default',
+}: {
+  label: string;
+  value: string;
+  tone?: 'default' | 'positive' | 'negative' | 'warning';
+}) {
+  const toneClass = tone === 'positive'
+    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
+    : tone === 'negative'
+      ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'
+      : tone === 'warning'
+        ? 'bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300'
+        : 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100';
+
+  return (
+    <div className={`rounded-xl px-3 py-2 ${toneClass}`}>
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-70">{label}</div>
+      <div className="mt-1 text-sm font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function PricingInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  tone = 'default',
+  type = 'text',
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  tone?: 'default' | 'warning';
+  type?: 'text' | 'number';
+}) {
+  return (
+    <label className="block space-y-1.5">
+      <span className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${tone === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>
+        {label}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className={`w-full rounded-lg border px-3 py-2 text-sm text-gray-900 dark:text-gray-100 ${
+          tone === 'warning'
+            ? 'border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20'
+            : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-950'
+        }`}
+      />
+    </label>
+  );
+}
+
+function PricingRowMobileCard({
+  row,
+  index,
+  channel,
+  collaborationMode,
+  onUpdateRow,
+  onRemoveRow,
+}: {
+  row: PricingRowOption;
+  index: number;
+  channel: 'partner' | 'retail' | 'online-partnership' | 'collaboration';
+  collaborationMode?: 'online' | 'instore';
+  onUpdateRow: (index: number, patch: Partial<PricingRowOption>) => void;
+  onRemoveRow: (index: number) => void;
+}) {
+  const metrics = getPricingRowMetrics(row, channel, collaborationMode);
+
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/70">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">Row {index + 1}</p>
+          <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {row.audience || 'Audience'} / {row.product || 'Product'} / {row.garment || 'Garment'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onRemoveRow(index)}
+          className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-red-400"
+        >
+          Remove
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <PricingInput label="Audience" value={row.audience} onChange={(value) => onUpdateRow(index, { audience: value })} />
+        <PricingInput label="Product" value={row.product} onChange={(value) => onUpdateRow(index, { product: value })} />
+        <PricingInput label="Garment" value={row.garment} onChange={(value) => onUpdateRow(index, { garment: value })} />
+        <PricingInput label="Print surface" value={row.printSurface} onChange={(value) => onUpdateRow(index, { printSurface: value })} />
+        <PricingInput label="Manufacturing" value={row.manufacturingCost} onChange={(value) => onUpdateRow(index, { manufacturingCost: value })} />
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {channel === 'retail' && (
+          <>
+            <PricingInput label="Sale cost" value={row.saleCost} onChange={(value) => onUpdateRow(index, { saleCost: value })} />
+            <PricingInput label="Delivery" value={row.deliveryRetail} onChange={(value) => onUpdateRow(index, { deliveryRetail: value })} />
+            <PricingInput label="Sale price" value={row.salePrice} onChange={(value) => onUpdateRow(index, { salePrice: value })} />
+            <PricingValue label="Margin" value={formatMoney(metrics.margin)} tone={metrics.margin >= 0 ? 'positive' : 'negative'} />
+          </>
+        )}
+
+        {channel === 'partner' && (
+          <>
+            <PricingInput label="Partner delivery" value={row.deliveryPartner} onChange={(value) => onUpdateRow(index, { deliveryPartner: value })} />
+            <PricingInput label="Partner price" value={row.partnerPrice} onChange={(value) => onUpdateRow(index, { partnerPrice: value })} tone="warning" />
+            <PricingInput label="Sale price" value={row.salePrice} onChange={(value) => onUpdateRow(index, { salePrice: value })} />
+            <PricingValue label="Partner margin" value={formatMoney(metrics.partnerMargin)} tone={metrics.partnerMargin >= 0 ? 'positive' : 'negative'} />
+            <PricingValue label="Net profit" value={formatMoney(metrics.partnerNetProfit)} tone={metrics.partnerNetProfit >= 0 ? 'positive' : 'negative'} />
+          </>
+        )}
+
+        {channel === 'online-partnership' && (
+          <>
+            <PricingInput label="Sale cost" value={row.saleCost} onChange={(value) => onUpdateRow(index, { saleCost: value })} />
+            <PricingInput label="Delivery" value={row.deliveryOnlinePartnership} onChange={(value) => onUpdateRow(index, { deliveryOnlinePartnership: value })} />
+            <PricingValue label="Purchaser price" value={formatMoney(metrics.purchaserPrice)} />
+            <PricingValue label="Club commission" value={formatMoney(metrics.clubCommission)} />
+            <PricingValue label="My margin" value={formatMoney(metrics.onlinePartnershipMargin)} tone={metrics.onlinePartnershipMargin >= 0 ? 'positive' : 'negative'} />
+          </>
+        )}
+
+        {channel === 'collaboration' && metrics.isCollaborationOnline && (
+          <>
+            <PricingInput label="Sale cost" value={row.saleCost} onChange={(value) => onUpdateRow(index, { saleCost: value })} />
+            <PricingInput label="Online delivery" value={row.deliveryOnlinePartnership} onChange={(value) => onUpdateRow(index, { deliveryOnlinePartnership: value })} />
+            <PricingInput label="Sale price (RRP)" value={row.salePrice} onChange={(value) => onUpdateRow(index, { salePrice: value })} />
+            <PricingValue label="Purchaser price" value={formatMoney(metrics.purchaserPrice)} />
+            <PricingValue label="Club commission" value={formatMoney(metrics.clubCommission)} />
+            <PricingValue label="My margin" value={formatMoney(metrics.onlinePartnershipMargin)} tone={metrics.onlinePartnershipMargin >= 0 ? 'positive' : 'negative'} />
+          </>
+        )}
+
+        {channel === 'collaboration' && metrics.isCollaborationInStore && (
+          <>
+            <PricingInput label="In-store delivery" value={row.deliveryPartner} onChange={(value) => onUpdateRow(index, { deliveryPartner: value })} />
+            <PricingInput label="Partner price" value={row.partnerPrice} onChange={(value) => onUpdateRow(index, { partnerPrice: value })} tone="warning" />
+            <PricingInput label="Sale price (RRP)" value={row.salePrice} onChange={(value) => onUpdateRow(index, { salePrice: value })} />
+            <PricingValue label="Partner margin" value={formatMoney(metrics.partnerMargin)} tone={metrics.partnerMargin >= 0 ? 'positive' : 'negative'} />
+            <PricingValue label="Net profit" value={formatMoney(metrics.partnerNetProfit)} tone={metrics.partnerNetProfit >= 0 ? 'positive' : 'negative'} />
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -564,6 +784,7 @@ function PricingMatrixTable({
 }) {
   const isCollaborationOnline = channel === 'collaboration' && collaborationMode === 'online';
   const isCollaborationInStore = channel === 'collaboration' && collaborationMode === 'instore';
+  const isCollaboration = channel === 'collaboration';
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
@@ -581,238 +802,228 @@ function PricingMatrixTable({
         </button>
       </div>
 
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full table-fixed border-separate border-spacing-x-1 border-spacing-y-0 text-left">
+      <div className="mt-4 hidden overflow-x-auto pb-2 md:block">
+        <table
+          className={`${sheetTableClass} ${
+            isCollaboration
+              ? 'min-w-[1280px]'
+              : ''
+          }`}
+        >
           <thead className="bg-gray-50 dark:bg-gray-900">
-            <tr className="text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
-              <th className="px-2 py-2">Audience</th>
-              <th className="px-2 py-2">Product</th>
-              <th className="px-2 py-2">Garment</th>
-              <th className="px-2 py-2">Print surface</th>
-              <th className="px-2 py-2">Manufacturing</th>
-              {channel === 'retail' && <th className="px-2 py-2">Sale cost</th>}
-              {(channel === 'retail' || channel === 'online-partnership') && <th className="px-2 py-2">Delivery</th>}
-              {channel === 'partner' && <th className="px-2 py-2">In-store delivery</th>}
+            <tr className="text-[10px] uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+              <th className={`${frozenAudienceHeaderClass} ${frozenAudienceWidthClass}`}>Audience</th>
+              <th className={`${frozenProductHeaderClass} ${frozenProductWidthClass}`}>Product</th>
+              <th className={`${frozenGarmentHeaderClass} ${frozenGarmentWidthClass}`}>Garment</th>
+              <th className={sheetHeaderClass}>Print surface</th>
+              <th className={sheetHeaderClass}>Manufacturing</th>
+              {channel === 'retail' && <th className={sheetHeaderClass}>Sale cost</th>}
+              {(channel === 'retail' || channel === 'online-partnership') && <th className={sheetHeaderClass}>Delivery</th>}
+              {channel === 'partner' && <th className={sheetHeaderClass}>In-store delivery</th>}
               {channel === 'collaboration' && isCollaborationOnline && (
                 <>
-                  <th className="px-2 py-2">Sale cost</th>
-                  <th className="px-2 py-2">Online delivery</th>
-                  <th className="px-2 py-2">Sale price (RRP)</th>
-                  <th className="px-2 py-2" title="Sale cost plus online delivery, less the purchaser's 10% club discount and VAT">Purchaser price (−10%)</th>
-                  <th className="px-2 py-2" title="10% of the discounted purchaser price, excluding VAT">Club commission (10%)</th>
-                  <th className="px-2 py-2" title="Post-discount purchaser price excluding VAT, minus commission, manufacturing cost and online delivery">My margin</th>
+                  <th className={sheetHeaderClass}>Sale cost</th>
+                  <th className={sheetHeaderClass}>Online delivery</th>
+                  <th className={sheetHeaderClass}>Sale price (RRP)</th>
+                  <th className={sheetHeaderClass} title="Sale cost plus online delivery, less the purchaser's 10% club discount and VAT">Purchaser price</th>
+                  <th className={sheetHeaderClass} title="10% of the discounted purchaser price, excluding VAT">Club commission</th>
+                  <th className={sheetHeaderClass} title="Post-discount purchaser price excluding VAT, minus commission, manufacturing cost and online delivery">My margin</th>
                 </>
               )}
               {channel === 'collaboration' && isCollaborationInStore && (
                 <>
-                  <th className="px-2 py-2">In-store delivery</th>
-                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
-                  <th className="px-2 py-2">Sale price (RRP)</th>
-                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Sale price (RRP) minus partner price">Partner margin</th>
-                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="RRP minus wholesale price minus 20% VAT on RRP">Net profit</th>
+                  <th className={sheetHeaderClass}>In-store delivery</th>
+                  <th className={sheetHeaderClass + ' text-amber-700 dark:text-amber-400'} title="Your income per garment on the partner order page">Partner price</th>
+                  <th className={sheetHeaderClass}>Sale price (RRP)</th>
+                  <th className={sheetHeaderClass + ' text-amber-700 dark:text-amber-400'} title="Sale price (RRP) minus partner price">Partner margin</th>
+                  <th className={sheetHeaderClass + ' text-amber-700 dark:text-amber-400'} title="RRP minus wholesale price minus 20% VAT on RRP">Net profit</th>
                 </>
               )}
               {channel === 'partner' && (
                 <>
-                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
-                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Sale price (RRP) minus partner price">Partner margin</th>
-                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="RRP minus wholesale price minus 20% VAT on RRP">Net profit</th>
+                  <th className={sheetHeaderClass + ' text-amber-700 dark:text-amber-400'} title="Your income per garment on the partner order page">Partner price</th>
+                  <th className={sheetHeaderClass + ' text-amber-700 dark:text-amber-400'} title="Sale price (RRP) minus partner price">Partner margin</th>
+                  <th className={sheetHeaderClass + ' text-amber-700 dark:text-amber-400'} title="RRP minus wholesale price minus 20% VAT on RRP">Net profit</th>
                 </>
               )}
               {channel === 'retail' && (
                 <>
-                  <th className="px-2 py-2">Sale price</th>
-                  <th className="px-2 py-2">Margin</th>
+                  <th className={sheetHeaderClass}>Sale price</th>
+                  <th className={sheetHeaderClass}>Margin</th>
                 </>
               )}
               {channel === 'online-partnership' && (
                 <>
-                  <th className="px-2 py-2">Sale cost</th>
-                  <th className="px-2 py-2" title="Sale cost plus delivery, less the purchaser's 10% club discount and VAT">Purchaser price (−10%)</th>
-                  <th className="px-2 py-2" title="10% of the discounted purchaser price, excluding VAT">Club commission (10%)</th>
-                  <th className="px-2 py-2" title="Post-discount purchaser price excluding VAT, minus commission, manufacturing cost and delivery">My margin</th>
+                  <th className={sheetHeaderClass}>Sale cost</th>
+                  <th className={sheetHeaderClass} title="Sale cost plus delivery, less the purchaser's 10% club discount and VAT">Purchaser price</th>
+                  <th className={sheetHeaderClass} title="10% of the discounted purchaser price, excluding VAT">Club commission</th>
+                  <th className={sheetHeaderClass} title="Post-discount purchaser price excluding VAT, minus commission, manufacturing cost and delivery">My margin</th>
                 </>
               )}
-              <th className="px-2 py-2">Actions</th>
+              <th className={sheetHeaderClass}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {pricingRows.map((row, index) => {
-              const salePrice = Number.parseFloat(row.salePrice || '0');
-              const saleCost = Number.parseFloat(row.saleCost || '0');
-              const manufacturingCost = Number.parseFloat(row.manufacturingCost || '0');
-              const deliveryValue = channel === 'retail'
-                ? row.deliveryRetail
-                : channel === 'partner'
-                  ? row.deliveryPartner
-                  : row.deliveryOnlinePartnership;
-              const delivery = Number.parseFloat(deliveryValue || '0');
-              const onlineDelivery = Number.parseFloat(row.deliveryOnlinePartnership || '0');
-              const margin = salePrice - manufacturingCost - delivery;
-              const partnerMargin = salePrice - Number.parseFloat(row.partnerPrice || '0');
-              const partnerNetProfit = calculateNetProfitFromRrp(salePrice, Number.parseFloat(row.partnerPrice || '0'));
-              const purchaserPrice = (saleCost + onlineDelivery) * 0.9;
-              const netPurchaserPrice = excludeVat(purchaserPrice);
-              const clubCommission = calculateCommissionFromGross(purchaserPrice);
-              const onlinePartnershipMargin = netPurchaserPrice - clubCommission - manufacturingCost - onlineDelivery;
+              const metrics = getPricingRowMetrics(row, channel, collaborationMode);
               return (
-                <tr key={index} className="border-t border-gray-100 dark:border-gray-800">
+                <tr key={index} className={sheetBodyRowClass}>
                   <PricingIdentityCells row={row} onChange={(patch) => onUpdateRow(index, patch)} />
-                  <td className="px-2 py-1.5">
-                    <input value={row.manufacturingCost} onChange={(e) => onUpdateRow(index, { manufacturingCost: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                  <td className={sheetCellClass}>
+                    <input value={row.manufacturingCost} onChange={(e) => onUpdateRow(index, { manufacturingCost: e.target.value })} className={sheetInputClass} />
                   </td>
                   {channel === 'retail' && (
-                    <td className="px-2 py-1.5">
-                      <input value={row.saleCost} onChange={(e) => onUpdateRow(index, { saleCost: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                    <td className={sheetCellClass}>
+                      <input value={row.saleCost} onChange={(e) => onUpdateRow(index, { saleCost: e.target.value })} className={sheetInputClass} />
                     </td>
                   )}
                   {channel !== 'collaboration' && (
-                    <td className="px-2 py-1.5">
+                    <td className={sheetCellClass}>
                       <input
-                        value={deliveryValue}
+                        value={metrics.deliveryValue}
                         onChange={(e) => onUpdateRow(index, channel === 'retail'
                           ? { deliveryRetail: e.target.value }
                           : channel === 'partner'
                             ? { deliveryPartner: e.target.value }
                             : { deliveryOnlinePartnership: e.target.value })}
-                        className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                        className={sheetInputClass}
                       />
                     </td>
                   )}
                   {channel === 'partner' && (
                     <>
-                      <td className="px-2 py-1.5">
-                        <input value={row.partnerPrice} onChange={(e) => onUpdateRow(index, { partnerPrice: e.target.value })} placeholder="e.g. 11.29" className="w-full min-w-0 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-gray-100" />
+                      <td className={sheetCellClass}>
+                        <input value={row.partnerPrice} onChange={(e) => onUpdateRow(index, { partnerPrice: e.target.value })} placeholder="e.g. 11.29" className={sheetInputClass + ' border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20'} />
                       </td>
-                      <td className="px-2 py-1.5">
-                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerMargin >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
-                          £{partnerMargin.toFixed(2)}
+                      <td className={sheetCellClass}>
+                        <div className={`${sheetMetricClass} ${metrics.partnerMargin >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-700 dark:text-red-300'}`}>
+                          {formatMoney(metrics.partnerMargin)}
                         </div>
                       </td>
-                      <td className="px-2 py-1.5">
-                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerNetProfit >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
-                          £{partnerNetProfit.toFixed(2)}
+                      <td className={sheetCellClass}>
+                        <div className={`${sheetMetricClass} ${metrics.partnerNetProfit >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-700 dark:text-red-300'}`}>
+                          {formatMoney(metrics.partnerNetProfit)}
                         </div>
                       </td>
                     </>
                   )}
                   {channel === 'retail' && (
                     <>
-                      <td className="px-2 py-1.5">
-                        <input value={row.salePrice} onChange={(e) => onUpdateRow(index, { salePrice: e.target.value })} className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100" />
+                      <td className={sheetCellClass}>
+                        <input value={row.salePrice} onChange={(e) => onUpdateRow(index, { salePrice: e.target.value })} className={sheetInputClass} />
                       </td>
-                      <td className="px-2 py-1.5">
-                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${margin >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
-                          £{margin.toFixed(2)}
+                      <td className={sheetCellClass}>
+                        <div className={`${sheetMetricClass} ${metrics.margin >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-700 dark:text-red-300'}`}>
+                          {formatMoney(metrics.margin)}
                         </div>
                       </td>
                     </>
                   )}
                   {channel === 'online-partnership' && (
                     <>
-                      <td className="px-2 py-1.5">
-                        <div className="rounded-lg bg-gray-100 px-2 py-1.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                          £{saleCost.toFixed(2)}
+                      <td className={sheetCellClass}>
+                        <div className={sheetMetricClass + ' text-gray-600 dark:text-gray-300'}>
+                          {formatMoney(metrics.saleCost)}
                         </div>
                       </td>
-                      <td className="px-2 py-1.5">
-                        <div className="rounded-lg bg-gray-100 px-2 py-1.5 text-xs font-semibold text-gray-900 dark:bg-gray-800 dark:text-gray-100">
-                          £{purchaserPrice.toFixed(2)}
+                      <td className={sheetCellClass}>
+                        <div className={sheetMetricClass}>
+                          {formatMoney(metrics.purchaserPrice)}
                         </div>
                       </td>
-                      <td className="px-2 py-1.5">
-                        <div className="rounded-lg bg-gray-100 px-2 py-1.5 text-xs font-semibold text-gray-900 dark:bg-gray-800 dark:text-gray-100">
-                          £{clubCommission.toFixed(2)}
+                      <td className={sheetCellClass}>
+                        <div className={sheetMetricClass}>
+                          {formatMoney(metrics.clubCommission)}
                         </div>
                       </td>
-                      <td className="px-2 py-1.5">
-                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${onlinePartnershipMargin >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
-                          £{onlinePartnershipMargin.toFixed(2)}
+                      <td className={sheetCellClass}>
+                        <div className={`${sheetMetricClass} ${metrics.onlinePartnershipMargin >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-700 dark:text-red-300'}`}>
+                          {formatMoney(metrics.onlinePartnershipMargin)}
                         </div>
                       </td>
                     </>
                   )}
                   {channel === 'collaboration' && isCollaborationOnline && (
                     <>
-                      <td className="px-2 py-1.5">
+                      <td className={sheetCellClass}>
                         <input
                           value={row.saleCost}
                           onChange={(e) => onUpdateRow(index, { saleCost: e.target.value })}
-                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                          className={sheetInputClass}
                         />
                       </td>
-                      <td className="px-2 py-1.5">
+                      <td className={sheetCellClass}>
                         <input
                           value={row.deliveryOnlinePartnership}
                           onChange={(e) => onUpdateRow(index, { deliveryOnlinePartnership: e.target.value })}
-                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                          className={sheetInputClass}
                         />
                       </td>
-                      <td className="px-2 py-1.5">
+                      <td className={sheetCellClass}>
                         <input
                           value={row.salePrice}
                           onChange={(e) => onUpdateRow(index, { salePrice: e.target.value })}
-                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                          className={sheetInputClass}
                         />
                       </td>
-                      <td className="px-2 py-1.5">
-                        <div className="rounded-lg bg-gray-100 px-2 py-1.5 text-xs font-semibold text-gray-900 dark:bg-gray-800 dark:text-gray-100">
-                          £{purchaserPrice.toFixed(2)}
+                      <td className={sheetCellClass}>
+                        <div className={sheetMetricClass}>
+                          {formatMoney(metrics.purchaserPrice)}
                         </div>
                       </td>
-                      <td className="px-2 py-1.5">
-                        <div className="rounded-lg bg-gray-100 px-2 py-1.5 text-xs font-semibold text-gray-900 dark:bg-gray-800 dark:text-gray-100">
-                          £{clubCommission.toFixed(2)}
+                      <td className={sheetCellClass}>
+                        <div className={sheetMetricClass}>
+                          {formatMoney(metrics.clubCommission)}
                         </div>
                       </td>
-                      <td className="px-2 py-1.5">
-                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${onlinePartnershipMargin >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
-                          £{onlinePartnershipMargin.toFixed(2)}
+                      <td className={sheetCellClass}>
+                        <div className={`${sheetMetricClass} ${metrics.onlinePartnershipMargin >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-700 dark:text-red-300'}`}>
+                          {formatMoney(metrics.onlinePartnershipMargin)}
                         </div>
                       </td>
                     </>
                   )}
                   {channel === 'collaboration' && isCollaborationInStore && (
                     <>
-                      <td className="px-2 py-1.5">
+                      <td className={sheetCellClass}>
                         <input
                           value={row.deliveryPartner}
                           onChange={(e) => onUpdateRow(index, { deliveryPartner: e.target.value })}
-                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                          className={sheetInputClass}
                         />
                       </td>
-                      <td className="px-2 py-1.5">
+                      <td className={sheetCellClass}>
                         <input
                           value={row.partnerPrice}
                           onChange={(e) => onUpdateRow(index, { partnerPrice: e.target.value })}
                           placeholder="e.g. 11.29"
-                          className="w-full min-w-0 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-gray-100"
+                          className={sheetInputClass + ' border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20'}
                         />
                       </td>
-                      <td className="px-2 py-1.5">
+                      <td className={sheetCellClass}>
                         <input
                           value={row.salePrice}
                           onChange={(e) => onUpdateRow(index, { salePrice: e.target.value })}
-                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                          className={sheetInputClass}
                         />
                       </td>
-                      <td className="px-2 py-1.5">
-                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerMargin >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
-                          £{partnerMargin.toFixed(2)}
+                      <td className={sheetCellClass}>
+                        <div className={`${sheetMetricClass} ${metrics.partnerMargin >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-700 dark:text-red-300'}`}>
+                          {formatMoney(metrics.partnerMargin)}
                         </div>
                       </td>
-                      <td className="px-2 py-1.5">
-                        <div className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${partnerNetProfit >= 0 ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>
-                          £{partnerNetProfit.toFixed(2)}
+                      <td className={sheetCellClass}>
+                        <div className={`${sheetMetricClass} ${metrics.partnerNetProfit >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-700 dark:text-red-300'}`}>
+                          {formatMoney(metrics.partnerNetProfit)}
                         </div>
                       </td>
                     </>
                   )}
-                  <td className="px-2 py-1.5">
+                  <td className={sheetCellClass}>
                     <button
                       type="button"
                       onClick={() => onRemoveRow(index)}
-                      className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 dark:border-gray-700 dark:bg-gray-900 dark:text-red-400"
+                      className={sheetActionButtonClass}
                     >
                       Remove
                     </button>
@@ -822,6 +1033,20 @@ function PricingMatrixTable({
             })}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-4 space-y-3 md:hidden">
+        {pricingRows.map((row, index) => (
+          <PricingRowMobileCard
+            key={index}
+            row={row}
+            index={index}
+            channel={channel}
+            collaborationMode={collaborationMode}
+            onUpdateRow={onUpdateRow}
+            onRemoveRow={onRemoveRow}
+          />
+        ))}
       </div>
     </div>
   );
