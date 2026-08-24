@@ -127,16 +127,14 @@ export default function HomePage() {
             </h2>
           </div>
 
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
-            <div>
-              {loading ? (
-                <PageLoader />
-              ) : error ? (
-                <ErrorMessage message={error} />
-              ) : (
-                <ProductGrid products={products} />
-              )}
-            </div>
+          <div>
+            {loading ? (
+              <PageLoader />
+            ) : error ? (
+              <ErrorMessage message={error} />
+            ) : (
+              <ProductGrid products={products} />
+            )}
           </div>
 
           <div className="mt-10 flex justify-center">
