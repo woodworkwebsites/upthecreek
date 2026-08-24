@@ -10,6 +10,7 @@ import {
   type CatalogColorOption,
   type PricingRowOption,
 } from '../../lib/catalog.js';
+import { calculateCommissionFromGross, calculateNetProfitFromRrp, excludeVat } from '../../lib/pricing.js';
 
 const emptyGarmentDraft = {
   name: '',
@@ -299,6 +300,7 @@ export default function AdminCatalogPage() {
         pricingRows={pricingRows}
         onUpdateRow={updatePricingRow}
         onRemoveRow={removePricingRow}
+        onAddRow={() => addPricingRow()}
         channel="retail"
       />
 
@@ -308,6 +310,7 @@ export default function AdminCatalogPage() {
         pricingRows={pricingRows}
         onUpdateRow={updatePricingRow}
         onRemoveRow={removePricingRow}
+        onAddRow={() => addPricingRow()}
         channel="collaboration"
       />
 
@@ -532,6 +535,7 @@ function PricingMatrixTable({
   pricingRows,
   onUpdateRow,
   onRemoveRow,
+  onAddRow,
   channel,
 }: {
   title: string;
@@ -539,13 +543,23 @@ function PricingMatrixTable({
   pricingRows: PricingRowOption[];
   onUpdateRow: (index: number, patch: Partial<PricingRowOption>) => void;
   onRemoveRow: (index: number) => void;
+  onAddRow: () => void;
   channel: 'partner' | 'retail' | 'online-partnership' | 'collaboration';
 }) {
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-      <div>
-        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</p>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{hint}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{hint}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onAddRow}
+          className="inline-flex items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-navy-700"
+        >
+          Add row
+        </button>
       </div>
 
       <div className="mt-4 overflow-x-auto">
@@ -564,7 +578,7 @@ function PricingMatrixTable({
                 <>
                   <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
                   <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Sale price (RRP) minus partner price">Partner margin</th>
-                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Partner price minus manufacturing cost and delivery — your actual profit on a partner order">Net profit</th>
+                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="RRP minus wholesale price minus 20% VAT on RRP">Net profit</th>
                 </>
               )}
               {channel === 'retail' && (
@@ -576,22 +590,22 @@ function PricingMatrixTable({
               {channel === 'online-partnership' && (
                 <>
                   <th className="px-2 py-2">Sale cost</th>
-                  <th className="px-2 py-2" title="Sale cost plus delivery, less the purchaser's 10% club discount">Purchaser price (−10%)</th>
-                  <th className="px-2 py-2" title="10% of the discounted purchaser price">Club commission (10%)</th>
-                  <th className="px-2 py-2" title="Purchaser price minus club commission, manufacturing cost and delivery">My margin</th>
+                  <th className="px-2 py-2" title="Sale cost plus delivery, less the purchaser's 10% club discount and VAT">Purchaser price (−10%)</th>
+                  <th className="px-2 py-2" title="10% of the discounted purchaser price, excluding VAT">Club commission (10%)</th>
+                  <th className="px-2 py-2" title="Post-discount purchaser price excluding VAT, minus commission, manufacturing cost and delivery">My margin</th>
                 </>
               )}
               {channel === 'collaboration' && (
                 <>
                   <th className="px-2 py-2">Sale cost</th>
                   <th className="px-2 py-2">Online delivery</th>
-                  <th className="px-2 py-2" title="Sale cost plus online delivery, less the purchaser's 10% club discount">Online purchaser price (−10%)</th>
-                  <th className="px-2 py-2" title="10% of the discounted online purchaser price">Online commission (10%)</th>
-                  <th className="px-2 py-2" title="Purchaser price minus commission, manufacturing cost and online delivery">Online margin</th>
+                  <th className="px-2 py-2" title="Sale cost plus online delivery, less the purchaser's 10% club discount and VAT">Online purchaser price (−10%)</th>
+                  <th className="px-2 py-2" title="10% of the discounted online purchaser price, excluding VAT">Online commission (10%)</th>
+                  <th className="px-2 py-2" title="Post-discount purchaser price excluding VAT, minus commission, manufacturing cost and online delivery">Online margin</th>
                   <th className="px-2 py-2">In-store delivery</th>
                   <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Your income per garment on the partner order page">Partner price</th>
                   <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Sale price (RRP) minus partner price">Partner margin</th>
-                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="Partner price minus manufacturing cost and in-store delivery — your actual profit on a partner order">Net profit</th>
+                  <th className="px-2 py-2 text-amber-700 dark:text-amber-400" title="RRP minus wholesale price minus 20% VAT on RRP">Net profit</th>
                 </>
               )}
               <th className="px-2 py-2">Actions</th>
@@ -609,13 +623,13 @@ function PricingMatrixTable({
                   : row.deliveryOnlinePartnership;
               const delivery = Number.parseFloat(deliveryValue || '0');
               const onlineDelivery = Number.parseFloat(row.deliveryOnlinePartnership || '0');
-              const partnerDelivery = Number.parseFloat(row.deliveryPartner || '0');
               const margin = salePrice - manufacturingCost - delivery;
               const partnerMargin = salePrice - Number.parseFloat(row.partnerPrice || '0');
-              const partnerNetProfit = Number.parseFloat(row.partnerPrice || '0') - manufacturingCost - partnerDelivery;
+              const partnerNetProfit = calculateNetProfitFromRrp(salePrice, Number.parseFloat(row.partnerPrice || '0'));
               const purchaserPrice = (saleCost + onlineDelivery) * 0.9;
-              const clubCommission = purchaserPrice * 0.1;
-              const onlinePartnershipMargin = purchaserPrice - clubCommission - manufacturingCost - onlineDelivery;
+              const netPurchaserPrice = excludeVat(purchaserPrice);
+              const clubCommission = calculateCommissionFromGross(purchaserPrice);
+              const onlinePartnershipMargin = netPurchaserPrice - clubCommission - manufacturingCost - onlineDelivery;
               return (
                 <tr key={index} className="border-t border-gray-100 dark:border-gray-800">
                   <PricingIdentityCells row={row} onChange={(patch) => onUpdateRow(index, patch)} />

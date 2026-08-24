@@ -149,7 +149,7 @@ function StockOrderRow({
           {formatPrice(order.totalValue)}
         </td>
         <td className="px-3 py-2 align-middle">
-          <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap overflow-x-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex flex-wrap items-start gap-2 md:flex-nowrap md:items-center md:whitespace-nowrap md:overflow-x-auto" onClick={(e) => e.stopPropagation()}>
             <Badge variant={statusVariant[order.status]} className="shrink-0">
               {statusLabels[order.status]}
             </Badge>

@@ -1241,7 +1241,15 @@ function ProductRow({
                       <input value={pricingMatrix.salePrice} onChange={(e) => updatePricingMatrix({ salePrice: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
                     </Field>
                     <Field label="Partner price">
-                      <input value={pricingMatrix.partnerPrice} onChange={(e) => updatePricingMatrix({ partnerPrice: e.target.value })} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-gray-900 dark:border-amber-900/40 dark:bg-gray-900 dark:text-gray-100" />
+                      <input
+                        value={pricingMatrix.partnerPrice}
+                        readOnly
+                        tabIndex={-1}
+                        className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-gray-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-gray-100"
+                      />
+                      <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">
+                        Managed in Catalog options. This product card reads the catalog value.
+                      </p>
                     </Field>
                   </div>
 

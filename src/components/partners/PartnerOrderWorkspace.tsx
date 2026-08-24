@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { CatalogRange, PrintifyColor, PrintifyVariant, Product } from '../../../types/index.js';
 import { Badge } from '../ui/Badge.js';
 import { cn, formatPrice } from '../../lib/utils.js';
+import { calculateCommissionFromGross } from '../../lib/pricing.js';
 import { submitPartnerStockOrder } from '../../lib/api.js';
 
 const priceChipClass = 'inline-flex items-center rounded-full bg-emerald-700 px-2.5 py-1 text-xs font-bold text-white';
@@ -71,24 +72,6 @@ function getPartnerUnitPrice(product: Product, fallback: number): number {
 
 function getRrp(product: Product): number {
   return product.minPrice > 0 ? product.minPrice : product.maxPrice > 0 ? product.maxPrice : 0;
-}
-
-function getReferralPricing(product: Product): { purchaserPrice: number; commission: number } {
-  const saleCost = parseFloat(product.pricingMatrix?.saleCost?.trim() || '0');
-  const delivery = parseFloat(product.pricingMatrix?.deliveryOnlinePartnership?.trim() || '0');
-  const purchaserPricePounds = (Number.isFinite(saleCost) ? saleCost : 0) + (Number.isFinite(delivery) ? delivery : 0);
-  const discountedPounds = purchaserPricePounds * 0.9;
-  const commissionPounds = discountedPounds * 0.1;
-  return {
-    purchaserPrice: Math.round(discountedPounds * 100),
-    commission: Math.round(commissionPounds * 100),
-  };
-}
-
-function getCollaborationReferralPricing(rrp: number): { commission: number } {
-  return {
-    commission: Math.max(0, Math.round(rrp * 0.1)),
-  };
 }
 
 function buildSizeEntries(product: Product, color: string): BasketSizeEntry[] {
@@ -212,9 +195,9 @@ function ProductMatrixCard({
   const partnerPrice = getPartnerUnitPrice(product, rrp);
   const margin = Math.max(0, rrp - partnerPrice);
   const isCollaboration = product.category === 'partner-collaboration';
-  const { commission } = isCollaboration
-    ? getCollaborationReferralPricing(rrp)
-    : getReferralPricing(product);
+  const collaborationCommission = isCollaboration
+    ? Math.max(0, Math.round(calculateCommissionFromGross(rrp)))
+    : null;
   const colorImages = useMemo(() => (activeColor ? getImagesForColor(product, activeColor.name) : []), [activeColor, product]);
   const activeImageSrc = colorImages.length > 0 ? colorImages[imageIndex % colorImages.length] : getImageForColor(product, activeColor?.name ?? '');
 
@@ -280,10 +263,12 @@ function ProductMatrixCard({
             <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
             <span className={marginChipClass}>{formatPrice(margin)} Margin</span>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className={rowLabelClass}>Online Referral</span>
-            <span className={commissionChipClass}>{formatPrice(commission)} referral</span>
-          </div>
+          {isCollaboration && collaborationCommission !== null && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className={rowLabelClass}>Online Referral</span>
+              <span className={commissionChipClass}>{formatPrice(collaborationCommission)} referral</span>
+            </div>
+          )}
         </div>
         <p className="mt-2 text-xs text-gray-400">
           {colors.length} colours · {getProductSizes(product).length} sizes
@@ -827,11 +812,9 @@ export function PartnerOrderWorkspace({
         const draftTotalPieces = draftLines.reduce((sum, line) => sum + lineCount(line), 0);
         const draftTotalValue = draftLines.reduce((sum, line) => sum + lineTotal(line), 0);
         const isCollaborationDraft = draftProduct?.category === 'partner-collaboration';
-        const draftReferral = draftProduct
-          ? isCollaborationDraft
-            ? getCollaborationReferralPricing(activeDraft.rrp)
-            : getReferralPricing(draftProduct)
-          : { purchaserPrice: 0, commission: 0 };
+        const draftCommission = isCollaborationDraft
+          ? Math.max(0, Math.round(calculateCommissionFromGross(activeDraft.rrp)))
+          : null;
         return (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/70 p-4 backdrop-blur-sm"
@@ -938,10 +921,12 @@ export function PartnerOrderWorkspace({
                           {formatPrice(Math.max(0, activeDraft.rrp - (activeDraft.sizes[0]?.unitPrice ?? 0)))} Margin
                         </span>
                       </div>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={rowLabelClass}>Online Referral</span>
-                        <span className={commissionChipClass}>{formatPrice(draftReferral.commission)} referral</span>
-                      </div>
+                      {isCollaborationDraft && draftCommission !== null && (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={rowLabelClass}>Online Referral</span>
+                          <span className={commissionChipClass}>{formatPrice(draftCommission)} referral</span>
+                        </div>
+                      )}
                     </div>
                     {draftColors.length > 1 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">

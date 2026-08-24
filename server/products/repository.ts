@@ -374,8 +374,6 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
 }
 
 function applyEffectivePartnerPrice(product: Product, pricingRows: ReturnType<typeof parseCatalogSettings>['pricingRows']): Product {
-  if (product.pricingMatrix?.partnerPrice?.trim()) return product;
-
   const preset = findPricingPresetRow(pricingRows, product.audience, product.productType, product.garment);
   if (!preset?.partnerPrice?.trim()) return product;
 

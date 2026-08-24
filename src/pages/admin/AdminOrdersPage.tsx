@@ -177,7 +177,7 @@ function OrderRow({
           {formatPrice(order.amountTotal)}
         </td>
         <td className="px-3 py-2 align-middle">
-          <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap overflow-x-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex flex-wrap items-start gap-2 md:flex-nowrap md:items-center md:whitespace-nowrap md:overflow-x-auto" onClick={(e) => e.stopPropagation()}>
             <Badge variant={statusVariant[shown.status] ?? 'default'} className="shrink-0">
               {shown.status.replace(/_/g, ' ')}
             </Badge>
@@ -313,7 +313,7 @@ function OrderRow({
                           value={externalOrderRef}
                           onChange={(e) => setExternalOrderRef(e.target.value)}
                           placeholder="SellShirts order ref (optional)"
-                          className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-navy-400 focus:outline-none"
+                          className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-navy-400 focus:outline-none md:w-auto"
                         />
                         <button
                           onClick={handleMarkFulfilled}

@@ -13,6 +13,7 @@ import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { formatDate } from '../../lib/utils.js';
 
 const SELLSHIRTS_PRODUCT_URL_STUB = 'https://sellshirts.com/product/';
+const ACCESS_TOKEN_VISIBILITY_KEY = 'utc_admin_partner_access_token_visible';
 
 type Draft = {
   name: string;
@@ -75,6 +76,14 @@ function emptyDraft(): Draft {
     active: true,
     collaborationEnabled: false,
     collaborationDesigns: [emptyCollaborationDesignDraft()],
+  };
+}
+
+function cloneCollaborationDesignDraft(source: CollaborationDesignDraft): CollaborationDesignDraft {
+  return {
+    ...source,
+    id: crypto.randomUUID(),
+    title: source.title ? `${source.title} copy` : '',
   };
 }
 
@@ -262,7 +271,10 @@ export default function AdminPartnersPage() {
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [saved, setSaved] = useState<string | null>(null);
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
-  const [showAccessToken, setShowAccessToken] = useState(false);
+  const [showAccessToken, setShowAccessToken] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(ACCESS_TOKEN_VISIBILITY_KEY) === 'true';
+  });
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -300,7 +312,14 @@ export default function AdminPartnersPage() {
     setDraft(emptyDraft());
     setError(null);
     setSaveWarning(null);
-    setShowAccessToken(false);
+  }
+
+  function toggleAccessTokenVisibility() {
+    setShowAccessToken((current) => {
+      const next = !current;
+      window.localStorage.setItem(ACCESS_TOKEN_VISIBILITY_KEY, String(next));
+      return next;
+    });
   }
 
   function startCreate() {
@@ -398,7 +417,10 @@ export default function AdminPartnersPage() {
     setDraft((current) => ({
       ...current,
       collaborationEnabled: true,
-      collaborationDesigns: [...current.collaborationDesigns, emptyCollaborationDesignDraft()],
+      collaborationDesigns: [
+        ...current.collaborationDesigns,
+        cloneCollaborationDesignDraft(current.collaborationDesigns[current.collaborationDesigns.length - 1] ?? emptyCollaborationDesignDraft()),
+      ],
     }));
   }
 
@@ -881,7 +903,7 @@ export default function AdminPartnersPage() {
                       <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Access token</span>
                       <button
                         type="button"
-                        onClick={() => setShowAccessToken((current) => !current)}
+                        onClick={toggleAccessTokenVisibility}
                         className="text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                       >
                         {showAccessToken ? 'Hide' : 'Show'}
@@ -944,6 +966,7 @@ export default function AdminPartnersPage() {
                     <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Partner-only products</p>
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                       Each design card becomes a separate collaboration product on the partner dashboard.
+                      Add a duplicate to create a mens and womens version from the same starting point.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -952,7 +975,7 @@ export default function AdminPartnersPage() {
                       onClick={addCollaborationDesign}
                       className="rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
                     >
-                      Create new design
+                      Add another design
                     </button>
                     <button
                       type="button"
@@ -1212,13 +1235,13 @@ export default function AdminPartnersPage() {
 
               <label className="block space-y-1 sm:col-span-2">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Access token</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowAccessToken((current) => !current)}
-                    className="text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                  >
-                    {showAccessToken ? 'Hide' : 'Show'}
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Access token</span>
+                <button
+                  type="button"
+                  onClick={toggleAccessTokenVisibility}
+                  className="text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                >
+                  {showAccessToken ? 'Hide' : 'Show'}
                   </button>
                 </div>
                 <input

@@ -113,7 +113,7 @@ export default function AdminLayout() {
           </div>
         </div>
       )}
-      <header className="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/96 backdrop-blur dark:border-gray-800 dark:bg-gray-900/96">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between md:h-14 md:gap-6 md:py-0">
             <div className="flex items-center justify-between gap-3 md:justify-start md:gap-6">
@@ -127,7 +127,7 @@ export default function AdminLayout() {
                 aria-expanded={mobileMenuOpen}
                 aria-controls="admin-navigation"
               >
-                Menu
+                Sections
               </button>
             </div>
 
@@ -135,14 +135,14 @@ export default function AdminLayout() {
               id="admin-navigation"
               className={`${
                 mobileMenuOpen ? 'flex' : 'hidden'
-              } flex-col gap-1 overflow-x-auto pb-1 md:flex md:flex-row md:flex-wrap md:gap-1 md:pb-0`}
+              } flex-col gap-1 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl shadow-gray-900/5 dark:border-gray-800 dark:bg-gray-900 md:flex md:flex-row md:flex-wrap md:gap-1 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
             >
                 {navItems.map(({ path, label }) => (
                   <NavLink
                     key={path}
                     to={path}
                     className={({ isActive }) =>
-                      `rounded-lg px-3 py-2 text-sm font-medium transition-colors md:py-1.5 ${
+                      `block rounded-lg px-3 py-2 text-sm font-medium transition-colors md:inline-flex md:py-1.5 ${
                         isActive
                           ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100'
                           : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
@@ -179,7 +179,7 @@ export default function AdminLayout() {
         </div>
       </header>
 
-      <main className="w-full px-3 py-6 sm:px-6 lg:px-8">
+      <main className="w-full px-3 py-4 sm:px-6 lg:px-8">
         <Outlet />
       </main>
     </div>
