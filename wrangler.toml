@@ -6,7 +6,7 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "up-the-creek-orders"
-database_id = "2fc5d8b6-e3ec-4233-9009-597bfb9fd755"
+database_id = "d08bff32-b0ff-404d-81f7-39d48686fc98"
 migrations_dir = "db/migrations"
 
 [[r2_buckets]]
