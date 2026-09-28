@@ -8,6 +8,8 @@
     "build": "vite build && cp dist/index.html dist/404.html",
     "preview": "wrangler pages dev dist",
     "type-check": "tsc --noEmit",
+    "catalogue:recover-images": "node scripts/recover-sellshirts-images.mjs",
+    "catalogue:recover-images:self-test": "node scripts/recover-sellshirts-images.mjs --self-test",
     "db:migrate:local": "wrangler d1 migrations apply up-the-creek-orders --local",
     "db:migrate:remote": "wrangler d1 migrations apply up-the-creek-orders --remote"
   },

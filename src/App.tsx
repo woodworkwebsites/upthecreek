@@ -21,6 +21,7 @@ import AdminRangesPage from './pages/admin/AdminRangesPage.tsx';
 import AdminCatalogPage  from './pages/admin/AdminCatalogPage.js';
 import AdminLogsPage     from './pages/admin/AdminLogsPage.js';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage.js';
+import AdminCatalogueRecoveryPage from './pages/admin/AdminCatalogueRecoveryPage.js';
 import { BasketProvider } from './context/BasketContext.js';
 import { BasketBar } from './components/basket/BasketBar.js';
 
@@ -64,6 +65,7 @@ export default function App() {
               <Route path="products/new" element={<AdminProductCreatePage />} />
               <Route path="ranges"      element={<AdminRangesPage />} />
               <Route path="catalog"     element={<AdminCatalogPage />} />
+              <Route path="catalogue-recovery" element={<AdminCatalogueRecoveryPage />} />
               <Route path="logs"        element={<AdminLogsPage />} />
               <Route path="settings"    element={<AdminSettingsPage />} />
             </Route>

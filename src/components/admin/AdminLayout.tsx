@@ -13,6 +13,7 @@ const navItems = [
   { path: '/admin/stock-orders', label: 'Stock Orders' },
   { path: '/admin/discount-codes', label: 'Discount Codes' },
   { path: '/admin/catalog',  label: 'Catalog'  },
+  { path: '/admin/catalogue-recovery', label: 'Image Recovery' },
   { path: '/admin/logs',     label: 'Logs'     },
   { path: '/admin/settings', label: 'Settings' },
 ];
