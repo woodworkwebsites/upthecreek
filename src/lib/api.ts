@@ -245,6 +245,16 @@ export async function adminFetchProducts(token: string): Promise<Product[]> {
   return data.products;
 }
 
+export async function adminRunCatalogueRecovery(
+  token: string,
+  options: { apply?: boolean; ref?: string } = {},
+): Promise<Record<string, unknown>> {
+  return adminFetch('/api/admin/catalogue-recovery', token, {
+    method: 'POST',
+    body: JSON.stringify(options),
+  });
+}
+
 export async function adminUpdateProduct(
   token: string,
   printifyId: string,

@@ -1,6 +1,6 @@
-import { useMemo, useState, type ChangeEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { useAdminToken } from '../../hooks/useAdmin.js';
-import { adminFetchProducts } from '../../lib/api.js';
+import { adminFetchProducts, adminRunCatalogueRecovery } from '../../lib/api.js';
 import type { Product } from '../../../types/index.js';
 
 type RecoveryEntry = {
@@ -33,8 +33,6 @@ type RecoveryReport = {
   manifest?: RecoveryEntry[];
 };
 
-const command = 'CLOUDFLARE_ACCOUNT_ID=<account-id> npm run catalogue:recover-images -- --output tmp/sellshirts-image-recovery-manifest.json';
-
 function statusClasses(status: string) {
   if (status === 'existing') return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300';
   if (status === 'recoverable') return 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300';
@@ -50,18 +48,21 @@ export default function AdminCatalogueRecoveryPage() {
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
+  const [applyArmed, setApplyArmed] = useState(false);
 
-  async function loadManifest(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  async function runRecovery(apply = false) {
+    if (!token) return;
+    setRunning(true);
     setError(null);
     try {
-      const parsed = JSON.parse(await file.text()) as RecoveryReport;
-      if (!Array.isArray(parsed.manifest)) throw new Error('This file is not a recovery manifest');
-      setReport(parsed);
+      const result = await adminRunCatalogueRecovery(token, { apply });
+      setReport(result as RecoveryReport);
+      setApplyArmed(false);
     } catch (err) {
-      setReport(null);
-      setError(err instanceof Error ? err.message : 'Could not read recovery manifest');
+      setError(err instanceof Error ? err.message : 'Catalogue recovery failed');
+    } finally {
+      setRunning(false);
     }
   }
 
@@ -111,17 +112,13 @@ export default function AdminCatalogueRecoveryPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100">1. Generate a dry-run locally</h2>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Sellshirts is client-rendered, so Chromium runs locally rather than inside Pages Functions.</p>
-          <code className="mt-3 block overflow-x-auto rounded-xl bg-gray-950 p-3 text-xs text-gray-100">{command}</code>
-          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">The command only writes a local JSON/CSV report unless you explicitly add <code>--apply</code> after review.</p>
-        </div>
+          <h2 className="font-semibold text-gray-900 dark:text-gray-100">Run recovery</h2>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Cloudflare Browser Run now renders Sellshirts directly from the admin tool. The first button is always a dry-run.</p>
+          <button type="button" onClick={() => void runRecovery(false)} disabled={running} className="mt-4 rounded-xl bg-navy-800 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-700 disabled:opacity-50">{running ? 'Scanning Sellshirts…' : 'Run dry-run recovery'}</button>
+          {report && report.dryRun && <div className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-800"><label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400"><input type="checkbox" checked={applyArmed} onChange={(event) => setApplyArmed(event.target.checked)} /> I have reviewed the mapping and want to write recoverable images.</label><button type="button" onClick={() => void runRecovery(true)} disabled={!applyArmed || running} className="mt-3 rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">Apply reviewed recovery</button></div>}         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100">2. Load the review manifest</h2>
-          <label className="mt-3 block cursor-pointer rounded-xl border border-dashed border-gray-300 px-4 py-4 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
-            Choose JSON manifest
-            <input className="sr-only" type="file" accept="application/json,.json" onChange={(event) => void loadManifest(event)} />
-          </label>
+          <h2 className="font-semibold text-gray-900 dark:text-gray-100">Current catalogue</h2>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Load the current D1 catalogue to compare the existing Sellshirts refs while reviewing the scan.</p>
           <button type="button" onClick={() => void loadCurrentCatalogue()} disabled={loadingProducts} className="mt-3 w-full rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
             {loadingProducts ? 'Loading current D1 catalogue…' : 'Load current D1 catalogue'}
           </button>

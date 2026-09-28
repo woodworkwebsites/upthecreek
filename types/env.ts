@@ -1,8 +1,13 @@
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 
+export interface BrowserRunBinding {
+  quickAction(action: string, options: Record<string, unknown>): Promise<Response>;
+}
+
 export interface Env {
   DB: D1Database;
   IMAGES: R2Bucket;
+  BROWSER?: BrowserRunBinding;
   STRIPE_SECRET_KEY_TEST: string;
   STRIPE_SECRET_KEY_LIVE: string;
   STRIPE_WEBHOOK_SECRET_TEST: string;
