@@ -349,6 +349,30 @@ export async function adminUploadProductImage(
   return res.json() as Promise<{ image: { src: string; isDefault: boolean; variantIds: number[]; color?: string } }>;
 }
 
+export async function adminUploadProductImageFolder(
+  token: string,
+  printifyId: string,
+  folderName: string,
+  files: File[],
+): Promise<{ folder: string; images: Array<{ src: string; isDefault: boolean; variantIds: number[]; color?: string; orientation?: string; storageKey?: string }> }> {
+  const form = new FormData();
+  form.append('folderName', folderName);
+  files.forEach((file) => form.append('files', file, file.name));
+
+  const res = await fetch(`/api/admin/products/${printifyId}/images?bulk=1`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
+
+  return res.json() as Promise<{ folder: string; images: Array<{ src: string; isDefault: boolean; variantIds: number[]; color?: string; orientation?: string; storageKey?: string }> }>;
+}
+
 export async function adminUpdateProductImage(
   token: string,
   printifyId: string,

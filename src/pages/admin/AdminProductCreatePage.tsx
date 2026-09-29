@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminCreateProduct, adminFetchRanges, adminGetSettings } from '../../lib/api.js';
 import { ColorMultiSelect } from '../../components/admin/ColorMultiSelect.js';
+import { ProductImageFolderDrop } from '../../components/admin/ProductImageFolderDrop.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { DEFAULT_CATALOG_OPTIONS, DEFAULT_SIZE_OPTIONS, findPricingPresetRow, parseCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
@@ -38,6 +39,7 @@ export default function AdminProductCreatePage() {
   const [ranges, setRanges] = useState<CatalogRange[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [images, setImages] = useState<ImageRow[]>([]);
+  const [imageFolderName, setImageFolderName] = useState('');
   const [isEnabled, setIsEnabled] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +91,16 @@ export default function AdminProductCreatePage() {
       isDefault: images.length === 0 && i === 0,
     }));
     setImages((current) => [...current, ...newRows]);
+  }
+
+  function handleFolderSelected(folderName: string, files: File[]) {
+    images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+    setImageFolderName(folderName);
+    setImages(files.map((file, index) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+      isDefault: index === 0,
+    })));
   }
 
   function removeImage(index: number) {
@@ -174,6 +186,7 @@ export default function AdminProductCreatePage() {
         partnerPrice: '',
       }));
       form.append('isEnabled', String(isEnabled));
+      if (imageFolderName) form.append('imageFolderName', imageFolderName);
       form.append('variants', JSON.stringify(
         selectedColorRows.flatMap((color, colorIndex) =>
           DEFAULT_SIZE_OPTIONS.map((size, sizeIndex) => ({
@@ -311,6 +324,11 @@ export default function AdminProductCreatePage() {
 
       <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4">
         <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Images</p>
+        <ProductImageFolderDrop
+          garmentName={title}
+          disabled={submitting}
+          onFolderSelected={handleFolderSelected}
+        />
         <input
           type="file"
           accept="image/*"

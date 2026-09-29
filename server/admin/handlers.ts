@@ -66,7 +66,7 @@ import {
   updatePartnerStockOrderStatus,
 } from '../partner-stock-orders/repository.js';
 import { logger } from '../logging.js';
-import { deleteAsset, storeAssetData } from '../assets/storage.js';
+import { deleteAsset, storeAssetAtKey, storeAssetData } from '../assets/storage.js';
 
 export async function handleListOrders(env: Env, url: URL): Promise<Response> {
   const limit  = Math.min(parseInt(url.searchParams.get('limit') ?? '50'), 100);
@@ -791,6 +791,41 @@ function normalizeColorName(value: string): string {
   return value.trim().toLowerCase();
 }
 
+function slugifyImageFolder(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function parseProductImageFilename(
+  filename: string,
+  knownColors: Array<{ name: string }>,
+): { filename: string; color: string; orientation: string } {
+  const base = filename.split(/[\\/]/).pop()?.trim() ?? '';
+  const match = base.match(/^(.+?)[-_](front|back|side|left|right|detail|closeup|sleeve|hood|flat)\.([a-z0-9]+)$/i);
+  if (!match) {
+    throw new Error(`Invalid image filename "${base}". Use {colour}-{orientation}.jpg`);
+  }
+
+  const colourSlug = slugifyImageFolder(match[1]);
+  const colour = knownColors.find((entry) => slugifyImageFolder(entry.name) === colourSlug);
+  if (!colour) {
+    throw new Error(`Unknown colour in image filename "${base}"`);
+  }
+
+  const extension = match[3].toLowerCase();
+  const orientation = match[2].toLowerCase();
+  return {
+    filename: `${colourSlug}-${orientation}.${extension}`,
+    color: colour.name,
+    orientation,
+  };
+}
+
 function isKnownColor(color: string, knownColors: Array<{ name: string }>): boolean {
   const target = normalizeColorName(color);
   return knownColors.some((entry) => normalizeColorName(entry.name) === target);
@@ -858,8 +893,12 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
   const productType = (form.get('productType') as string | null)?.trim() || '';
   const garment = (form.get('garment') as string | null)?.trim() || '';
   const isEnabled = (form.get('isEnabled') as string | null) !== 'false';
+  const imageFolderName = readFormText(form.get('imageFolderName'));
 
   if (!title) return json({ error: 'Title is required' }, 400);
+  if (imageFolderName && slugifyImageFolder(imageFolderName) !== slugifyImageFolder(title)) {
+    return json({ error: `Image folder "${imageFolderName}" does not match product "${title}"` }, 400);
+  }
 
   let variantRows: ManualVariantRow[];
   try {
@@ -948,32 +987,32 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
   const { colors, sizes, minPrice, maxPrice } = deriveProductAggregates(variants, colorHexByName, Number.isFinite(salePrice) ? salePrice : 0);
 
   const images: PrintifyProductImage[] = [];
+  const imageFolder = slugifyImageFolder(title);
   for (let i = 0; i < imageFiles.length; i++) {
     const file = imageFiles[i];
     const meta = imagesMeta[i] ?? {};
+    const parsedName = parseProductImageFilename(file.name, colorSource);
 
-    const stored = await storeAssetData(
+    const stored = await storeAssetAtKey(
       env.IMAGES,
+      `${imageFolder}/${parsedName.filename}`,
       await file.arrayBuffer(),
       file.type || 'image/jpeg',
       {
         kind: 'product-image',
-        keyPrefix: `product-images/${id}`,
-        keySeed: `${id}:${i}:${file.name}:${file.size}`,
-        sourceHint: file.name,
-        metadata: { productId: id, color: meta.color ?? '' },
+        metadata: { productId: id, color: parsedName.color, orientation: parsedName.orientation },
       },
     );
 
-    const variantIdsForColor = meta.color
-      ? variants.filter((v) => v.color === meta.color).map((v) => v.id)
+    const variantIdsForColor = parsedName.color
+      ? variants.filter((v) => normalizeColorName(v.color) === normalizeColorName(parsedName.color)).map((v) => v.id)
       : variants.map((v) => v.id);
 
     images.push({
       src:        stored.url,
       isDefault:  !!meta.isDefault,
       variantIds: variantIdsForColor,
-      color:      meta.color || undefined,
+      color:      parsedName.color || meta.color || undefined,
       assetKind:  'product-image',
       storageKey: stored.key,
     });
@@ -1269,6 +1308,101 @@ export async function handleUploadProductImage(
   if (!updated) return json({ error: 'Product not found' }, 404);
 
   return json({ success: true, image });
+}
+
+export async function handleBulkUploadProductImages(
+  env: Env,
+  printifyId: string,
+  request: Request,
+): Promise<Response> {
+  const contentType = request.headers.get('content-type') ?? '';
+  if (!contentType.includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+
+  const product = await getProductByPrintifyIdForAdmin(env.DB, printifyId);
+  if (!product) return json({ error: 'Product not found' }, 404);
+
+  const form = await request.formData();
+  const folderName = readFormText(form.get('folderName'));
+  const expectedFolder = slugifyImageFolder(product.title);
+  if (!folderName || slugifyImageFolder(folderName) !== expectedFolder) {
+    return json({
+      error: `Folder "${folderName || '(unnamed)'}" does not match product "${product.title}"`,
+    }, 400);
+  }
+
+  const files = form.getAll('files').filter((entry): entry is File => entry instanceof File);
+  if (files.length === 0) return json({ error: 'No image files supplied' }, 400);
+
+  const knownColors = await getAllowedImageColors(env, product);
+  let parsed: Array<{ file: File; name: ReturnType<typeof parseProductImageFilename> }>;
+  try {
+    parsed = files.map((file) => {
+      if (file.size === 0) throw new Error(`Uploaded file "${file.name}" is empty`);
+      if (!file.type.startsWith('image/')) throw new Error(`File "${file.name}" is not an image`);
+      return { file, name: parseProductImageFilename(file.name, knownColors) };
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ error: message }, 400);
+  }
+
+  const keys = new Set<string>();
+  for (const entry of parsed) {
+    const key = `${expectedFolder}/${entry.name.filename}`;
+    if (keys.has(key)) {
+      return json({ error: `Duplicate image filename: ${entry.name.filename}` }, 400);
+    }
+    keys.add(key);
+  }
+
+  try {
+    const images: PrintifyProductImage[] = [];
+    for (const [index, entry] of parsed.entries()) {
+      const stored = await storeAssetAtKey(
+        env.IMAGES,
+        `${expectedFolder}/${entry.name.filename}`,
+        await entry.file.arrayBuffer(),
+        entry.file.type,
+        {
+          kind: 'product-image',
+          metadata: {
+            printifyId,
+            color: entry.name.color,
+            orientation: entry.name.orientation,
+          },
+        },
+      );
+
+      images.push({
+        src: stored.url,
+        isDefault: index === 0 || entry.name.orientation === 'front',
+        variantIds: getVariantIdsForColor(product, entry.name.color),
+        color: entry.name.color,
+        assetKind: 'product-image',
+        storageKey: stored.key,
+        orientation: entry.name.orientation,
+      });
+    }
+
+    const firstFront = images.findIndex((image) => image.orientation === 'front');
+    images.forEach((image, index) => { image.isDefault = index === (firstFront >= 0 ? firstFront : 0); });
+
+    const updated = await updateProductImages(env.DB, printifyId, images);
+    if (!updated) return json({ error: 'Product not found' }, 404);
+
+    await Promise.all(
+      product.images
+        .filter((image) => image.storageKey && !keys.has(image.storageKey))
+        .map((image) => deleteAsset(env.IMAGES, image.storageKey as string)),
+    );
+
+    return json({ success: true, folder: expectedFolder, images });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ error: message }, 400);
+  }
 }
 
 export async function handleDeleteProductImage(

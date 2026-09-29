@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode, type Ref } from 'react';
 import type { Product, PricingMatrixRow, CatalogRange } from '../../../types/index.js';
-import { adminCreateProduct, adminDeleteProduct, adminDeleteProductImage, adminFetchProducts, adminFetchRanges, adminGetSettings, adminReorderProductImages, adminUpdateProduct, adminUpdateProductImage, adminUpdateSettings, adminUploadProductImage, adminUploadSizeGuideImage } from '../../lib/api.js';
+import { adminCreateProduct, adminDeleteProduct, adminDeleteProductImage, adminFetchProducts, adminFetchRanges, adminGetSettings, adminReorderProductImages, adminUpdateProduct, adminUpdateProductImage, adminUpdateSettings, adminUploadProductImage, adminUploadProductImageFolder, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Button } from '../../components/ui/Button.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.js';
 import { formatPriceRange, formatDate } from '../../lib/utils.js';
 import { ColorMultiSelect } from '../../components/admin/ColorMultiSelect.js';
+import { ProductImageFolderDrop } from '../../components/admin/ProductImageFolderDrop.js';
 import { DEFAULT_CATALOG_OPTIONS, DEFAULT_SIZE_OPTIONS, findPricingPresetRow, parseCatalogSettings, serializeCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
 
 interface DraftImageRow {
@@ -633,6 +634,22 @@ function ProductRow({
     }
   }
 
+  async function handleUploadProductImageFolder(folderName: string, files: File[]) {
+    setImageSaving(true);
+    setImageError(null);
+    try {
+      const result = await adminUploadProductImageFolder(token, product.printifyId, folderName, files);
+      setImages(result.images);
+      setImageUploadFiles([]);
+      setImageUploadColor('');
+      setImageUploadDefault(false);
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : 'Folder upload failed');
+    } finally {
+      setImageSaving(false);
+    }
+  }
+
   async function handleUpdateImage(storageKey: string, patch: { color?: string | null; isDefault?: boolean }) {
     setImageSaving(true);
     setImageError(null);
@@ -1062,6 +1079,14 @@ function ProductRow({
             <div className="mt-5 grid flex-1 min-h-0 gap-6 overflow-hidden lg:grid-cols-[360px_minmax(0,1fr)]">
               <div className="space-y-3 overflow-y-auto pr-1">
                 <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">Upload image</label>
+                <ProductImageFolderDrop
+                  garmentName={product.title}
+                  disabled={imageSaving}
+                  onFolderSelected={(folderName, files) => {
+                    setImageUploadFiles(files);
+                    void handleUploadProductImageFolder(folderName, files);
+                  }}
+                />
                 <input type="file" accept="image/*" multiple onChange={(e) => setImageUploadFiles(Array.from(e.target.files ?? []))} className="block w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 file:mr-3 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700" />
                 <select value={imageUploadColor} onChange={(e) => setImageUploadColor(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
                   <option value="">No colour selection</option>

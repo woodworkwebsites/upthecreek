@@ -76,6 +76,37 @@ export async function storeAssetData(
   };
 }
 
+/** Store an asset at a caller-selected, deterministic R2 key. */
+export async function storeAssetAtKey(
+  bucket: R2Bucket,
+  key: string,
+  body: ArrayBuffer | Uint8Array,
+  contentType: string,
+  options: {
+    kind: AssetKind;
+    metadata?: Record<string, string>;
+  },
+): Promise<StoredAsset> {
+  const safeKey = key
+    .split('/')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .join('/');
+
+  await bucket.put(safeKey, body, {
+    httpMetadata: { contentType },
+    customMetadata: {
+      kind: options.kind,
+      ...options.metadata,
+    },
+  });
+
+  return {
+    key: safeKey,
+    url: buildAssetUrl(safeKey),
+  };
+}
+
 export function buildAssetUrl(key: string): string {
   return `/api/images/${encodeURIComponent(key)}`;
 }

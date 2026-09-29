@@ -9,6 +9,7 @@ export interface PrintifyProductImage {
   isDefault: boolean;
   variantIds: number[];
   color?: string;
+  orientation?: string;
   assetKind?: 'product-image';
   storageKey?: string;
   sourceUrl?: string;
