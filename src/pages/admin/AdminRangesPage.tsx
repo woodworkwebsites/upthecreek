@@ -215,7 +215,67 @@ export default function AdminRangesPage() {
       {saved && <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{saved}</p>}
       {error && <ErrorMessage message={error} />}
 
-      <div className="grid gap-6">
+      <div className="space-y-4 md:hidden">
+        {ranges.map((range) => {
+          const rangeProducts = getRangeProducts(range.id);
+          const sortedRangeProducts = [...rangeProducts].sort(
+            (left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt),
+          );
+
+          return (
+            <section key={range.id} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div className="flex items-center gap-3 p-4">
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-950">
+                  {getRangeThumbnail(range.id) ? (
+                    <img src={getRangeThumbnail(range.id) ?? undefined} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[10px] text-gray-400">No image</div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-base font-semibold text-gray-900 dark:text-gray-100">{range.name}</h2>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Sort {range.sortOrder} · Updated {formatDate(range.updatedAt)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 border-y border-gray-100 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/40">
+                <RangeToggle label="Storefront" value={range.storefrontEnabled} disabled={saving} onToggle={() => { void handleToggleVisibility(range, 'storefrontEnabled'); }} />
+                <RangeToggle label="Partner" value={range.partnerEnabled} disabled={saving} onToggle={() => { void handleToggleVisibility(range, 'partnerEnabled'); }} />
+                <button type="button" onClick={() => startEdit(range)} className="min-h-10 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">Edit range</button>
+                <button type="button" onClick={() => { void handleDelete(range.id); }} disabled={saving} className="min-h-10 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">Delete</button>
+              </div>
+
+              <div className="p-3">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Selected products</h3>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{rangeProducts.length}</span>
+                </div>
+                {sortedRangeProducts.length ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {sortedRangeProducts.map((product) => (
+                      <div key={product.id} className="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+                        <div className="aspect-square bg-gray-50 dark:bg-gray-950">
+                          {product.images[0]?.src ? <img src={product.images[0].src} alt={product.title} loading="lazy" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-xs text-gray-400">No image</div>}
+                        </div>
+                        <div className="p-2.5">
+                          <p className="line-clamp-2 text-xs font-semibold text-gray-900 dark:text-gray-100">{product.title}</p>
+                          <p className="mt-1 truncate text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">{product.garment || 'Product'}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-gray-500 dark:text-gray-400">No products assigned to this range.</p>}
+              </div>
+            </section>
+          );
+        })}
+        {ranges.length === 0 && <p className="rounded-xl border border-gray-200 bg-white p-6 text-center text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">No ranges yet.</p>}
+      </div>
+
+      <div className="hidden md:block">
+        <div className="grid gap-6">
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-100 text-left dark:divide-gray-800">
@@ -357,6 +417,7 @@ export default function AdminRangesPage() {
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       </div>
 
