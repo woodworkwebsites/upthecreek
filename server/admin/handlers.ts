@@ -818,16 +818,22 @@ function parseProductImageFilename(
     throw new Error(`Invalid image filename "${base}". Use {colour}-{orientation}.jpg`);
   }
 
-  const colourSlug = slugifyImageFolder(match[1]);
-  const colour = knownColors.find((entry) => slugifyImageFolder(entry.name) === colourSlug);
+  const imageStem = slugifyImageFolder(match[1]);
+  const colour = knownColors
+    .filter((entry) => {
+      const colourSlug = slugifyImageFolder(entry.name);
+      return imageStem === colourSlug || imageStem.endsWith(`-${colourSlug}`);
+    })
+    .sort((a, b) => slugifyImageFolder(b.name).length - slugifyImageFolder(a.name).length)[0];
   if (!colour) {
     throw new Error(`Unknown colour in image filename "${base}"`);
   }
 
+  const originalStem = base.slice(0, base.lastIndexOf('.'));
   const extension = match[3].toLowerCase();
   const orientation = match[2].toLowerCase();
   return {
-    filename: `${colourSlug}-${orientation}.${extension}`,
+    filename: `${slugifyImageFolder(originalStem)}.${extension}`,
     color: colour.name,
     orientation,
   };
@@ -1276,18 +1282,17 @@ export async function handleUploadProductImage(
     return json({ error: `Unknown colour: ${color}` }, 400);
   }
 
-  const uploaded = await storeAssetData(
+  const uploaded = await storeAssetAtKey(
     env.IMAGES,
+    `${slugifyImageFolder(product.title)}/${safeCollaborationImageFilename(file, `${product.title}-${color || 'image'}`)}`,
     await file.arrayBuffer(),
     file.type,
     {
       kind: 'product-image',
-      keyPrefix: `product-images/${printifyId}`,
-      keySeed: `${printifyId}:${file.name}:${file.size}:${file.type}:${color}:${isDefault}`,
-      sourceHint: file.name,
       metadata: {
         printifyId,
         color,
+        sourceFilename: file.name,
       },
     },
   );
