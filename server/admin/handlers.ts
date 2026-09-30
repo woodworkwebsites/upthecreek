@@ -533,10 +533,10 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
 
 function safeCollaborationImageFilename(file: File, fallback: string): string {
   const original = file.name.split(/[\\/]/).pop()?.trim() ?? '';
-  const extension = original.match(/\.([a-z0-9]{1,8})$/i)?.[1]?.toLowerCase()
+  const extension = original.match(/\.([a-z0-9]{1,8})$/i)?.[1]
     ?? (file.type.includes('png') ? 'png' : file.type.includes('webp') ? 'webp' : file.type.includes('gif') ? 'gif' : 'jpg');
   const stem = original.replace(/\.[^.]*$/, '') || fallback;
-  const safeStem = slugifyImageFolder(stem) || slugifyImageFolder(fallback) || 'collaboration-image';
+  const safeStem = stem.replace(/[\u0000-\u001f]/g, '').replace(/\.{2,}/g, '.').trim() || 'image';
   return `${safeStem}.${extension}`;
 }
 
@@ -748,7 +748,7 @@ async function buildCollaborationDesignsFromForm(
 
           const uploaded = await storeAssetAtKey(
             env.IMAGES,
-            `${slugifyImageFolder(clubName)}/${safeCollaborationImageFilename(file, `${design.title || design.garment}-${design.colorName}-${entry.isDefault ? 'front' : 'back'}`)}`,
+            `partner-collaboration/${slugifyImageFolder(clubName)}/${safeCollaborationImageFilename(file, `${design.title || design.garment}-${design.colorName}-${entry.isDefault ? 'front' : 'back'}`)}`,
             await file.arrayBuffer(),
             file.type,
             {
@@ -830,10 +830,10 @@ function parseProductImageFilename(
   }
 
   const originalStem = base.slice(0, base.lastIndexOf('.'));
-  const extension = match[3].toLowerCase();
+  const extension = match[3];
   const orientation = match[2].toLowerCase();
   return {
-    filename: `${slugifyImageFolder(originalStem)}.${extension}`,
+    filename: `${originalStem.replace(/[\u0000-\u001f]/g, '').replace(/\.{2,}/g, '.').trim()}.${extension}`,
     color: colour.name,
     orientation,
   };
@@ -1008,7 +1008,7 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
 
     const stored = await storeAssetAtKey(
       env.IMAGES,
-      `${imageFolder}/${parsedName.filename}`,
+      `product-images/${imageFolder}/${parsedName.filename}`,
       await file.arrayBuffer(),
       file.type || 'image/jpeg',
       {
@@ -1284,7 +1284,7 @@ export async function handleUploadProductImage(
 
   const uploaded = await storeAssetAtKey(
     env.IMAGES,
-    `${slugifyImageFolder(product.title)}/${safeCollaborationImageFilename(file, `${product.title}-${color || 'image'}`)}`,
+    `product-images/${slugifyImageFolder(product.title)}/${safeCollaborationImageFilename(file, `${product.title}-${color || 'image'}`)}`,
     await file.arrayBuffer(),
     file.type,
     {
@@ -1362,7 +1362,7 @@ export async function handleBulkUploadProductImages(
 
   const keys = new Set<string>();
   for (const entry of parsed) {
-    const key = `${expectedFolder}/${entry.name.filename}`;
+    const key = `product-images/${expectedFolder}/${entry.name.filename}`;
     if (keys.has(key)) {
       return json({ error: `Duplicate image filename: ${entry.name.filename}` }, 400);
     }
@@ -1374,7 +1374,7 @@ export async function handleBulkUploadProductImages(
     for (const [index, entry] of parsed.entries()) {
       const stored = await storeAssetAtKey(
         env.IMAGES,
-        `${expectedFolder}/${entry.name.filename}`,
+        `product-images/${expectedFolder}/${entry.name.filename}`,
         await entry.file.arrayBuffer(),
         entry.file.type,
         {
@@ -1410,7 +1410,7 @@ export async function handleBulkUploadProductImages(
         .map((image) => deleteAsset(env.IMAGES, image.storageKey as string)),
     );
 
-    return json({ success: true, folder: expectedFolder, images });
+    return json({ success: true, folder: `product-images/${expectedFolder}`, images });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return json({ error: message }, 400);
