@@ -445,11 +445,19 @@ function parseCollaborationImageMeta(raw: string): CollaborationImageMeta[] {
 function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
   if (!raw.trim()) return [];
 
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
+    parsed = JSON.parse(raw.replace(/^\uFEFF/, '').trim()) as unknown;
+    // Accept clients that have JSON-encoded the metadata string twice.
+    if (typeof parsed === 'string') parsed = JSON.parse(parsed) as unknown;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : 'invalid JSON';
+    throw new Error(`Invalid collaboration designs metadata (${reason})`);
+  }
 
-    return parsed.flatMap((entry) => {
+  const entries = Array.isArray(parsed) ? parsed : parsed && typeof parsed === 'object' ? [parsed] : [];
+  try {
+    return entries.flatMap((entry) => {
       if (!entry || typeof entry !== 'object') return [];
       const title = typeof (entry as { title?: unknown }).title === 'string'
         ? (entry as { title?: string }).title!.trim()
@@ -527,7 +535,7 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
       }];
     });
   } catch {
-    throw new Error('Invalid collaboration designs metadata');
+    throw new Error('Invalid collaboration designs metadata contents');
   }
 }
 
