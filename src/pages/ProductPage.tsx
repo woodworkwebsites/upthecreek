@@ -221,7 +221,7 @@ export default function ProductPage({
         <div className="lg:grid lg:grid-cols-[minmax(0,1.1fr)_440px] xl:grid-cols-[minmax(0,1.15fr)_480px] lg:gap-12 xl:gap-16">
 
           {/* gallery — sticky on desktop */}
-          <div className="mb-10 lg:mb-0">
+          <div className="mb-3 lg:mb-0">
             <div className="lg:sticky lg:top-24">
               <ImageGallery
                 images={product.images}
@@ -234,7 +234,7 @@ export default function ProductPage({
           </div>
 
           {/* product details */}
-          <div className="flex flex-col space-y-5 sm:space-y-6 lg:pt-2">
+          <div className="flex flex-col gap-5 sm:gap-6 lg:pt-2">
 
             {/* title + price */}
             <div className="space-y-2">
