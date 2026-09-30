@@ -4,6 +4,7 @@ interface ProductImageFolderDropProps {
   garmentName: string;
   disabled?: boolean;
   onFolderSelected: (folderName: string, files: File[]) => void;
+  onFilesSelected?: (files: File[]) => void;
 }
 
 function slugify(value: string): string {
@@ -25,7 +26,7 @@ function imageFiles(files: File[]): File[] {
   return files.filter((file) => file.type.startsWith('image/'));
 }
 
-export function ProductImageFolderDrop({ garmentName, disabled, onFolderSelected }: ProductImageFolderDropProps) {
+export function ProductImageFolderDrop({ garmentName, disabled, onFolderSelected, onFilesSelected }: ProductImageFolderDropProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [message, setMessage] = useState('');
@@ -38,6 +39,11 @@ export function ProductImageFolderDrop({ garmentName, disabled, onFolderSelected
       return;
     }
     if (!folderName || slugify(folderName) !== expectedFolder) {
+      if (!folderName && onFilesSelected) {
+        setMessage(`${images.length} image${images.length === 1 ? '' : 's'} ready. Add colour/default details, then upload.`);
+        onFilesSelected(images);
+        return;
+      }
       setMessage(`Folder must be named “${garmentName}”.`);
       return;
     }
@@ -76,7 +82,7 @@ export function ProductImageFolderDrop({ garmentName, disabled, onFolderSelected
         }}
         className="hidden"
       />
-      <p className="text-xs font-semibold text-gray-800 dark:text-gray-100">Drop the image folder here</p>
+      <p className="text-xs font-semibold text-gray-800 dark:text-gray-100">Drop an image or product folder here</p>
       <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
         Folder: <span className="font-semibold">{garmentName || 'set the product name first'}</span>
       </p>

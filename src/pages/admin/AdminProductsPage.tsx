@@ -1086,6 +1086,12 @@ function ProductRow({
                     setImageUploadFiles(files);
                     void handleUploadProductImageFolder(folderName, files);
                   }}
+                  onFilesSelected={(files) => {
+                    setImageUploadFiles(files);
+                    setImageUploadColor('');
+                    setImageUploadDefault(false);
+                    setImageError(null);
+                  }}
                 />
                 <input type="file" accept="image/*" multiple onChange={(e) => setImageUploadFiles(Array.from(e.target.files ?? []))} className="block w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 file:mr-3 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-navy-700" />
                 <select value={imageUploadColor} onChange={(e) => setImageUploadColor(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
