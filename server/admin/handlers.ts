@@ -531,7 +531,7 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
   }
 }
 
-function safeCollaborationImageFilename(file: File, fallback: string): string {
+function safeR2ImageFilename(file: File, fallback: string): string {
   const original = file.name.split(/[\\/]/).pop()?.trim() ?? '';
   const extension = original.match(/\.([a-z0-9]{1,8})$/i)?.[1]
     ?? (file.type.includes('png') ? 'png' : file.type.includes('webp') ? 'webp' : file.type.includes('gif') ? 'gif' : 'jpg');
@@ -748,7 +748,7 @@ async function buildCollaborationDesignsFromForm(
 
           const uploaded = await storeAssetAtKey(
             env.IMAGES,
-            `partner-collaboration/${slugifyImageFolder(clubName)}/${safeCollaborationImageFilename(file, `${design.title || design.garment}-${design.colorName}-${entry.isDefault ? 'front' : 'back'}`)}`,
+            `partner-collaboration/${slugifyImageFolder(clubName)}/${safeR2ImageFilename(file, `${design.title || design.garment}-${design.colorName}-${entry.isDefault ? 'front' : 'back'}`)}`,
             await file.arrayBuffer(),
             file.type,
             {
@@ -806,37 +806,6 @@ function slugifyImageFolder(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-}
-
-function parseProductImageFilename(
-  filename: string,
-  knownColors: Array<{ name: string }>,
-): { filename: string; color: string; orientation: string } {
-  const base = filename.split(/[\\/]/).pop()?.trim() ?? '';
-  const match = base.match(/^(.+?)[-_](front|back|side|left|right|detail|closeup|sleeve|hood|flat)\.([a-z0-9]+)$/i);
-  if (!match) {
-    throw new Error(`Invalid image filename "${base}". Use {colour}-{orientation}.jpg`);
-  }
-
-  const imageStem = slugifyImageFolder(match[1]);
-  const colour = knownColors
-    .filter((entry) => {
-      const colourSlug = slugifyImageFolder(entry.name);
-      return imageStem === colourSlug || imageStem.endsWith(`-${colourSlug}`);
-    })
-    .sort((a, b) => slugifyImageFolder(b.name).length - slugifyImageFolder(a.name).length)[0];
-  if (!colour) {
-    throw new Error(`Unknown colour in image filename "${base}"`);
-  }
-
-  const originalStem = base.slice(0, base.lastIndexOf('.'));
-  const extension = match[3];
-  const orientation = match[2].toLowerCase();
-  return {
-    filename: `${originalStem.replace(/[\u0000-\u001f]/g, '').replace(/\.{2,}/g, '.').trim()}.${extension}`,
-    color: colour.name,
-    orientation,
-  };
 }
 
 function isKnownColor(color: string, knownColors: Array<{ name: string }>): boolean {
@@ -1004,28 +973,31 @@ export async function handleCreateProduct(env: Env, request: Request): Promise<R
   for (let i = 0; i < imageFiles.length; i++) {
     const file = imageFiles[i];
     const meta = imagesMeta[i] ?? {};
-    const parsedName = parseProductImageFilename(file.name, colorSource);
+    const imageFilename = safeR2ImageFilename(file, `${title}-image-${i + 1}`);
+    const imageColor = meta.color && colorSource.some((color) => normalizeColorName(color.name) === normalizeColorName(meta.color!))
+      ? meta.color
+      : '';
 
     const stored = await storeAssetAtKey(
       env.IMAGES,
-      `product-images/${imageFolder}/${parsedName.filename}`,
+      `product-images/${imageFolder}/${imageFilename}`,
       await file.arrayBuffer(),
       file.type || 'image/jpeg',
       {
         kind: 'product-image',
-        metadata: { productId: id, color: parsedName.color, orientation: parsedName.orientation },
+        metadata: { productId: id, color: imageColor, sourceFilename: file.name },
       },
     );
 
-    const variantIdsForColor = parsedName.color
-      ? variants.filter((v) => normalizeColorName(v.color) === normalizeColorName(parsedName.color)).map((v) => v.id)
+    const variantIdsForColor = imageColor
+      ? variants.filter((v) => normalizeColorName(v.color) === normalizeColorName(imageColor)).map((v) => v.id)
       : variants.map((v) => v.id);
 
     images.push({
       src:        stored.url,
       isDefault:  !!meta.isDefault,
       variantIds: variantIdsForColor,
-      color:      parsedName.color || meta.color || undefined,
+      color:      imageColor || undefined,
       assetKind:  'product-image',
       storageKey: stored.key,
     });
@@ -1284,7 +1256,7 @@ export async function handleUploadProductImage(
 
   const uploaded = await storeAssetAtKey(
     env.IMAGES,
-    `product-images/${slugifyImageFolder(product.title)}/${safeCollaborationImageFilename(file, `${product.title}-${color || 'image'}`)}`,
+    `product-images/${slugifyImageFolder(product.title)}/${safeR2ImageFilename(file, `${product.title}-${color || 'image'}`)}`,
     await file.arrayBuffer(),
     file.type,
     {
@@ -1347,59 +1319,54 @@ export async function handleBulkUploadProductImages(
   const files = form.getAll('files').filter((entry): entry is File => entry instanceof File);
   if (files.length === 0) return json({ error: 'No image files supplied' }, 400);
 
-  const knownColors = await getAllowedImageColors(env, product);
-  let parsed: Array<{ file: File; name: ReturnType<typeof parseProductImageFilename> }>;
+  let uploadFiles: Array<{ file: File; filename: string }>;
   try {
-    parsed = files.map((file) => {
+    uploadFiles = files.map((file, index) => {
       if (file.size === 0) throw new Error(`Uploaded file "${file.name}" is empty`);
       if (!file.type.startsWith('image/')) throw new Error(`File "${file.name}" is not an image`);
-      return { file, name: parseProductImageFilename(file.name, knownColors) };
+      return { file, filename: safeR2ImageFilename(file, `${product.title}-image-${index + 1}`) };
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return json({ error: message }, 400);
   }
 
-  const keys = new Set<string>();
-  for (const entry of parsed) {
-    const key = `product-images/${expectedFolder}/${entry.name.filename}`;
-    if (keys.has(key)) {
-      return json({ error: `Duplicate image filename: ${entry.name.filename}` }, 400);
-    }
-    keys.add(key);
-  }
+  const usedFilenames = new Set<string>();
+  uploadFiles = uploadFiles.map((entry) => {
+    const originalName = entry.filename;
+    const dot = originalName.lastIndexOf('.');
+    const stem = dot > 0 ? originalName.slice(0, dot) : originalName;
+    const extension = dot > 0 ? originalName.slice(dot) : '';
+    let filename = originalName;
+    let suffix = 2;
+    while (usedFilenames.has(filename.toLowerCase())) filename = `${stem}-${suffix++}${extension}`;
+    usedFilenames.add(filename.toLowerCase());
+    return { ...entry, filename };
+  });
+  const keys = new Set(uploadFiles.map((entry) => `product-images/${expectedFolder}/${entry.filename}`));
 
   try {
     const images: PrintifyProductImage[] = [];
-    for (const [index, entry] of parsed.entries()) {
+    for (const [index, entry] of uploadFiles.entries()) {
       const stored = await storeAssetAtKey(
         env.IMAGES,
-        `product-images/${expectedFolder}/${entry.name.filename}`,
+        `product-images/${expectedFolder}/${entry.filename}`,
         await entry.file.arrayBuffer(),
         entry.file.type,
         {
           kind: 'product-image',
-          metadata: {
-            printifyId,
-            color: entry.name.color,
-            orientation: entry.name.orientation,
-          },
+          metadata: { printifyId, sourceFilename: entry.file.name },
         },
       );
 
       images.push({
         src: stored.url,
-        isDefault: index === 0 || entry.name.orientation === 'front',
-        variantIds: getVariantIdsForColor(product, entry.name.color),
-        color: entry.name.color,
+        isDefault: index === 0,
+        variantIds: product.variants.map((variant) => variant.id),
         assetKind: 'product-image',
         storageKey: stored.key,
-        orientation: entry.name.orientation,
       });
     }
-
-    const firstFront = images.findIndex((image) => image.orientation === 'front');
-    images.forEach((image, index) => { image.isDefault = index === (firstFront >= 0 ? firstFront : 0); });
 
     const updated = await updateProductImages(env.DB, printifyId, images);
     if (!updated) return json({ error: 'Product not found' }, 404);

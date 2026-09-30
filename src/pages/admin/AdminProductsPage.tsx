@@ -10,6 +10,10 @@ import { ColorMultiSelect } from '../../components/admin/ColorMultiSelect.js';
 import { ProductImageFolderDrop } from '../../components/admin/ProductImageFolderDrop.js';
 import { DEFAULT_CATALOG_OPTIONS, DEFAULT_SIZE_OPTIONS, findPricingPresetRow, parseCatalogSettings, serializeCatalogSettings, type CatalogOptions } from '../../lib/catalog.js';
 
+function slugifyProductFolder(value: string): string {
+  return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
 interface DraftImageRow {
   file: File;
   previewUrl: string;
@@ -478,6 +482,7 @@ function ProductRow({
   const [imageUploadDefault, setImageUploadDefault] = useState(false);
   const [imageSaving, setImageSaving] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [productCardFileDrag, setProductCardFileDrag] = useState(false);
   const [draggingImageKey, setDraggingImageKey] = useState<string | null>(null);
   const [dropTargetImageKey, setDropTargetImageKey] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -606,15 +611,16 @@ function ProductRow({
     setImageSaving(true);
     setImageError(null);
     try {
-      const uploads = await Promise.all(
-        imageUploadFiles.map((file, index) => adminUploadProductImage(
+      const uploads = [];
+      for (const [index, file] of imageUploadFiles.entries()) {
+        uploads.push(await adminUploadProductImage(
           token,
           product.printifyId,
           file,
           imageUploadColor.trim() || undefined,
           imageUploadDefault && index === 0,
-        )),
-      );
+        ));
+      }
       setImages((current) => {
         let next = imageUploadDefault
           ? current.map((entry) => ({ ...entry, isDefault: false }))
@@ -648,6 +654,36 @@ function ProductRow({
     } finally {
       setImageSaving(false);
     }
+  }
+
+  function handleProductCardFileDrop(event: React.DragEvent<HTMLElement>) {
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length === 0) return;
+    event.preventDefault();
+    setProductCardFileDrag(false);
+    const imagesOnly = files.filter((file) => file.type.startsWith('image/'));
+    if (imagesOnly.length === 0) {
+      setImageError('No image files found in that drop.');
+      setImageModalOpen(true);
+      return;
+    }
+    const relativePath = (imagesOnly[0] as File & { webkitRelativePath?: string }).webkitRelativePath ?? '';
+    const folderName = relativePath.split('/')[0] || '';
+    if (folderName) {
+      if (slugifyProductFolder(folderName) !== slugifyProductFolder(title)) {
+        setImageError(`Folder must be named “${title}”.`);
+        setImageModalOpen(true);
+        return;
+      }
+      void handleUploadProductImageFolder(folderName, imagesOnly);
+      return;
+    }
+
+    setImageUploadFiles(imagesOnly);
+    setImageUploadColor('');
+    setImageUploadDefault(false);
+    setImageError(null);
+    setImageModalOpen(true);
   }
 
   async function handleUpdateImage(storageKey: string, patch: { color?: string | null; isDefault?: boolean }) {
@@ -810,7 +846,28 @@ function ProductRow({
 
   return (
     <>
-      <article className="h-full min-w-0 overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-[0_14px_34px_rgba(5,13,31,0.05)] transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+      <article
+        onDragOver={(event) => {
+          if (Array.from(event.dataTransfer.types).includes('Files')) {
+            event.preventDefault();
+            setProductCardFileDrag(true);
+          }
+        }}
+        onDragLeave={(event) => {
+          const nextTarget = event.relatedTarget;
+          if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) setProductCardFileDrag(false);
+        }}
+        onDrop={handleProductCardFileDrop}
+        className={`relative h-full min-w-0 overflow-hidden rounded-[1.5rem] border bg-white shadow-[0_14px_34px_rgba(5,13,31,0.05)] transition-colors dark:bg-gray-900 ${productCardFileDrag ? 'border-navy-500 ring-4 ring-navy-500/20' : 'border-gray-200 hover:border-gray-300 dark:border-gray-800 dark:hover:border-gray-700'}`}
+      >
+        {productCardFileDrag && (
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-white/85 text-center dark:bg-gray-950/85">
+            <div className="rounded-2xl border border-dashed border-navy-400 bg-white px-6 py-5 shadow-lg dark:bg-gray-900">
+              <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Drop images for {title}</p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">A folder uploads as a batch. Loose images open colour and default controls.</p>
+            </div>
+          </div>
+        )}
         <div className="border-b border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:hidden">
           <div className="flex items-start gap-3">
             <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950">
