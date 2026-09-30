@@ -478,7 +478,7 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
         ? (entry as { colorHex?: string }).colorHex!.trim() || '#111827'
         : '#111827';
       const sizes = Array.isArray((entry as { sizes?: unknown }).sizes)
-        ? normalizeCollaborationSizes((entry as { sizes?: unknown[] }).sizes)
+        ? normalizeProductSizes((entry as { sizes?: unknown[] }).sizes)
         : parseCollaborationSizes(
           typeof (entry as { sizes?: unknown }).sizes === 'string'
             ? (entry as { sizes?: string }).sizes!
