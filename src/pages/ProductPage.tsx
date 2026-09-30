@@ -234,11 +234,11 @@ export default function ProductPage({
           </div>
 
           {/* product details */}
-          <div className="space-y-5 sm:space-y-6 lg:pt-2">
+          <div className="flex flex-col space-y-5 sm:space-y-6 lg:pt-2">
 
             {/* title + price */}
             <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl font-black text-navy-800 tracking-tight leading-tight max-w-[11ch]">
+              <h1 className="text-3xl sm:text-4xl font-black text-navy-800 tracking-tight leading-tight">
                 {product.title}
               </h1>
               <p className="text-2xl font-black text-navy-800 mt-2">
