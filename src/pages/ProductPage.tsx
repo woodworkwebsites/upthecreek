@@ -256,6 +256,7 @@ export default function ProductPage({
             <div className="hidden sm:block h-px bg-gray-100" />
 
             {/* colour */}
+            <div className="order-[-1] lg:order-none">
             <ColorSwatch
               colors={displayColors}
               selected={selectedColor}
@@ -264,6 +265,7 @@ export default function ProductPage({
                 setSelectedSize(null);
               }}
             />
+            </div>
 
             {/* size */}
             <div>
