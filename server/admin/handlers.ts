@@ -527,8 +527,17 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
       }];
     });
   } catch {
-    return [];
+    throw new Error('Invalid collaboration designs metadata');
   }
+}
+
+function safeCollaborationImageFilename(file: File, fallback: string): string {
+  const original = file.name.split(/[\\/]/).pop()?.trim() ?? '';
+  const extension = original.match(/\.([a-z0-9]{1,8})$/i)?.[1]?.toLowerCase()
+    ?? (file.type.includes('png') ? 'png' : file.type.includes('webp') ? 'webp' : file.type.includes('gif') ? 'gif' : 'jpg');
+  const stem = original.replace(/\.[^.]*$/, '') || fallback;
+  const safeStem = slugifyImageFolder(stem) || slugifyImageFolder(fallback) || 'collaboration-image';
+  return `${safeStem}.${extension}`;
 }
 
 function parseCollaborationLegacyUrls(raw: string): string[] {
@@ -714,13 +723,13 @@ async function buildCollaborationDesignFromForm(
 async function buildCollaborationDesignsFromForm(
   env: Env,
   form: FormData,
-  seed: string,
+  clubName: string,
   existing: PartnerCollaborationDesign[] = [],
 ): Promise<PartnerCollaborationDesign[] | null> {
   const meta = parseCollaborationDesignsMeta(readFormText(form.get('collaborationDesignsMeta')));
   const files = form.getAll('collaborationDesignFiles').filter((entry): entry is File => entry instanceof File);
 
-  if (meta.length > 0) {
+  if (form.has('collaborationDesignsMeta')) {
     const resolved: PartnerCollaborationDesign[] = [];
     for (const [designIndex, design] of meta.entries()) {
       const resolvedImages: Array<{ url: string; isDefault: boolean; order: number }> = [];
@@ -737,16 +746,14 @@ async function buildCollaborationDesignsFromForm(
             throw new Error('Collaboration image upload must be an image');
           }
 
-          const uploaded = await storeAssetData(
+          const uploaded = await storeAssetAtKey(
             env.IMAGES,
+            `${slugifyImageFolder(clubName)}/${safeCollaborationImageFilename(file, `${design.title || design.garment}-${design.colorName}-${entry.isDefault ? 'front' : 'back'}`)}`,
             await file.arrayBuffer(),
             file.type,
             {
               kind: 'partner-collab-image',
-              keyPrefix: `partner-collaboration/${seed}/${designIndex}`,
-              keySeed: `${seed}:${designIndex}:${entry.fileIndex}:${file.name}:${file.size}:${file.type}`,
-              sourceHint: file.name,
-              metadata: { seed, designIndex },
+              metadata: { clubName, designIndex: String(designIndex), sourceFilename: file.name },
             },
           );
 
@@ -1710,7 +1717,7 @@ export async function handleCreatePartner(env: Env, request: Request): Promise<R
 
     let collaborationDesigns: PartnerCollaborationDesign[] | null;
     try {
-      collaborationDesigns = await buildCollaborationDesignsFromForm(env, form, slug);
+      collaborationDesigns = await buildCollaborationDesignsFromForm(env, form, name);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return json({ error: message }, 400);
@@ -1840,7 +1847,7 @@ export async function handleUpdatePartner(env: Env, id: string, request: Request
 
     let collaborationDesigns: PartnerCollaborationDesign[] | null | undefined;
     try {
-      collaborationDesigns = await buildCollaborationDesignsFromForm(env, form, existing.slug, existing.collaborationDesigns);
+      collaborationDesigns = await buildCollaborationDesignsFromForm(env, form, name, existing.collaborationDesigns);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return json({ error: message }, 400);
