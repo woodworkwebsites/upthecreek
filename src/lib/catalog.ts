@@ -270,12 +270,22 @@ export function parseColorList(raw: string | null | undefined, fallback: Catalog
 }
 
 export function parseCatalogSettings(settings: Record<string, string>): CatalogOptions {
+  const pricingRows = parsePricingRows(settings.catalog_pricing_rows, DEFAULT_CATALOG_OPTIONS.pricingRows);
+  const products = parseStringList(settings.catalog_product_options, DEFAULT_CATALOG_OPTIONS.products);
+
+  // Product names entered in the pricing catalogue are product definitions too.
+  // Include them in the shared product options so they appear in product creation
+  // even when the separate product-options setting has not been updated.
+  const configuredPricingProducts = settings.catalog_pricing_rows
+    ? pricingRows.map((row) => row.product)
+    : [];
+
   return {
     audiences: parseStringList(settings.catalog_audience_options, DEFAULT_CATALOG_OPTIONS.audiences),
-    products: parseStringList(settings.catalog_product_options, DEFAULT_CATALOG_OPTIONS.products),
+    products: dedupeStrings([...products, ...configuredPricingProducts]),
     garments: parseStringList(settings.catalog_garment_options, DEFAULT_CATALOG_OPTIONS.garments),
     colors: parseColorList(settings.catalog_color_options, DEFAULT_CATALOG_OPTIONS.colors),
-    pricingRows: parsePricingRows(settings.catalog_pricing_rows, DEFAULT_CATALOG_OPTIONS.pricingRows),
+    pricingRows,
   };
 }
 
