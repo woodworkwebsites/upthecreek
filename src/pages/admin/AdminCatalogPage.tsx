@@ -387,6 +387,7 @@ export default function AdminCatalogPage() {
           onChange={updateGarmentDraft}
           onCancel={() => setGarmentModalOpen(false)}
           onSubmit={handleCreateGarment}
+          saving={saving}
         />
       )}
     </div>
@@ -400,6 +401,7 @@ function GarmentPricingModal({
   onChange,
   onCancel,
   onSubmit,
+  saving,
 }: {
   draft: typeof emptyGarmentDraft;
   audiences: string[];
@@ -407,6 +409,7 @@ function GarmentPricingModal({
   onChange: (patch: Partial<typeof emptyGarmentDraft>) => void;
   onCancel: () => void;
   onSubmit: () => void;
+  saving: boolean;
 }) {
   const canSubmit = draft.name.trim().length > 0;
 
