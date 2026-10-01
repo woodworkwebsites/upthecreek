@@ -31,7 +31,7 @@ export function ProductCard({ product, priceLabel, toPrefix = '/product' }: Prod
       {/* Image — portrait 3:4 */}
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gray-100">
         {product.personalizationEnabled && (
-          <span className="absolute left-[-2.35rem] top-6 z-10 w-36 -rotate-45 bg-brand-500 px-2 py-1 text-center text-[9px] font-black uppercase tracking-wider text-white shadow-md">
+          <span className="absolute left-3 top-3 z-10 rounded-full bg-navy-800 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-md sm:left-4 sm:top-4 sm:px-3.5 sm:text-xs">
             Personalise This
           </span>
         )}
