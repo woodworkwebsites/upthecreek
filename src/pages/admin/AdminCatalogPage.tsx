@@ -135,12 +135,11 @@ export default function AdminCatalogPage() {
     setGarmentDraft((current) => ({ ...current, ...patch }));
   }
 
-  function handleCreateGarment() {
+  async function handleCreateGarment() {
     const name = garmentDraft.name.trim();
-    if (!name) return;
+    if (!name || !token || saving) return;
 
-    setGarments((current) => (current.includes(name) ? current : [...current, name]));
-    addPricingRow({
+    const pricingRow = createEmptyPricingRow({
       audience: garmentDraft.audience.trim(),
       product: garmentDraft.product.trim(),
       garment: name,
@@ -153,7 +152,36 @@ export default function AdminCatalogPage() {
       salePrice: garmentDraft.salePrice.trim(),
       partnerPrice: garmentDraft.partnerPrice.trim(),
     });
-    setGarmentModalOpen(false);
+    const nextGarments = Array.from(new Map(
+      [...garments, name].map((value) => [value.trim().toLowerCase(), value.trim()]),
+    ).values()).filter(Boolean);
+    const nextProducts = Array.from(new Map(
+      [...products, garmentDraft.product.trim()].filter(Boolean).map((value) => [value.toLowerCase(), value]),
+    ).values());
+    const nextPricingRows = [...pricingRows, pricingRow];
+
+    setSaving(true);
+    setSaved(false);
+    setError(null);
+    try {
+      await adminUpdateSettings(token, serializeCatalogSettings({
+        audiences,
+        products: nextProducts,
+        garments: nextGarments,
+        colors,
+        pricingRows: nextPricingRows,
+      }));
+      setGarments(nextGarments);
+      setProducts(nextProducts);
+      setPricingRows(nextPricingRows);
+      setSaved(true);
+      setGarmentModalOpen(false);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save garment and pricing');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleSave() {
@@ -530,10 +558,10 @@ function GarmentPricingModal({
           <button
             type="button"
             onClick={onSubmit}
-            disabled={!canSubmit}
+            disabled={!canSubmit || saving}
             className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
-            Create garment
+            {saving ? 'Saving…' : 'Create garment'}
           </button>
         </div>
       </div>
