@@ -234,6 +234,7 @@ export default function ProductPage({
                 activeVariantIds={activeVariantIds}
                 selectedColor={selectedColor}
                 previewTriggerRef={previewTriggerRef}
+                personalizationEnabled={product.personalizationEnabled}
                 title={product.title}
               />
             </div>
