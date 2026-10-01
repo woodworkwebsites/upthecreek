@@ -8,6 +8,7 @@ interface ImageGalleryProps {
   activeVariantIds?: number[];
   selectedColor?: string | null;
   previewTriggerRef?: RefObject<HTMLDivElement | null>;
+  personalizationEnabled?: boolean;
   title: string;
 }
 
@@ -16,6 +17,7 @@ export function ImageGallery({
   activeVariantIds,
   selectedColor,
   previewTriggerRef,
+  personalizationEnabled = false,
   title,
 }: ImageGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -89,6 +91,11 @@ export function ImageGallery({
           className="h-full w-full object-contain object-center transition-opacity duration-200"
           loading="eager"
         />
+        {personalizationEnabled && (
+          <span className="absolute left-3 top-3 z-10 rounded-full bg-navy-800 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-md sm:left-4 sm:top-4 sm:px-3.5 sm:text-xs">
+            Personalise This
+          </span>
+        )}
         {displayImages.length > 1 && (
           <>
             <button
