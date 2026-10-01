@@ -1255,7 +1255,7 @@ export default function AdminPartnersPage() {
             aria-modal="true"
             aria-label="Add partner"
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-800 dark:bg-gray-900"
+            className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-2xl dark:border-gray-800 dark:bg-gray-900 max-h-[calc(100dvh-1rem)] overflow-y-auto"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
