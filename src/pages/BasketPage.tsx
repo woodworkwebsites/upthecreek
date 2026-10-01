@@ -174,6 +174,7 @@ export default function BasketPage() {
                       <div>
                         <p className="font-black text-navy-800 leading-snug">{item.title}</p>
                         <p className="mt-0.5 text-sm text-gray-400">{item.color} · {item.size}</p>
+                        {item.personalization && <p className="mt-1 break-words text-xs text-gray-600"><span className="font-semibold">Personalisation:</span> {item.personalization}</p>}
                       </div>
                       <button
                         onClick={() => removeFromBasket(item.id)}

@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import type { D1Database } from '@cloudflare/workers-types';
 import type { CheckoutItem } from '../../types/index.js';
 import { getProductByPrintifyId } from '../products/repository.js';
+import { saveCheckoutPersonalizations } from '../orders/repository.js';
 import { getCollaborationProductById } from '../collaborations/repository.js';
 import {
   getDiscountCodeByCode,
@@ -25,6 +26,7 @@ export interface ResolvedLineItem {
   size: string;
   unitPrice: number;
   images: string[];
+  personalization: string;
 }
 
 interface ResolvedUnitItem {
@@ -36,6 +38,7 @@ interface ResolvedUnitItem {
   size: string;
   unitPrice: number;
   images: string[];
+  personalization: string;
 }
 
 export interface AppliedDiscount {
@@ -83,6 +86,14 @@ export async function resolveLineItems(
       );
     }
 
+    const personalization = item.personalization?.trim() ?? '';
+    if (personalization.length > 300) {
+      throw Object.assign(new Error('Personalisation must be 300 characters or fewer'), { status: 400 });
+    }
+    if (personalization && !product.personalizationEnabled) {
+      throw Object.assign(new Error('This product does not accept personalisation'), { status: 400 });
+    }
+
     resolved.push({
       printifyId: item.printifyId,
       variantId:  item.variantId,
@@ -92,6 +103,7 @@ export async function resolveLineItems(
       color:      variant.color,
       size:       variant.size,
       unitPrice:  variant.price,
+      personalization,
       images:     product.images
         .filter((i) => i.isDefault && typeof i.src === 'string' && i.src.startsWith('https://'))
         .map((i) => i.src)
@@ -115,6 +127,7 @@ function expandUnits(items: ResolvedLineItem[]): ResolvedUnitItem[] {
         color: item.color,
         size: item.size,
         unitPrice: item.unitPrice,
+        personalization: item.personalization,
         images: item.images,
       });
     }
@@ -235,6 +248,7 @@ export async function createCheckoutSession(
         currency: 'gbp',
         product_data: {
           name: `${item.title} — ${item.selectedColor} / ${item.size}`,
+          ...(item.personalization ? { description: `Personalisation: ${item.personalization}` } : {}),
           images: item.images,
         },
         unit_amount: discountedUnitPrices[index],
@@ -260,6 +274,8 @@ export async function createCheckoutSession(
       cancel_url: `${siteUrl}/checkout`,
       phone_number_collection: { enabled: true },
     });
+
+    await saveCheckoutPersonalizations(db, session.id, items.map((item) => item.personalization));
 
     if (discount) {
       await incrementDiscountCodeUsage(db, discount.id);

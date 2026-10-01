@@ -261,7 +261,8 @@ function OrderRow({
                     </p>
                     <div className="rounded-lg bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 p-3 text-xs text-gray-700 dark:text-gray-300 space-y-1.5">
                       {shown.items && shown.items.length > 0 ? shown.items.map((item) => (
-                        <div key={item.id} className="flex justify-between gap-2">
+                        <div key={item.id} className="space-y-1 border-b border-gray-100 pb-1 last:border-0 last:pb-0 dark:border-gray-800">
+                          <div className="flex justify-between gap-2">
                           <span className="flex flex-wrap items-center gap-2">
                             <span>{item.quantity}x {item.title} ({item.color}, {item.size})</span>
                             {item.orderUrl && (
@@ -277,6 +278,8 @@ function OrderRow({
                             )}
                           </span>
                           <span className="text-gray-400 dark:text-gray-500">{formatPrice(item.unitPrice * item.quantity)}</span>
+                          </div>
+                          {item.personalization && <p className="whitespace-pre-wrap break-words rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-900 dark:bg-amber-900/20 dark:text-amber-200"><span className="font-semibold">Personalisation:</span> {item.personalization}</p>}
                         </div>
                       )) : (
                         <p className="text-gray-400 dark:text-gray-500">No items loaded</p>

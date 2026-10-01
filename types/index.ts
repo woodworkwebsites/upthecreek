@@ -106,6 +106,7 @@ export interface OrderItemRow {
   size: string;
   quantity: number;
   unit_price: number;
+  personalization?: string;
   created_at: string;
 }
 
@@ -172,6 +173,7 @@ export interface Product {
   minPrice: number;
   maxPrice: number;
   isEnabled: boolean;
+  personalizationEnabled?: boolean;
   sizeGuideImage: string | null;
   syncedAt: string;
   createdAt: string;
@@ -215,6 +217,7 @@ export interface OrderItem {
   size: string;
   quantity: number;
   unitPrice: number;
+  personalization?: string;
   orderUrl?: string | null;
   imageSrc?: string;
   createdAt: string;
@@ -505,6 +508,7 @@ export interface CheckoutItem {
   variantId: number;
   quantity: number;
   color?: string;
+  personalization?: string;
 }
 
 export interface BasketItem extends CheckoutItem {

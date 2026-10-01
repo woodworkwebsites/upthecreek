@@ -12,6 +12,7 @@ interface AddToBasketInput {
   size: string;
   unitPrice: number;
   imageSrc: string;
+  personalization?: string;
 }
 
 interface BasketContextValue {
@@ -26,8 +27,9 @@ interface BasketContextValue {
 
 const BasketContext = createContext<BasketContextValue | undefined>(undefined);
 
-function basketItemId(printifyId: string, variantId: number): string {
-  return `${printifyId}:${variantId}`;
+function basketItemId(printifyId: string, variantId: number, personalization = ''): string {
+  const baseId = `${printifyId}:${variantId}`;
+  return personalization.trim() ? `${baseId}:${encodeURIComponent(personalization.trim())}` : baseId;
 }
 
 function normalizeQuantity(quantity: number): number {
@@ -61,7 +63,8 @@ export function BasketProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<BasketContextValue>(() => {
     const addToBasket = (input: AddToBasketInput) => {
-      const id = basketItemId(input.printifyId, input.variantId);
+      const personalization = input.personalization?.trim().slice(0, 300) ?? '';
+      const id = basketItemId(input.printifyId, input.variantId, personalization);
       const qty = normalizeQuantity(input.quantity);
 
       setItems((current) => {
@@ -86,6 +89,7 @@ export function BasketProvider({ children }: { children: ReactNode }) {
             size: input.size,
             unitPrice: input.unitPrice,
             imageSrc: input.imageSrc,
+            personalization,
           },
         ];
       });
@@ -104,11 +108,12 @@ export function BasketProvider({ children }: { children: ReactNode }) {
 
     const clearBasket = () => setItems([]);
 
-    const toCheckoutItems = () => items.map(({ printifyId, variantId, quantity, color }) => ({
+    const toCheckoutItems = () => items.map(({ printifyId, variantId, quantity, color, personalization }) => ({
       printifyId,
       variantId,
       quantity,
       color,
+      ...(personalization ? { personalization } : {}),
     }));
 
     return {
