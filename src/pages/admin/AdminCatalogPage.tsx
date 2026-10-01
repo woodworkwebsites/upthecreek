@@ -392,7 +392,7 @@ function GarmentPricingModal({
         aria-modal="true"
         aria-label="Add garment"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-2xl dark:border-gray-800 dark:bg-gray-900 max-h-[calc(100dvh-1rem)] overflow-y-auto"
+        className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-2xl dark:border-gray-800 dark:bg-gray-900 max-h-[calc(100dvh-2rem)] overflow-y-auto"
       >
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">New garment</p>
         <h2 className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">Add garment &amp; pricing</h2>
@@ -564,7 +564,7 @@ function ModalFrame({
         aria-modal="true"
         aria-label={title}
         onClick={(event) => event.stopPropagation()}
-        className="w-full max-w-4xl rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl dark:border-gray-800 dark:bg-gray-900 sm:p-4 sm:p-6 max-h-[calc(100dvh-1rem)] overflow-y-auto"
+        className="w-full max-w-4xl rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl dark:border-gray-800 dark:bg-gray-900 sm:p-4 sm:p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto"
       >
         <div className="flex items-start justify-between gap-4">
           <div>

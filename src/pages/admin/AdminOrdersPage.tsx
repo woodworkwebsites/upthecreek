@@ -340,7 +340,7 @@ function OrderRow({
               onClick={() => setSessionModalOpen(false)}
             >
               <div
-                className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-800 dark:bg-gray-950 max-h-[calc(100dvh-1rem)] overflow-y-auto"
+                className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-800 dark:bg-gray-950 max-h-[calc(100dvh-2rem)] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -373,7 +373,7 @@ function OrderRow({
               onClick={() => !deleting && setDeleteConfirmOpen(false)}
             >
               <div
-                className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-800 dark:bg-gray-950 max-h-[calc(100dvh-1rem)] overflow-y-auto"
+                className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-800 dark:bg-gray-950 max-h-[calc(100dvh-2rem)] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Delete order?</p>
