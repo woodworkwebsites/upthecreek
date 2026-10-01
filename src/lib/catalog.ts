@@ -280,10 +280,17 @@ export function parseCatalogSettings(settings: Record<string, string>): CatalogO
     ? pricingRows.map((row) => row.product)
     : [];
 
+  const configuredPricingGarments = settings.catalog_pricing_rows
+    ? pricingRows.map((row) => row.garment)
+    : [];
+
   return {
     audiences: parseStringList(settings.catalog_audience_options, DEFAULT_CATALOG_OPTIONS.audiences),
     products: dedupeStrings([...products, ...configuredPricingProducts]),
-    garments: parseStringList(settings.catalog_garment_options, DEFAULT_CATALOG_OPTIONS.garments),
+    garments: dedupeStrings([
+      ...parseStringList(settings.catalog_garment_options, DEFAULT_CATALOG_OPTIONS.garments),
+      ...configuredPricingGarments,
+    ]),
     colors: parseColorList(settings.catalog_color_options, DEFAULT_CATALOG_OPTIONS.colors),
     pricingRows,
   };
