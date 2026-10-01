@@ -124,6 +124,7 @@ export function buildCollaborationProduct(
     minPrice: price,
     maxPrice: price,
     isEnabled: true,
+    personalizationEnabled: false,
     sizeGuideImage: null,
     syncedAt: partner.updatedAt,
     createdAt: partner.createdAt,

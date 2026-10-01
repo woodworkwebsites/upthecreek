@@ -269,6 +269,7 @@ export async function adminUpdateProduct(
     colors?: Array<{ name: string; hex: string; orderUrl?: string | null }>;
     pricingMatrix?: PricingMatrixRow | null;
     isEnabled?: boolean;
+    personalizationEnabled?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: string[];
     sizes?: string[];

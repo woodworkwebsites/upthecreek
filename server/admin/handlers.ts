@@ -1106,6 +1106,7 @@ export async function handleUpdateProduct(
       partnerPrice?: string;
     } | null;
     isEnabled?: boolean;
+    personalizationEnabled?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: unknown;
     colors?: Array<{ name?: string; hex?: string; orderUrl?: string | null }>;
@@ -1132,6 +1133,7 @@ export async function handleUpdateProduct(
         partnerPrice?: string;
       } | null;
       isEnabled?: boolean;
+      personalizationEnabled?: boolean;
       sizeGuideImage?: string | null;
       hiddenColors?: unknown;
       colors?: Array<{ name?: string; hex?: string; orderUrl?: string | null }>;
@@ -1151,11 +1153,16 @@ export async function handleUpdateProduct(
     !('sizes' in body) &&
     !('pricingMatrix' in body) &&
     !('isEnabled' in body) &&
+    !('personalizationEnabled' in body) &&
     !('sizeGuideImage' in body) &&
     !('hiddenColors' in body) &&
     !('colors' in body)
   ) {
     return json({ error: 'No recognised fields to update' }, 400);
+  }
+
+  if (body.personalizationEnabled !== undefined && typeof body.personalizationEnabled !== 'boolean') {
+    return json({ error: 'personalizationEnabled must be a boolean' }, 400);
   }
 
   const title = body.title !== undefined ? body.title.trim() : undefined;
@@ -1220,6 +1227,7 @@ export async function handleUpdateProduct(
     pricingMatrix,
     colors,
     isEnabled: body.isEnabled,
+    personalizationEnabled: body.personalizationEnabled,
     sizeGuideImage,
     hiddenColors: body.hiddenColors !== undefined ? normalizeHiddenColors(body.hiddenColors) : undefined,
   });

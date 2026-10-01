@@ -95,6 +95,20 @@ export async function ensureOrderSchema(db: D1Database): Promise<void> {
         )
       `).run();
 
+      await db.prepare(`
+        CREATE TABLE IF NOT EXISTS checkout_personalizations (
+          stripe_session_id TEXT NOT NULL,
+          item_index INTEGER NOT NULL,
+          personalization TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY (stripe_session_id, item_index)
+        )
+      `).run();
+      const itemColumns = await db.prepare("SELECT name FROM pragma_table_info('order_items')").all<{ name: string }>();
+      if (!(itemColumns.results ?? []).some((column) => column.name === 'personalization')) {
+        await db.prepare("ALTER TABLE order_items ADD COLUMN personalization TEXT NOT NULL DEFAULT ''").run();
+      }
+
       const existingColumns = await readOrderColumns(db);
       const additions: Array<[string, string]> = [
         ['fulfillment_provider', "ALTER TABLE orders ADD COLUMN fulfillment_provider TEXT NOT NULL DEFAULT 'manual'"],
@@ -138,6 +152,7 @@ function parseOrderItem(row: OrderItemRow): OrderItem {
     size:        row.size,
     quantity:    row.quantity,
     unitPrice:   row.unit_price,
+    personalization: row.personalization ?? '',
     createdAt:   row.created_at,
   };
 }
@@ -190,6 +205,31 @@ export async function getOrderBySessionId(
     .bind(stripeSessionId)
     .first<OrderRow>();
   return row ? parseOrder(row) : null;
+}
+
+export async function saveCheckoutPersonalizations(db: D1Database, stripeSessionId: string, values: string[]): Promise<void> {
+  await ensureOrderSchema(db);
+  await db.prepare("DELETE FROM checkout_personalizations WHERE created_at < datetime('now', '-30 days')").run();
+  const inserts = values
+    .map((value, itemIndex) => ({ value: value.trim().slice(0, 300), itemIndex }))
+    .filter((entry) => entry.value.length > 0)
+    .map(({ value, itemIndex }) => db.prepare(
+      'INSERT OR REPLACE INTO checkout_personalizations (stripe_session_id, item_index, personalization) VALUES (?, ?, ?)',
+    ).bind(stripeSessionId, itemIndex, value));
+  if (inserts.length > 0) await db.batch(inserts);
+}
+
+export async function getCheckoutPersonalizations(db: D1Database, stripeSessionId: string): Promise<Map<number, string>> {
+  await ensureOrderSchema(db);
+  const result = await db.prepare(
+    'SELECT item_index, personalization FROM checkout_personalizations WHERE stripe_session_id = ?',
+  ).bind(stripeSessionId).all<{ item_index: number; personalization: string }>();
+  return new Map<number, string>((result.results ?? []).map((row) => [row.item_index, row.personalization] as [number, string]));
+}
+
+export async function clearCheckoutPersonalizations(db: D1Database, stripeSessionId: string): Promise<void> {
+  await ensureOrderSchema(db);
+  await db.prepare('DELETE FROM checkout_personalizations WHERE stripe_session_id = ?').bind(stripeSessionId).run();
 }
 
 export interface CreateOrderData {
@@ -265,6 +305,7 @@ export interface CreateOrderItemData {
   size: string;
   quantity: number;
   unitPrice: number;
+  personalization?: string;
 }
 
 export async function createOrderItem(
@@ -276,8 +317,8 @@ export async function createOrderItem(
   await db
     .prepare(`
       INSERT INTO order_items
-        (id, order_id, printify_id, variant_id, title, color, size, quantity, unit_price, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        (id, order_id, printify_id, variant_id, title, color, size, quantity, unit_price, personalization, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `)
     .bind(
       data.id,
@@ -289,6 +330,7 @@ export async function createOrderItem(
       data.size,
       data.quantity,
       data.unitPrice,
+      data.personalization ?? '',
     )
     .run();
 }

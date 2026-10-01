@@ -60,6 +60,7 @@ export default function ProductPage({
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize,  setSelectedSize]  = useState<string | null>(null);
   const [quantity,      setQuantity]      = useState(1);
+  const [personalization, setPersonalization] = useState('');
   const [basketMessage, setBasketMessage] = useState<string | null>(null);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const { addToBasket, itemCount } = useBasket();
@@ -88,6 +89,10 @@ export default function ProductPage({
     if (!product || !selectedColor) return [];
     return product.variants.filter((v) => v.color === selectedColor).map((v) => v.id);
   }, [product, selectedColor]);
+
+  useEffect(() => {
+    setPersonalization('');
+  }, [product?.id]);
 
   useEffect(() => {
     if (!product) return;
@@ -150,6 +155,7 @@ export default function ProductPage({
       size: selectedVariant.size,
       unitPrice: selectedVariant.price,
       imageSrc: miniPreviewSrc,
+      personalization: product.personalizationEnabled ? personalization.trim() : '',
     });
     setBasketMessage(`Added ${quantity} to basket.`);
   }
@@ -287,6 +293,21 @@ export default function ProductPage({
                 hideLabel
               />
             </div>
+
+            {product.personalizationEnabled && (
+              <label className="block space-y-2">
+                <span className="block text-xs font-bold uppercase tracking-widest text-gray-400">Personalisation (optional)</span>
+                <textarea
+                  value={personalization}
+                  onChange={(event) => setPersonalization(event.target.value.slice(0, 300))}
+                  maxLength={300}
+                  rows={3}
+                  placeholder="Add a name, message or other details"
+                  className="w-full resize-y rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-navy-800 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none"
+                />
+                <span className="block text-right text-[10px] text-gray-400">{personalization.length}/300</span>
+              </label>
+            )}
 
             {/* quantity */}
             <div className="space-y-3">

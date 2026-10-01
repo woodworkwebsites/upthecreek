@@ -474,6 +474,7 @@ function ProductRow({
   const [colorOrderUrls, setColorOrderUrls] = useState<Record<string, string>>(() => buildColorOrderUrlMap(product.colors));
   const [selectedSizes, setSelectedSizes] = useState<string[]>(product.sizes.length > 0 ? product.sizes : DEFAULT_SIZE_OPTIONS);
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
+  const [personalizationEnabled, setPersonalizationEnabled] = useState(product.personalizationEnabled);
   const [sizeGuideUploadFile, setSizeGuideUploadFile] = useState<File | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [imageUploadFiles, setImageUploadFiles] = useState<File[]>([]);
@@ -515,6 +516,7 @@ function ProductRow({
     setColorOrderUrls(buildColorOrderUrlMap(product.colors));
     setSelectedSizes(product.sizes.length > 0 ? product.sizes : DEFAULT_SIZE_OPTIONS);
     setIsEnabled(product.isEnabled);
+    setPersonalizationEnabled(product.personalizationEnabled);
     setImages(product.images);
   }, [product, ranges]);
 
@@ -769,6 +771,7 @@ function ProductRow({
     || garmentType.trim() !== (product.garment || '').trim()
     || rangeId.trim() !== (product.rangeId ?? '').trim()
     || isEnabled !== product.isEnabled
+    || personalizationEnabled !== product.personalizationEnabled
     || currentPricingSignature !== originalPricingSignature
     || currentSizeSignature !== originalSizeSignature
     || currentColorSignature !== originalColorSignature
@@ -808,6 +811,7 @@ function ProductRow({
         })),
         hiddenColors: [],
         isEnabled,
+        personalizationEnabled,
       });
       setSaved(true);
       if (closeDetails) {
@@ -979,6 +983,13 @@ function ProductRow({
                         ))}
                       </select>
                     </div>
+                    <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2.5 dark:border-gray-700 dark:bg-gray-950">
+                      <input type="checkbox" checked={personalizationEnabled} onChange={(event) => setPersonalizationEnabled(event.target.checked)} className="mt-0.5 h-4 w-4 accent-navy-800" />
+                      <span>
+                        <span className="block text-xs font-semibold text-gray-800 dark:text-gray-100">Personalise This</span>
+                        <span className="mt-0.5 block text-[10px] text-gray-500 dark:text-gray-400">Show a customer input on the product page</span>
+                      </span>
+                    </label>
                   </div>
                 </div>
 
@@ -1087,7 +1098,7 @@ function ProductRow({
 
       {detailOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
-          <div className="flex w-full max-w-3xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+          <div className="flex w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-4 sm:p-6 shadow-2xl dark:bg-gray-900">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit description</h2>
@@ -1122,7 +1133,7 @@ function ProductRow({
 
       {imageModalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
-          <div className="flex w-full max-w-6xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+          <div className="flex w-full max-w-6xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-4 sm:p-6 shadow-2xl dark:bg-gray-900">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Manage images</h2>
@@ -1319,7 +1330,7 @@ function ProductRow({
 
       {pricingModalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
-          <div className="flex w-full max-w-3xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+          <div className="flex w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-2xl bg-white p-4 sm:p-6 shadow-2xl dark:bg-gray-900">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit pricing</h2>

@@ -423,7 +423,7 @@ export default function AdminRangesPage() {
 
       {rangeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
-          <div className="flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900 max-h-[calc(100vh-2rem)]">
+          <div className="flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-4 sm:p-6 shadow-2xl dark:bg-gray-900 max-h-[calc(100dvh-2rem)]">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">

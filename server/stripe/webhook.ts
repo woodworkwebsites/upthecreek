@@ -6,12 +6,14 @@ import {
   createOrder,
   createOrderItem,
   getOrderWithItems,
+  getCheckoutPersonalizations,
+  clearCheckoutPersonalizations,
   updateOrderStatus,
   writeWebhookLog,
 } from '../orders/repository.js';
 import { getProductByPrintifyId } from '../products/repository.js';
 import { getStripeKeys } from '../env.js';
-import { sendOrderNotificationEmail } from '../notifications/email.js';
+import { sendOrderNotificationEmail, sendCustomerOrderConfirmationEmail } from '../notifications/email.js';
 import { sendPushoverNotification } from '../notifications/pushover.js';
 import { logger } from '../logging.js';
 import {
@@ -130,6 +132,8 @@ export async function processCompletedSession(
     qty: number;
   }>;
 
+  const personalizations = await getCheckoutPersonalizations(env.DB, sessionId);
+
   const fulfillmentProvider: 'manual' = 'manual';
   const orderId = crypto.randomUUID();
 
@@ -199,7 +203,7 @@ export async function processCompletedSession(
     quantity: number;
   }> = [];
 
-  for (const compact of compactItems) {
+  for (const [itemIndex, compact] of compactItems.entries()) {
     const product = await getProductByPrintifyId(env.DB, compact.pid);
     if (!product) {
       logger.warn('Product not found during fulfillment', { printifyId: compact.pid });
@@ -222,6 +226,7 @@ export async function processCompletedSession(
       size:       variant.size,
       quantity:   compact.qty,
       unitPrice:  variant.price,
+      personalization: personalizations.get(itemIndex) ?? '',
     });
 
     lineItems.push({
@@ -230,6 +235,8 @@ export async function processCompletedSession(
       quantity:   compact.qty,
     });
   }
+
+  await clearCheckoutPersonalizations(env.DB, sessionId);
 
   const partnerDiscountCode = session.metadata?.discount_code ?? null;
   if (partnerDiscountCode) {
@@ -281,6 +288,8 @@ export async function processCompletedSession(
   });
 
   await updateOrderStatus(env.DB, orderId, 'awaiting_fulfillment');
+  const customerOrder = await getOrderWithItems(env.DB, orderId);
+  if (customerOrder) await sendCustomerOrderConfirmationEmail(env, customerOrder);
   await syncPartnerCommissionStatusByOrderId(env.DB, orderId, 'awaiting_fulfillment');
   logger.info('Order awaiting manual fulfillment', { orderId });
 }

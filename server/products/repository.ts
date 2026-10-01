@@ -217,6 +217,7 @@ interface ProductMetadata {
   garment?: string;
   pricingMatrix?: PricingMatrixRow | null;
   colors?: PrintifyColor[];
+  personalizationEnabled?: boolean;
 }
 
 function parseProductMetadata(rawCategory: string | null | undefined): ProductMetadata {
@@ -234,6 +235,7 @@ function parseProductMetadata(rawCategory: string | null | undefined): ProductMe
       audience: typeof metadata.audience === 'string' ? metadata.audience : undefined,
       productType: typeof metadata.productType === 'string' ? metadata.productType : undefined,
       garment: typeof metadata.garment === 'string' ? metadata.garment : undefined,
+      personalizationEnabled: metadata.personalizationEnabled === true,
       pricingMatrix: parseJsonObject<PricingMatrixRow>(
         typeof metadata.pricingMatrix === 'string'
           ? metadata.pricingMatrix
@@ -259,6 +261,7 @@ function serializeProductMetadata(metadata: ProductMetadata): string {
   if (metadata.audience !== undefined) payload.audience = metadata.audience;
   if (metadata.productType !== undefined) payload.productType = metadata.productType;
   if (metadata.garment !== undefined) payload.garment = metadata.garment;
+  if (metadata.personalizationEnabled !== undefined) payload.personalizationEnabled = metadata.personalizationEnabled;
   if (metadata.pricingMatrix !== undefined) payload.pricingMatrix = metadata.pricingMatrix;
   if (metadata.colors !== undefined) payload.colors = metadata.colors;
 
@@ -272,6 +275,7 @@ function mergeProductMetadata(existingCategory: string | null | undefined, field
     audience: fields.audience ?? current.audience,
     productType: fields.productType ?? current.productType,
     garment: fields.garment ?? current.garment,
+    personalizationEnabled: fields.personalizationEnabled !== undefined ? fields.personalizationEnabled : current.personalizationEnabled,
     pricingMatrix: fields.pricingMatrix !== undefined ? fields.pricingMatrix : current.pricingMatrix,
     colors: fields.colors !== undefined ? fields.colors : current.colors,
   });
@@ -366,6 +370,7 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     minPrice:       aggregates.minPrice,
     maxPrice:       aggregates.maxPrice,
     isEnabled:      row.is_enabled === 1,
+    personalizationEnabled: categoryMetadata.personalizationEnabled === true,
     sizeGuideImage: row.size_guide_image ?? null,
     syncedAt:       row.synced_at,
     createdAt:      row.created_at,
@@ -616,6 +621,7 @@ export interface UpdateProductFields {
   pricingMatrix?: PricingMatrixRow | null;
   colors?: PrintifyColor[];
   isEnabled?: boolean;
+  personalizationEnabled?: boolean;
   sizeGuideImage?: string | null;
   hiddenColors?: string[];
   sizes?: string[];
@@ -660,7 +666,8 @@ export async function updateProductFields(
     fields.productType !== undefined ||
     fields.garment !== undefined ||
     fields.pricingMatrix !== undefined ||
-    fields.colors !== undefined
+    fields.colors !== undefined ||
+    fields.personalizationEnabled !== undefined
   );
 
   const nextCategory = setCategoryMetadata
@@ -669,6 +676,7 @@ export async function updateProductFields(
         audience: fields.audience,
         productType: fields.productType,
         garment: fields.garment,
+        personalizationEnabled: fields.personalizationEnabled,
         pricingMatrix: fields.pricingMatrix,
         colors: fields.colors !== undefined ? nextColors : undefined,
       })

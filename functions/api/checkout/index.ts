@@ -26,6 +26,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!item.printifyId || !item.variantId || !item.quantity || item.quantity < 1) {
       return json({ error: 'Each item requires printifyId, variantId, and quantity ≥ 1' }, 400);
     }
+    if (item.personalization !== undefined && (typeof item.personalization !== 'string' || item.personalization.length > 300)) {
+      return json({ error: 'Personalisation must be 300 characters or fewer' }, 400);
+    }
   }
 
   try {

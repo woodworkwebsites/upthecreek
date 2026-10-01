@@ -142,6 +142,7 @@ export default function SuccessPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-black text-navy-800">{item.title}</p>
                       <p className="text-xs text-gray-400">{item.color} · {item.size}</p>
+                      {item.personalization && <p className="mt-1 whitespace-pre-wrap break-words text-xs text-gray-600"><span className="font-semibold">Personalisation:</span> {item.personalization}</p>}
                       <p className="mt-1 text-xs font-semibold text-navy-800">
                         {item.quantity} × {formatPrice(item.unitPrice)}
                       </p>
