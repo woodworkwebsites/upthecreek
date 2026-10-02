@@ -186,12 +186,12 @@ export default function ProductPage({
           <div className="flex h-16 items-center gap-3">
 
             {/* Header identity swaps from the brand mark to the product preview on scroll. */}
-            <div className="relative flex min-w-0 flex-1 items-center">
+            <div className="grid min-w-0 flex-1 items-center">
               <Link
                 to="/"
                 aria-hidden={stickyVisible}
                 tabIndex={stickyVisible ? -1 : 0}
-                className={`absolute inset-y-0 left-0 flex items-center transition-opacity duration-300 ${
+                className={`col-start-1 row-start-1 flex h-full min-w-0 w-full items-center transition-opacity duration-300 ${
                   stickyVisible ? 'pointer-events-none opacity-0' : 'opacity-100'
                 }`}
               >
@@ -204,7 +204,7 @@ export default function ProductPage({
 
               <div
                 aria-hidden={!stickyVisible}
-                className={`absolute inset-y-0 left-0 flex max-w-full items-center gap-2.5 overflow-hidden transition-opacity duration-300 ${
+                className={`col-start-1 row-start-1 flex h-full min-w-0 w-full items-center gap-2.5 overflow-hidden transition-opacity duration-300 ${
                   stickyVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
                 }`}
               >
