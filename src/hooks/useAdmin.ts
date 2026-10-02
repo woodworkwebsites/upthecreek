@@ -1,25 +1,41 @@
-import { useState, useCallback } from 'react';
+import { useSyncExternalStore } from 'react';
 
 const STORAGE_KEY = 'utc_admin_token';
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function getSnapshot(): string | null {
+  return sessionStorage.getItem(STORAGE_KEY);
+}
+
+function notifySubscribers() {
+  listeners.forEach((listener) => listener());
+}
+
+function setAdminToken(token: string) {
+  sessionStorage.setItem(STORAGE_KEY, token);
+  notifySubscribers();
+}
+
+function clearAdminToken() {
+  sessionStorage.removeItem(STORAGE_KEY);
+  notifySubscribers();
+}
 
 export function useAdminToken(): {
   token: string | null;
-  setToken: (t: string) => void;
+  setToken: (token: string) => void;
   clearToken: () => void;
 } {
-  const [token, setTokenState] = useState<string | null>(
-    () => sessionStorage.getItem(STORAGE_KEY),
-  );
+  const token = useSyncExternalStore(subscribe, getSnapshot, () => null);
 
-  const setToken = useCallback((t: string) => {
-    sessionStorage.setItem(STORAGE_KEY, t);
-    setTokenState(t);
-  }, []);
-
-  const clearToken = useCallback(() => {
-    sessionStorage.removeItem(STORAGE_KEY);
-    setTokenState(null);
-  }, []);
-
-  return { token, setToken, clearToken };
+  return {
+    token,
+    setToken: setAdminToken,
+    clearToken: clearAdminToken,
+  };
 }
