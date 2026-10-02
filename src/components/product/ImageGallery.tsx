@@ -29,7 +29,7 @@ export function ImageGallery({
   // Colour tags are the source of truth when a colour is selected.
   // Variant matching is only used when no specific colour is active.
   const colorImages = selectedColor
-    ? images.filter((img) => img.color === selectedColor)
+    ? images.filter((img) => img.color?.trim().toLowerCase() === selectedColor.trim().toLowerCase())
     : activeVariantIds && activeVariantIds.length > 0
     ? images.filter((img) =>
         img.variantIds.length <= 10 &&
