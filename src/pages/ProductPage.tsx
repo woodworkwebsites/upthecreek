@@ -431,7 +431,14 @@ export default function ProductPage({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <p className="text-sm font-black text-navy-800 uppercase tracking-widest">Size Guide</p>
+              <div className="flex min-w-0 items-center gap-3">
+                <img
+                  src="/UTC_WORDMARK_BLACK_TRANS.png"
+                  alt="Up the Creek Padel"
+                  className="h-7 w-auto max-w-24 object-contain"
+                />
+                <p className="text-sm font-black text-navy-800 uppercase tracking-widest">Size Guide</p>
+              </div>
               <button
                 onClick={() => setSizeGuideOpen(false)}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-navy-800 transition-colors"
