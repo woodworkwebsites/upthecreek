@@ -62,6 +62,7 @@ export default function ProductPage({
   const [quantity,      setQuantity]      = useState(1);
   const [personalization, setPersonalization] = useState('');
   const [basketMessage, setBasketMessage] = useState<string | null>(null);
+  const [basketOptionsOpen, setBasketOptionsOpen] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const { addToBasket, itemCount } = useBasket();
   const displayColors = product
@@ -146,6 +147,11 @@ export default function ProductPage({
     return product.images.find((img) => img.isDefault)?.src ?? product.images[0]?.src ?? '';
   }, [product, activeVariantIds, selectedColor]);
 
+  function openBasketOptions() {
+    setBasketMessage(null);
+    setBasketOptionsOpen(true);
+  }
+
   function handleAddToBasket() {
     if (!product || !selectedVariant) return;
     setBasketMessage(null);
@@ -161,6 +167,7 @@ export default function ProductPage({
       personalization: product.personalizationEnabled ? personalization.trim() : '',
     });
     setBasketMessage(`Added ${quantity} to basket.`);
+    setBasketOptionsOpen(false);
   }
 
   if (loading) return <PageLoader />;
@@ -275,27 +282,6 @@ export default function ProductPage({
             />
             </div>
 
-            {/* size */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Size</span>
-                {product.sizeGuideImage && (
-                  <button
-                    onClick={() => setSizeGuideOpen(true)}
-                    className="text-xs font-semibold text-navy-800 underline underline-offset-2 hover:text-brand-500 transition-colors"
-                  >
-                    Size guide
-                  </button>
-                )}
-              </div>
-              <SizeSelector
-                sizes={product.sizes}
-                selected={selectedSize}
-                onSelect={setSelectedSize}
-                hideLabel
-              />
-            </div>
-
             {product.personalizationEnabled && (
               <label className="block space-y-2">
                 <span className="block text-xs font-bold uppercase tracking-widest text-gray-400">Personalisation (optional)</span>
@@ -311,50 +297,6 @@ export default function ProductPage({
               </label>
             )}
 
-            {/* quantity */}
-            <div className="space-y-3">
-              <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
-                Quantity
-              </span>
-              <div className="inline-flex items-center rounded-full border-2 border-gray-200 overflow-hidden">
-                <button
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="flex h-11 w-11 items-center justify-center text-lg font-bold text-gray-600 hover:bg-gray-50 hover:text-navy-800 transition-colors"
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </button>
-                <span className="w-10 text-center text-sm font-black text-navy-800">
-                  {quantity}
-                </span>
-                <button
-                  onClick={() => setQuantity((q) => Math.min(10, q + 1))}
-                  className="flex h-11 w-11 items-center justify-center text-lg font-bold text-gray-600 hover:bg-gray-50 hover:text-navy-800 transition-colors"
-                  aria-label="Increase quantity"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            {/* selection prompts */}
-            {needsColour && (
-              <p className="flex items-center gap-2 text-sm font-semibold text-amber-600">
-                <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Select a colour to continue
-              </p>
-            )}
-            {needsSize && (
-              <p className="flex items-center gap-2 text-sm font-semibold text-amber-600">
-                <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Select a size to continue
-              </p>
-            )}
-
             {basketMessage && (
               <p className="text-sm font-semibold text-emerald-600">{basketMessage}</p>
             )}
@@ -362,8 +304,8 @@ export default function ProductPage({
             {/* CTA */}
             <Button
               size="lg"
-              onClick={handleAddToBasket}
-              disabled={!canBuy}
+              onClick={openBasketOptions}
+              disabled={availableVariants.length === 0}
               className="w-full uppercase text-sm tracking-widest"
             >
               Add to basket
@@ -397,6 +339,86 @@ export default function ProductPage({
           </div>
         </div>
       </main>
+
+      {basketOptionsOpen && (
+        <div
+          className="fixed inset-0 z-[55] flex items-end justify-center bg-navy-900/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setBasketOptionsOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="basket-options-title"
+            className="max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 id="basket-options-title" className="text-lg font-black text-navy-800">Choose size and quantity</h2>
+                <p className="mt-1 truncate text-sm text-gray-500">{product.title} · {displayPrice}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBasketOptionsOpen(false)}
+                aria-label="Close basket options"
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Size</span>
+              {product.sizeGuideImage && (
+                <button
+                  type="button"
+                  onClick={() => setSizeGuideOpen(true)}
+                  className="text-sm font-semibold text-navy-800 underline underline-offset-2"
+                >
+                  Size guide
+                </button>
+              )}
+            </div>
+            <div className="mt-3">
+              <SizeSelector sizes={product.sizes} selected={selectedSize} onSelect={setSelectedSize} hideLabel />
+            </div>
+
+            <div className="mt-6 flex items-center justify-between gap-4">
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Quantity</span>
+              <div className="inline-flex items-center overflow-hidden rounded-full border-2 border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                  className="flex h-11 w-11 items-center justify-center text-lg font-bold text-gray-600 hover:bg-gray-50 hover:text-navy-800"
+                  aria-label="Decrease quantity"
+                >−</button>
+                <span className="w-10 text-center text-sm font-black text-navy-800">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((current) => Math.min(10, current + 1))}
+                  className="flex h-11 w-11 items-center justify-center text-lg font-bold text-gray-600 hover:bg-gray-50 hover:text-navy-800"
+                  aria-label="Increase quantity"
+                >+</button>
+              </div>
+            </div>
+
+            {(needsColour || needsSize) && (
+              <p className="mt-4 text-sm font-semibold text-amber-600">
+                {needsColour ? 'Choose a colour on the product page to continue.' : 'Choose a size to continue.'}
+              </p>
+            )}
+
+            <Button
+              size="lg"
+              onClick={handleAddToBasket}
+              disabled={!canBuy}
+              className="mt-6 w-full uppercase text-sm tracking-widest"
+            >
+              Add to basket
+            </Button>
+          </section>
+        </div>
+      )}
 
       {/* ── Size guide modal ────────────────────────────────────── */}
       {sizeGuideOpen && product.sizeGuideImage && (
