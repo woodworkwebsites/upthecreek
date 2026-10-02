@@ -38,13 +38,9 @@ export function ImageGallery({
     : [];
 
   const imageSource = colorImages.length > 0 ? colorImages : images;
-  const defaultImage = images.find((image) => image.isDefault);
-  // The default image is a product-level hero and may not be tagged to the
-  // currently selected colour, so keep it visible before colour-specific images.
-  const displayImages = [
-    ...(defaultImage ? [defaultImage] : []),
-    ...imageSource.filter((image) => image !== defaultImage),
-  ];
+  // Preserve the admin's saved order within each selected colour. The product
+  // API places the default image first without changing other images' order.
+  const displayImages = imageSource;
 
   useEffect(() => {
     setActiveIndex(0);
