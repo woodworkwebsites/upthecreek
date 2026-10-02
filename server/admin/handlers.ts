@@ -1482,7 +1482,9 @@ export async function handleUpdateProductImage(
     return json({ error: 'Missing storageKey' }, 400);
   }
 
-  const index = product.images.findIndex((entry) => entry.storageKey === storageKey);
+  // Older/externally sourced product images may not have an R2 storage key.
+  // Their source URL is still a stable identifier for updating row colour.
+  const index = product.images.findIndex((entry) => entry.storageKey === storageKey || entry.src === storageKey);
   if (index < 0) return json({ error: 'Image not found' }, 404);
 
   const knownColors = await getAllowedImageColors(env, product);
@@ -1500,7 +1502,7 @@ export async function handleUpdateProductImage(
 
   if (body.isDefault === true) {
     images.forEach((entry) => {
-      entry.isDefault = entry.storageKey === storageKey;
+      entry.isDefault = entry.storageKey === storageKey || entry.src === storageKey;
     });
     images.sort((a, b) => {
       if (a.isDefault === b.isDefault) return 0;
