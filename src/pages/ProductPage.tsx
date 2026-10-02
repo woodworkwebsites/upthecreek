@@ -66,10 +66,21 @@ export default function ProductPage({
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const { addToBasket, itemCount } = useBasket();
   const displayColors = product
-    ? product.colors.filter((color, index, list) => {
-        if (product.hiddenColors.includes(color.name)) return false;
-        return index === list.findIndex((entry) => entry.name === color.name);
-      })
+    ? (() => {
+        const visibleColors = product.colors.filter((color, index, list) => {
+          if (product.hiddenColors.includes(color.name)) return false;
+          return index === list.findIndex((entry) => entry.name === color.name);
+        });
+        const defaultImage = product.images.find((image) => image.isDefault) ?? product.images[0];
+        const defaultColor = defaultImage?.color
+          ?? product.variants.find((variant) => defaultImage?.variantIds.includes(variant.id))?.color;
+        if (!defaultColor) return visibleColors;
+        return [...visibleColors].sort((a, b) => {
+          const aIsDefault = a.name.trim().toLowerCase() === defaultColor.trim().toLowerCase();
+          const bIsDefault = b.name.trim().toLowerCase() === defaultColor.trim().toLowerCase();
+          return Number(bIsDefault) - Number(aIsDefault);
+        });
+      })()
     : [];
 
   const availableVariants = useMemo<PrintifyVariant[]>(() => {
