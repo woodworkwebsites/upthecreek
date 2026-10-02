@@ -80,10 +80,10 @@ export function ImageGallery({
   }
 
   return (
-    <div className="space-y-4 lg:flex lg:items-start lg:gap-4 lg:space-y-0">
+    <div className="grid grid-cols-[minmax(0,1fr)_64px] items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_76px] sm:gap-3 lg:grid-cols-[minmax(0,1fr)_88px] lg:gap-4">
       {/* Main image — portrait 3:4 matches the shop card ratio */}
       <div
-        className="relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-3xl bg-white shadow-xl shadow-navy-900/5 ring-1 ring-black/5 lg:flex-1"
+        className="relative flex aspect-[4/5] w-full min-w-0 flex-col overflow-hidden rounded-3xl bg-white shadow-xl shadow-navy-900/5 ring-1 ring-black/5 lg:aspect-[3/4]"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -144,13 +144,13 @@ export function ImageGallery({
       </div>
 
       {displayImages.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0 lg:max-h-[calc(100vh-12rem)]">
+        <div className="flex h-full min-h-0 flex-col gap-2 overflow-x-hidden overflow-y-auto pb-1">
           {displayImages.map((img, i) => (
             <button
               key={img.src}
               onClick={() => setActiveIndex(i)}
               className={cn(
-                'flex-shrink-0 aspect-[3/4] w-[72px] overflow-hidden rounded-xl border-2 transition-all lg:w-[88px]',
+                'aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all',
                 i === activeIndex
                   ? 'border-navy-800 shadow-md shadow-navy-900/10'
                   : 'border-transparent opacity-50 hover:opacity-80',

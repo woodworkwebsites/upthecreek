@@ -182,31 +182,40 @@ export default function ProductPage({
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center gap-3">
 
-            {/* Logo — sm+ only */}
-            <Link to="/" className="hidden sm:flex items-center">
-              <img
-                src="/UTC-Apparel-Black.png"
-                alt="Up the Creek Padel"
-                className="h-9 w-auto object-contain"
-              />
-            </Link>
-
-            {/* Mini-preview — mobile only, fades in once image scrolls past */}
-            <div
-              className={`lg:hidden flex flex-1 items-center gap-2.5 overflow-hidden transition-opacity duration-300 ${
-                stickyVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              }`}
-            >
-              {miniPreviewSrc && (
+            {/* Header identity swaps from the brand mark to the product preview on scroll. */}
+            <div className="relative flex min-w-0 flex-1 items-center">
+              <Link
+                to="/"
+                aria-hidden={stickyVisible}
+                tabIndex={stickyVisible ? -1 : 0}
+                className={`absolute inset-y-0 left-0 flex items-center transition-opacity duration-300 ${
+                  stickyVisible ? 'pointer-events-none opacity-0' : 'opacity-100'
+                }`}
+              >
                 <img
-                  src={miniPreviewSrc}
-                  alt={product.title}
-                  className="h-10 w-[30px] flex-shrink-0 rounded-lg object-cover object-top"
+                  src="/UTC-Apparel-Black.png"
+                  alt="Up the Creek Padel"
+                  className="h-7 w-auto max-w-[8rem] object-contain"
                 />
-              )}
-              <div className="min-w-0">
-                <p className="truncate text-sm font-black text-navy-800 leading-tight">{product.title}</p>
-                <p className="text-xs font-semibold text-gray-500">{displayPrice}</p>
+              </Link>
+
+              <div
+                aria-hidden={!stickyVisible}
+                className={`absolute inset-y-0 left-0 flex max-w-full items-center gap-2.5 overflow-hidden transition-opacity duration-300 ${
+                  stickyVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
+                }`}
+              >
+                {miniPreviewSrc && (
+                  <img
+                    src={miniPreviewSrc}
+                    alt=""
+                    className="h-10 w-[30px] flex-shrink-0 rounded-lg object-cover object-top"
+                  />
+                )}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black text-navy-800 leading-tight">{product.title}</p>
+                  <p className="text-xs font-semibold text-gray-500">{displayPrice}</p>
+                </div>
               </div>
             </div>
 
