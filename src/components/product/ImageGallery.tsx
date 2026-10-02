@@ -80,7 +80,7 @@ export function ImageGallery({
   }
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_64px] items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_76px] sm:gap-3 lg:grid-cols-[minmax(0,1fr)_88px] lg:gap-4">
+    <div className="relative grid grid-cols-[minmax(0,1fr)_64px] gap-x-2 sm:grid-cols-[minmax(0,1fr)_76px] sm:gap-x-3 lg:grid-cols-[minmax(0,1fr)_88px] lg:gap-x-4">
       {/* Main image — portrait 3:4 matches the shop card ratio */}
       <div
         className="relative flex aspect-[4/5] w-full min-w-0 flex-col overflow-hidden rounded-3xl bg-white shadow-xl shadow-navy-900/5 ring-1 ring-black/5 lg:aspect-[3/4]"
@@ -140,11 +140,11 @@ export function ImageGallery({
           <span className="min-w-0 flex-1 truncate text-sm font-bold sm:text-base">{title}</span>
           <span className="flex-shrink-0 whitespace-nowrap text-sm font-black sm:text-base">{priceLabel}</span>
         </div>
-        <div ref={previewTriggerRef} aria-hidden className="absolute bottom-0 left-0 right-0 h-px" />
+        <div ref={previewTriggerRef} aria-hidden className="absolute left-0 top-0 h-px w-px" />
       </div>
 
       {displayImages.length > 1 && (
-        <div className="flex h-full min-h-0 flex-col gap-2 overflow-x-hidden overflow-y-auto pb-1">
+        <div aria-label="Product images" className="absolute inset-y-0 right-0 flex min-h-0 w-16 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain pb-1 touch-pan-y sm:w-[4.75rem] lg:w-[5.5rem]">
           {displayImages.map((img, i) => (
             <button
               key={img.src}
