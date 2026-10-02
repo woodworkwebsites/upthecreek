@@ -236,6 +236,7 @@ export default function ProductPage({
                 previewTriggerRef={previewTriggerRef}
                 personalizationEnabled={product.personalizationEnabled}
                 title={product.title}
+                priceLabel={!selectedVariant && product.minPrice !== product.maxPrice ? `From ${displayPrice}` : displayPrice}
               />
             </div>
           </div>
@@ -243,21 +244,9 @@ export default function ProductPage({
           {/* product details */}
           <div className="flex flex-col gap-5 sm:gap-6 lg:pt-2">
 
-            {/* title + price */}
-            <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl font-black text-navy-800 tracking-tight leading-tight">
-                {product.title}
-              </h1>
-              <p className="text-2xl font-black text-navy-800 mt-2">
-                {!selectedVariant && product.minPrice !== product.maxPrice && (
-                  <span className="text-sm font-semibold text-gray-400 mr-2">from</span>
-                )}
-                {displayPrice}
-              </p>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
-                Free Delivery
-              </p>
-            </div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+              Free Delivery
+            </p>
 
             {/* divider — desktop only; on mobile the tighter space-y is enough */}
             <div className="hidden sm:block h-px bg-gray-100" />
