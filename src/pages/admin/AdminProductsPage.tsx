@@ -747,14 +747,15 @@ function ProductRow({
     orderProductId: color.orderProductId?.trim() ?? '',
   })));
   const originalColorSignature = JSON.stringify(
-    visibleColors.map((color) => {
-      const original = product.colors.find((entry) => normalizeColorKey(entry.name) === normalizeColorKey(color.name));
-      return {
+    product.colors
+      .filter((color) => !(product.hiddenColors ?? []).some(
+        (hiddenColor) => normalizeColorKey(hiddenColor) === normalizeColorKey(color.name),
+      ))
+      .map((color) => ({
         name: color.name,
         hex: color.hex,
-        orderProductId: extractSellShirtsProductId(original?.orderUrl),
-      };
-    }),
+        orderProductId: extractSellShirtsProductId(color.orderUrl),
+      })),
   );
   const currentPricingSignature = pricingMatrixSignature(pricingMatrix);
   const originalPricingSignature = pricingMatrixSignature({
