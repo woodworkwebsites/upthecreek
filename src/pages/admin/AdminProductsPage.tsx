@@ -708,8 +708,7 @@ function ProductRow({
     setImageError(null);
     try {
       const order = nextImages
-        .map((image) => image.storageKey)
-        .filter((key): key is string => Boolean(key));
+        .map((image) => image.storageKey ?? image.src);
       const result = await adminReorderProductImages(token, product.printifyId, order);
       setImages(result.images);
     } catch (err) {
@@ -1214,31 +1213,33 @@ function ProductRow({
                       key={`${image.src}-${index}`}
                       draggable={!imageSaving}
                       onDragStart={(event) => {
-                        if (!image.storageKey || imageSaving) return;
+                        if (imageSaving) return;
+                        const imageKey = image.storageKey ?? image.src;
                         event.dataTransfer.effectAllowed = 'move';
-                        event.dataTransfer.setData('text/plain', image.storageKey);
-                        setDraggingImageKey(image.storageKey);
+                        event.dataTransfer.setData('text/plain', imageKey);
+                        setDraggingImageKey(imageKey);
                       }}
                       onDragOver={(event) => {
-                        if (!draggingImageKey || draggingImageKey === image.storageKey) return;
+                        const imageKey = image.storageKey ?? image.src;
+                        if (!draggingImageKey || draggingImageKey === imageKey) return;
                         event.preventDefault();
-                        setDropTargetImageKey(image.storageKey ?? null);
+                        setDropTargetImageKey(imageKey);
                       }}
                       onDragLeave={() => {
-                        if (dropTargetImageKey === image.storageKey) setDropTargetImageKey(null);
+                        if (dropTargetImageKey === (image.storageKey ?? image.src)) setDropTargetImageKey(null);
                       }}
                       onDrop={(event) => {
                         event.preventDefault();
                         const fromKey = draggingImageKey ?? event.dataTransfer.getData('text/plain');
-                        const targetKey = image.storageKey;
-                        if (!fromKey || !targetKey || fromKey === targetKey) {
+                        const targetKey = image.storageKey ?? image.src;
+                        if (!fromKey || fromKey === targetKey) {
                           setDraggingImageKey(null);
                           setDropTargetImageKey(null);
                           return;
                         }
 
-                        const fromIndex = images.findIndex((entry) => entry.storageKey === fromKey);
-                        const targetIndex = images.findIndex((entry) => entry.storageKey === targetKey);
+                        const fromIndex = images.findIndex((entry) => (entry.storageKey ?? entry.src) === fromKey);
+                        const targetIndex = images.findIndex((entry) => (entry.storageKey ?? entry.src) === targetKey);
                         if (fromIndex < 0 || targetIndex < 0) {
                           setDraggingImageKey(null);
                           setDropTargetImageKey(null);
@@ -1256,10 +1257,10 @@ function ProductRow({
                         setDropTargetImageKey(null);
                       }}
                       className={`relative rounded-xl border p-2 transition-colors ${
-                        dropTargetImageKey === image.storageKey
+                        dropTargetImageKey === (image.storageKey ?? image.src)
                           ? 'border-navy-400 bg-navy-50 dark:border-navy-700 dark:bg-navy-950/40'
                           : 'border-gray-100 dark:border-gray-800'
-                      } ${draggingImageKey === image.storageKey ? 'opacity-60' : ''}`}
+                      } ${draggingImageKey === (image.storageKey ?? image.src) ? 'opacity-60' : ''}`}
                     >
                       <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
                         <span>Drag to reorder</span>

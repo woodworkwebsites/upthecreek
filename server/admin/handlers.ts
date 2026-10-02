@@ -1449,9 +1449,7 @@ export async function handleUpdateProductImage(
 
   if (Array.isArray(body.order) && body.order.length > 0) {
     const knownImages = new Map(
-      product.images
-        .filter((entry) => Boolean(entry.storageKey))
-        .map((entry) => [entry.storageKey as string, entry] as const),
+      product.images.map((entry) => [entry.storageKey ?? entry.src, entry] as const),
     );
     const seen = new Set<string>();
     const reordered = body.order
@@ -1463,8 +1461,10 @@ export async function handleUpdateProductImage(
       });
 
     for (const image of product.images) {
-      if (!image.storageKey || seen.has(image.storageKey)) continue;
+      const imageKey = image.storageKey ?? image.src;
+      if (seen.has(imageKey)) continue;
       reordered.push({ ...image });
+      seen.add(imageKey);
     }
 
     if (!reordered.some((entry) => entry.isDefault) && reordered.length > 0) {

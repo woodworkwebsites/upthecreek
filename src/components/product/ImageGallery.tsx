@@ -37,7 +37,12 @@ export function ImageGallery({
       )
     : [];
 
-  const displayImages = colorImages.length > 0 ? colorImages : images;
+  const imageSource = colorImages.length > 0 ? colorImages : images;
+  // Keep the product's designated default at the front of every gallery view.
+  const displayImages = imageSource
+    .map((image, index) => ({ image, index }))
+    .sort((a, b) => Number(b.image.isDefault) - Number(a.image.isDefault) || a.index - b.index)
+    .map(({ image }) => image);
 
   useEffect(() => {
     setActiveIndex(0);
