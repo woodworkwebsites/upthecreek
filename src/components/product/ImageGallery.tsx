@@ -38,11 +38,13 @@ export function ImageGallery({
     : [];
 
   const imageSource = colorImages.length > 0 ? colorImages : images;
-  // Keep the product's designated default at the front of every gallery view.
-  const displayImages = imageSource
-    .map((image, index) => ({ image, index }))
-    .sort((a, b) => Number(b.image.isDefault) - Number(a.image.isDefault) || a.index - b.index)
-    .map(({ image }) => image);
+  const defaultImage = images.find((image) => image.isDefault);
+  // The default image is a product-level hero and may not be tagged to the
+  // currently selected colour, so keep it visible before colour-specific images.
+  const displayImages = [
+    ...(defaultImage ? [defaultImage] : []),
+    ...imageSource.filter((image) => image !== defaultImage),
+  ];
 
   useEffect(() => {
     setActiveIndex(0);
