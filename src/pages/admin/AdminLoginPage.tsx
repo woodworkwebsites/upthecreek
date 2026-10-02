@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
         <div className="text-center">
           <div className="mx-auto flex h-28 items-center justify-center">
             <img
-              src="/Wordmark_White.png"
+              src="/Wordmark_White.png?v=dfc90b8"
               alt="Up the Creek Padel Apparel"
               className="h-20 w-auto object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)]"
             />

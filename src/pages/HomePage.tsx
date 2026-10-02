@@ -90,7 +90,7 @@ export default function HomePage() {
         {/* content — logo + single line of copy only */}
         <div className="relative flex flex-col items-center gap-0 w-full animate-fade-up">
           <img
-            src="/Wordmark_White.png"
+            src="/Wordmark_White.png?v=dfc90b8"
             alt="Up the Creek Padel Apparel"
             className="w-[min(88vw,820px)] max-h-[32vh] h-auto object-contain"
           />
@@ -187,7 +187,7 @@ export default function HomePage() {
           <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex flex-col items-center gap-0">
             <img
-              src="/Wordmark_White.png"
+              src="/Wordmark_White.png?v=dfc90b8"
               alt="Up the Creek Padel Apparel"
               className="h-28 w-auto opacity-70 sm:h-32"
             />
