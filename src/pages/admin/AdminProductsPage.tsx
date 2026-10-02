@@ -1294,13 +1294,13 @@ function ProductRow({
                         <div className="space-y-1.5">
                           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">Row colours</p>
                           <div className="flex flex-wrap gap-1.5">
-                            <button type="button" disabled={imageSaving} onClick={() => { if (!image.storageKey) return; void handleUpdateImage(image.storageKey, { color: null }); }} className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold transition-colors ${!image.color ? 'border-navy-800 bg-navy-800 text-white' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800'}`}>
+                            <button type="button" disabled={imageSaving} onClick={() => { void handleUpdateImage(image.storageKey ?? image.src, { color: null }); }} className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold transition-colors ${!image.color ? 'border-navy-800 bg-navy-800 text-white' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800'}`}>
                               No colour selection
                             </button>
                             {visibleColors.map((color) => {
                               const selected = image.color === color.name;
                               return (
-                                <button key={color.name} type="button" disabled={imageSaving} onClick={() => { if (!image.storageKey) return; void handleUpdateImage(image.storageKey, { color: color.name }); }} className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold transition-colors ${selected ? 'border-navy-800 bg-navy-800 text-white' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800'}`}>
+                                <button key={color.name} type="button" disabled={imageSaving} onClick={() => { void handleUpdateImage(image.storageKey ?? image.src, { color: color.name }); }} className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold transition-colors ${selected ? 'border-navy-800 bg-navy-800 text-white' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800'}`}>
                                   <span className="inline-block h-3 w-3 rounded-full border border-black/10" style={{ backgroundColor: color.hex }} />
                                   {color.name}
                                 </button>
@@ -1312,7 +1312,7 @@ function ProductRow({
                           {image.isDefault ? (
                             <span className="font-semibold text-emerald-600 dark:text-emerald-400">Default image</span>
                           ) : (
-                            <button type="button" onClick={() => { if (!image.storageKey) return; void handleUpdateImage(image.storageKey, { isDefault: true }); }} disabled={imageSaving} className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800">
+                            <button type="button" onClick={() => { void handleUpdateImage(image.storageKey ?? image.src, { isDefault: true }); }} disabled={imageSaving} className="rounded-full border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800">
                               Set default
                             </button>
                           )}
