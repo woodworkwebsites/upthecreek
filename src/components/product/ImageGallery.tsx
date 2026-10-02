@@ -10,6 +10,7 @@ interface ImageGalleryProps {
   previewTriggerRef?: RefObject<HTMLDivElement | null>;
   personalizationEnabled?: boolean;
   title: string;
+  priceLabel: string;
 }
 
 export function ImageGallery({
@@ -19,6 +20,7 @@ export function ImageGallery({
   previewTriggerRef,
   personalizationEnabled = false,
   title,
+  priceLabel,
 }: ImageGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const touchStartX = useRef(0);
@@ -81,57 +83,63 @@ export function ImageGallery({
     <div className="space-y-4 lg:flex lg:items-start lg:gap-4 lg:space-y-0">
       {/* Main image — portrait 3:4 matches the shop card ratio */}
       <div
-        className="relative aspect-[3/4] w-full overflow-hidden rounded-3xl bg-white shadow-xl shadow-navy-900/5 ring-1 ring-black/5 lg:flex-1"
+        className="relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-3xl bg-white shadow-xl shadow-navy-900/5 ring-1 ring-black/5 lg:flex-1"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <img
-          src={current.src}
-          alt={title}
-          className="h-full w-full object-contain object-center transition-opacity duration-200"
-          loading="eager"
-        />
-        {personalizationEnabled && (
-          <span className="absolute left-3 top-3 z-10 rounded-full bg-navy-800 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-md sm:left-4 sm:top-4 sm:px-3.5 sm:text-xs">
-            Personalise This
-          </span>
-        )}
-        {displayImages.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={goPrevious}
-              aria-label="Previous image"
-              className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-gray-950/70 p-2 text-white shadow-lg shadow-black/20 backdrop-blur-sm transition hover:bg-gray-950"
-            >
-              <span className="block text-lg leading-none">‹</span>
-            </button>
-            <button
-              type="button"
-              onClick={goNext}
-              aria-label="Next image"
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-gray-950/70 p-2 text-white shadow-lg shadow-black/20 backdrop-blur-sm transition hover:bg-gray-950"
-            >
-              <span className="block text-lg leading-none">›</span>
-            </button>
-          </>
-        )}
-        {/* Dot indicators — mobile only */}
-        {displayImages.length > 1 && (
-          <div className="lg:hidden absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-            {displayImages.map((_, i) => (
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <img
+            src={current.src}
+            alt={title}
+            className="h-full w-full object-contain object-center transition-opacity duration-200"
+            loading="eager"
+          />
+          {personalizationEnabled && (
+            <span className="absolute left-3 top-3 z-10 rounded-full bg-navy-800 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-md sm:left-4 sm:top-4 sm:px-3.5 sm:text-xs">
+              Personalise This
+            </span>
+          )}
+          {displayImages.length > 1 && (
+            <>
               <button
-                key={i}
-                onClick={() => setActiveIndex(i)}
-                aria-label={`Image ${i + 1}`}
-                className={cn(
-                  'h-1.5 rounded-full transition-all duration-200',
-                  i === activeIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/50',
-                )}
-              />
-            ))}
-          </div>
-        )}
+                type="button"
+                onClick={goPrevious}
+                aria-label="Previous image"
+                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-gray-950/70 p-2 text-white shadow-lg shadow-black/20 backdrop-blur-sm transition hover:bg-gray-950"
+              >
+                <span className="block text-lg leading-none">‹</span>
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                aria-label="Next image"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-gray-950/70 p-2 text-white shadow-lg shadow-black/20 backdrop-blur-sm transition hover:bg-gray-950"
+              >
+                <span className="block text-lg leading-none">›</span>
+              </button>
+            </>
+          )}
+          {/* Dot indicators — mobile only */}
+          {displayImages.length > 1 && (
+            <div className="lg:hidden absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+              {displayImages.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveIndex(i)}
+                  aria-label={`Image ${i + 1}`}
+                  className={cn(
+                    'h-1.5 rounded-full transition-all duration-200',
+                    i === activeIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/50',
+                  )}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex h-12 flex-shrink-0 items-center gap-3 bg-navy-800 px-4 text-white sm:h-14 sm:px-5" aria-label={`${title}, ${priceLabel}`}>
+          <span className="min-w-0 flex-1 truncate text-sm font-bold sm:text-base">{title}</span>
+          <span className="flex-shrink-0 whitespace-nowrap text-sm font-black sm:text-base">{priceLabel}</span>
+        </div>
         <div ref={previewTriggerRef} aria-hidden className="absolute bottom-0 left-0 right-0 h-px" />
       </div>
 
