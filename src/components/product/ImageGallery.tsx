@@ -38,9 +38,18 @@ export function ImageGallery({
     : [];
 
   const imageSource = colorImages.length > 0 ? colorImages : images;
-  // Preserve the admin's saved order within each selected colour. The product
-  // API places the default image first without changing other images' order.
-  const displayImages = imageSource;
+  const defaultImage = images.find((image) => image.isDefault) ?? images[0];
+  const defaultMatchesColor = Boolean(
+    defaultImage && selectedColor && (
+      defaultImage.color?.trim().toLowerCase() === selectedColor.trim().toLowerCase()
+      || defaultImage.variantIds.some((id) => activeVariantIds?.includes(id))
+    )
+  );
+  // Keep the product default first when it belongs to the active colour, then
+  // retain the admin's saved order for the rest of that colour's images.
+  const displayImages = defaultMatchesColor && defaultImage
+    ? [defaultImage, ...imageSource.filter((image) => image !== defaultImage)]
+    : imageSource;
 
   useEffect(() => {
     setActiveIndex(0);
