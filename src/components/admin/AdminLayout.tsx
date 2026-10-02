@@ -118,9 +118,10 @@ export default function AdminLayout() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between md:h-14 md:gap-6 md:py-0">
             <div className="flex items-center justify-between gap-3 md:justify-start md:gap-6">
-              <span className="text-sm font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-                UTC Admin
-              </span>
+              <div className="flex items-center gap-2">
+                <img src="/Wordmark_Black.png" alt="Up the Creek Padel Apparel" className="h-7 w-auto object-contain" />
+                <span className="text-sm font-semibold tracking-tight text-gray-900 dark:text-gray-100">Admin</span>
+              </div>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen((current) => !current)}

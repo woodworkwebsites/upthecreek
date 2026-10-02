@@ -69,8 +69,8 @@ export default function SuccessPage() {
           <div className="flex h-16 items-center">
           <Link to="/">
             <img
-              src="/UTC-Apparel-Black.png"
-              alt="Up the Creek Padel"
+              src="/Wordmark_Black.png"
+              alt="Up the Creek Padel Apparel"
               className="h-9 w-auto object-contain"
             />
             </Link>
@@ -178,7 +178,7 @@ export default function SuccessPage() {
           hello@upthecreekpadel.club
         </a>
         <p className="text-center text-[11px] text-white/20">
-          © {new Date().getFullYear()} Up the Creek Padel &amp; Social Club
+          © {new Date().getFullYear()} Up the Creek Padel Apparel
         </p>
       </footer>
 

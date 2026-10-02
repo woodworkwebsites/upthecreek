@@ -214,8 +214,8 @@ export default function ProductPage({
                 }`}
               >
                 <img
-                  src="/UTC-Apparel-Black.png"
-                  alt="Up the Creek Padel"
+                  src="/Wordmark_Black.png"
+                  alt="Up the Creek Padel Apparel"
                   className="h-7 w-auto max-w-[8rem] object-contain"
                 />
               </Link>
@@ -444,8 +444,8 @@ export default function ProductPage({
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div className="flex min-w-0 items-center gap-3">
                 <img
-                  src="/UTC_WORDMARK_BLACK_TRANS.png"
-                  alt="Up the Creek Padel"
+                  src="/Wordmark_Black.png"
+                  alt="Up the Creek Padel Apparel"
                   className="h-7 w-auto max-w-24 object-contain"
                 />
                 <p className="text-sm font-black text-navy-800 uppercase tracking-widest">Size Guide</p>
@@ -476,8 +476,8 @@ export default function ProductPage({
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <img
-              src="/UTC-Apparel-White.png"
-              alt="Up the Creek Padel"
+              src="/Wordmark_White.png"
+              alt="Up the Creek Padel Apparel"
               className="h-8 w-auto opacity-60"
             />
             <div className="flex flex-col items-center sm:items-end gap-1">
@@ -485,7 +485,7 @@ export default function ProductPage({
                 hello@upthecreekpadel.club
               </a>
               <p className="text-[11px] text-white/20">
-                © {new Date().getFullYear()} Up the Creek Padel &amp; Social Club
+                © {new Date().getFullYear()} Up the Creek Padel Apparel
               </p>
             </div>
           </div>

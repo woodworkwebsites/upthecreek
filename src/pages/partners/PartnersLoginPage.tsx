@@ -47,7 +47,7 @@ export default function PartnersLoginPage() {
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-xl items-center">
         <section className="w-full rounded-[2rem] border border-gray-200 bg-white p-6 text-navy-900 shadow-[0_25px_80px_rgba(5,13,31,0.12)] sm:p-8">
           <div className="flex flex-col items-center text-center">
-            <img src="/UTC_WORDMARK_BLACK_TRANS.png" alt="Up the Creek Padel" className="h-10 w-auto" />
+            <img src="/Wordmark_Black.png" alt="Up the Creek Padel" className="h-10 w-auto" />
             <p className="label mt-6">Partner access</p>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-navy-900 sm:text-4xl">
               Sign in to the partner portal.

@@ -90,8 +90,8 @@ export default function HomePage() {
         {/* content — logo + single line of copy only */}
         <div className="relative flex flex-col items-center gap-0 w-full animate-fade-up">
           <img
-            src="/UTC-Apparel-White.png"
-            alt="Up the Creek Padel"
+            src="/Wordmark_White.png"
+            alt="Up the Creek Padel Apparel"
             className="w-[min(88vw,820px)] max-h-[32vh] h-auto object-contain"
           />
           <p className="mt-[50px] whitespace-nowrap text-xs sm:text-base text-white/85 tracking-wide leading-relaxed px-4">
@@ -119,7 +119,7 @@ export default function HomePage() {
             <h2 className="mt-0 flex flex-col items-center gap-1 text-center text-3xl font-black tracking-tight text-navy-800 sm:text-4xl">
               <span className="block">The</span>
               <img
-                src="/Up The Creek_Wordmark.png"
+                src="/Wordmark_Black.png"
                 alt="Up the Creek"
                 className="h-16 w-auto object-contain sm:h-20 lg:h-24"
               />
@@ -187,8 +187,8 @@ export default function HomePage() {
           <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex flex-col items-center gap-0">
             <img
-              src="/UTC-Apparel-White.png"
-              alt="Up the Creek Padel"
+              src="/Wordmark_White.png"
+              alt="Up the Creek Padel Apparel"
               className="h-28 w-auto opacity-70 sm:h-32"
             />
             </div>
@@ -202,7 +202,7 @@ export default function HomePage() {
               hello@upthecreekpadel.club
             </a>
             <p className="text-[11px] text-white/15 mt-2">
-              © {new Date().getFullYear()} Up the Creek Padel &amp; Social Club. All rights reserved.
+              © {new Date().getFullYear()} Up the Creek Padel Apparel. All rights reserved.
             </p>
           </div>
         </div>

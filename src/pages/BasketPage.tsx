@@ -104,7 +104,7 @@ export default function BasketPage() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center">
             <img
-              src="/UTC_WORDMARK_BLACK_TRANS.png"
+              src="/Wordmark_Black.png"
               alt="Up the Creek Padel"
               className="h-8 w-auto object-contain"
             />

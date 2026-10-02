@@ -68,7 +68,7 @@ export default function PartnersFunnelPage() {
 
           <div className="flex justify-center">
             <img
-              src="/UTC_WordMark_White_Trans_BG.png"
+              src="/Wordmark_White.png"
               alt="Up the Creek Padel"
               className="h-[72px] w-auto sm:h-[84px] lg:h-[96px]"
             />
