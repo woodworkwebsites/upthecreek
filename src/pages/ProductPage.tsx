@@ -110,20 +110,23 @@ export default function ProductPage({
     }
   }, [product, displayColors, selectedColor, selectedSize]);
 
-  // Sticky mini-preview — shown on mobile once the main image has scrolled past.
-  // Depends on `product` so the effect re-runs after the loading state resolves
-  // and ImageGallery (which holds the sentinel ref) is actually in the DOM.
+  // Sticky mini-preview — shown on mobile once the hero image reaches the header.
   const previewTriggerRef = useRef<HTMLDivElement>(null);
   const [stickyVisible, setStickyVisible] = useState(false);
   useEffect(() => {
-    const el = previewTriggerRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setStickyVisible(!entry.isIntersecting),
-      { threshold: 0, rootMargin: '-64px 0px 0px 0px' },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
+    const updateVisibility = () => {
+      const el = previewTriggerRef.current;
+      const isMobile = window.matchMedia('(max-width: 1023px)').matches;
+      setStickyVisible(Boolean(isMobile && el && el.getBoundingClientRect().top <= 64));
+    };
+
+    updateVisibility();
+    window.addEventListener('scroll', updateVisibility, { passive: true });
+    window.addEventListener('resize', updateVisibility);
+    return () => {
+      window.removeEventListener('scroll', updateVisibility);
+      window.removeEventListener('resize', updateVisibility);
+    };
   }, [product]);
 
   const miniPreviewSrc = useMemo(() => {
