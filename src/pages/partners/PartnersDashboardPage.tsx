@@ -105,7 +105,11 @@ export default function PartnersDashboardPage() {
             <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/15">
               <img
                 src={partner.logoUrl || '/UTC_WordMark_White_Trans_BG.png'}
-                alt={`${partner.name} logo`}
+                alt={partner.logoUrl ? `${partner.name} logo` : 'Up the Creek Padel'}
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = '/UTC_WordMark_White_Trans_BG.png';
+                }}
                 className="h-full w-full object-contain p-2"
               />
             </div>
