@@ -100,6 +100,15 @@ function parsePartnerOnboardingAssetRow(row: PartnerOnboardingAssetRow): Partner
   };
 }
 
+function normalizeCollaborationCommission(value: unknown): number | undefined {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number(value)
+      : NaN;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
 function normalizeCollaborationMoney(value: unknown): number {
   const parsed = typeof value === 'number'
     ? value
@@ -141,6 +150,7 @@ function normalizeCollaborationDesign(design: Partial<PartnerCollaborationDesign
     sizes: normalizeCollaborationSizes(design.sizes),
     partnerPrice: normalizeCollaborationMoney(design.partnerPrice),
     rrp: normalizeCollaborationMoney((design as { rrp?: unknown }).rrp ?? design.partnerPrice),
+    referralCommissionRate: normalizeCollaborationCommission((design as { referralCommissionRate?: unknown }).referralCommissionRate),
   };
 }
 
