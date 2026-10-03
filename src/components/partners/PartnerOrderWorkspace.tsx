@@ -852,7 +852,14 @@ export function PartnerOrderWorkspace({
                 <div className="flex items-start justify-between gap-2 border-b border-gray-100 p-3 sm:gap-4 sm:p-5">
                   <div>
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Select sizes</p>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <img
+                          src="/Wordmark_Black.png"
+                          alt="Up the Creek Padel Apparel"
+                          className="h-6 w-auto max-w-[7rem] shrink-0 object-contain"
+                        />
+                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Select sizes</p>
+                      </div>
                       {sizeGuideImage && (
                         <button
                           type="button"
