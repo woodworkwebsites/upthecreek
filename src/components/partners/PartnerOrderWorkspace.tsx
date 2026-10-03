@@ -321,6 +321,7 @@ export function PartnerOrderWorkspace({
   const [draftLines, setDraftLines] = useState<BasketLineItem[]>([]);
   const [draftColor, setDraftColor] = useState<string | null>(null);
   const [draftImageIndex, setDraftImageIndex] = useState(0);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [orderNotes, setOrderNotes] = useState('');
   const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -752,6 +753,12 @@ export function PartnerOrderWorkspace({
 
       {activeDraft && (() => {
         const draftProduct = allProducts.find((entry) => entry.id === activeDraft.productId);
+        const sizeGuideImage = draftProduct?.sizeGuideImage
+          ?? products.find((product) =>
+            product.sizeGuideImage
+            && normalizeName(product.garment) === normalizeName(draftProduct?.garment ?? ''),
+          )?.sizeGuideImage
+          ?? null;
         const draftColors = draftProduct ? visibleColors(draftProduct) : [];
         const draftImages = draftProduct ? getImagesForColor(draftProduct, activeDraft.color) : [];
         const carouselImages = draftImages.length > 0 ? draftImages : [activeDraft.imageSrc];
@@ -843,7 +850,18 @@ export function PartnerOrderWorkspace({
               <div className="flex h-full max-h-[88dvh] min-h-0 flex-col">
                 <div className="flex items-start justify-between gap-2 border-b border-gray-100 p-3 sm:gap-4 sm:p-5">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Select sizes</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Select sizes</p>
+                      {sizeGuideImage && (
+                        <button
+                          type="button"
+                          onClick={() => setSizeGuideOpen(true)}
+                          className="shrink-0 text-xs font-semibold text-navy-800 underline underline-offset-2 sm:text-sm"
+                        >
+                          Size guide
+                        </button>
+                      )}
+                    </div>
                     <div className="mt-2 space-y-1.5 sm:mt-3 sm:space-y-2">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={rowLabelClass}>RRP</span>
@@ -993,6 +1011,46 @@ export function PartnerOrderWorkspace({
             </div>
           </div>
         </div>
+        {sizeGuideOpen && sizeGuideImage && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-navy-950/70 p-2 backdrop-blur-sm sm:p-4"
+            onClick={() => setSizeGuideOpen(false)}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${activeDraft.title} size guide`}
+              onClick={(event) => event.stopPropagation()}
+              className="relative max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl sm:rounded-3xl"
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 sm:px-5 sm:py-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <img
+                    src="/Wordmark_Black.png"
+                    alt="Up the Creek Padel Apparel"
+                    className="h-6 w-auto max-w-[7rem] object-contain sm:h-7"
+                  />
+                  <p className="text-xs font-black uppercase tracking-widest text-navy-800 sm:text-sm">Size guide</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSizeGuideOpen(false)}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-navy-800"
+                  aria-label="Close size guide"
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
+              <div className="overflow-y-auto p-3 sm:p-4">
+                <img
+                  src={sizeGuideImage}
+                  alt={`${activeDraft.title} size guide`}
+                  className="mx-auto max-h-[calc(100dvh-6rem)] w-full object-contain"
+                />
+              </div>
+            </div>
+          </div>
+        )}
         );
       })()}
 
