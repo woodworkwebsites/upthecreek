@@ -8,6 +8,7 @@ const adminGroups = [
       { path: '/admin/ranges', label: 'Ranges', tone: 'bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300' },
       { path: '/admin/orders', label: 'Orders', tone: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' },
       { path: '/admin/discount-codes', label: 'Discount Codes', tone: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300' },
+      { path: '/admin/catalog', label: 'Catalog', tone: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300' },
     ],
   },
   {
@@ -23,7 +24,6 @@ const adminGroups = [
       { path: '/admin/settings', label: 'Settings', tone: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
       { path: '/admin/logs', label: 'Logs', tone: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
       { path: '/admin/catalogue-recovery', label: 'Image Recovery', tone: 'bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300' },
-      { path: '/admin/catalog', label: 'Catalog', tone: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300' },
     ],
   },
 ];
