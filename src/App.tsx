@@ -11,6 +11,7 @@ import PartnersLoginPage from './pages/partners/PartnersLoginPage.js';
 import PartnersDashboardPage from './pages/partners/PartnersDashboardPage.js';
 import AdminLoginPage from './pages/admin/AdminLoginPage.js';
 import AdminLayout    from './components/admin/AdminLayout.js';
+import AdminHomePage     from './pages/admin/AdminHomePage.js';
 import AdminOrdersPage   from './pages/admin/AdminOrdersPage.js';
 import AdminPartnersPage from './pages/admin/AdminPartnersPage.js';
 import AdminStockOrdersPage from './pages/admin/AdminStockOrdersPage.js';
@@ -56,7 +57,7 @@ export default function App() {
             <Route path="/partners/dashboard" element={<PartnersDashboardPage />} />
             <Route path="/admin/login"  element={<AdminLoginPage />} />
             <Route path="/admin"        element={<AdminLayout />}>
-              <Route index              element={<AdminOrdersPage />} />
+              <Route index              element={<AdminHomePage />} />
               <Route path="orders"      element={<AdminOrdersPage />} />
               <Route path="partners"    element={<AdminPartnersPage />} />
               <Route path="stock-orders" element={<AdminStockOrdersPage />} />
