@@ -183,9 +183,11 @@ function readBasket(): BasketLineItem[] {
 function ProductMatrixCard({
   product,
   onOpenDraft,
+  commissionRate,
 }: {
   product: Product;
   onOpenDraft: (product: Product, color: string) => void;
+  commissionRate: number;
 }) {
   const colors = visibleColors(product);
   const [selectedColorName, setSelectedColorName] = useState(colors[0]?.name ?? '');
@@ -195,9 +197,7 @@ function ProductMatrixCard({
   const partnerPrice = getPartnerUnitPrice(product, rrp);
   const margin = Math.max(0, rrp - partnerPrice);
   const isCollaboration = product.category === 'partner-collaboration';
-  const collaborationCommission = isCollaboration
-    ? Math.max(0, Math.round(calculateCommissionFromGross(rrp)))
-    : null;
+  const onlineReferral = Math.max(0, Math.round(calculateCommissionFromGross(rrp, commissionRate)));
   const colorImages = useMemo(() => (activeColor ? getImagesForColor(product, activeColor.name) : []), [activeColor, product]);
   const activeImageSrc = colorImages.length > 0 ? colorImages[imageIndex % colorImages.length] : getImageForColor(product, activeColor?.name ?? '');
 
@@ -263,12 +263,10 @@ function ProductMatrixCard({
             <span className={rrpChipClass}>{formatPrice(rrp)} RRP</span>
             <span className={marginChipClass}>{formatPrice(margin)} Margin</span>
           </div>
-          {isCollaboration && collaborationCommission !== null && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className={rowLabelClass}>Online Referral</span>
-              <span className={commissionChipClass}>{formatPrice(collaborationCommission)} referral</span>
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={rowLabelClass}>Online Referral</span>
+            <span className={commissionChipClass}>{formatPrice(onlineReferral)} referral</span>
+          </div>
         </div>
         <p className="mt-2 text-xs text-gray-400">
           {colors.length} colours · {getProductSizes(product).length} sizes
@@ -308,12 +306,14 @@ export function PartnerOrderWorkspace({
   ranges,
   slug,
   accessToken,
+  commissionRate,
 }: {
   products: Product[];
   collaborationProducts?: Product[];
   ranges: CatalogRange[];
   slug: string;
   accessToken: string;
+  commissionRate: number;
 }) {
   const [basket, setBasket] = useState<BasketLineItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
@@ -517,6 +517,7 @@ export function PartnerOrderWorkspace({
                   key={product.id}
                   product={product}
                   onOpenDraft={openDraft}
+                  commissionRate={commissionRate}
                 />
               ))}
             </div>
@@ -766,9 +767,7 @@ export function PartnerOrderWorkspace({
         const draftTotalPieces = draftLines.reduce((sum, line) => sum + lineCount(line), 0);
         const draftTotalValue = draftLines.reduce((sum, line) => sum + lineTotal(line), 0);
         const isCollaborationDraft = draftProduct?.category === 'partner-collaboration';
-        const draftCommission = isCollaborationDraft
-          ? Math.max(0, Math.round(calculateCommissionFromGross(activeDraft.rrp)))
-          : null;
+        const draftCommission = Math.max(0, Math.round(calculateCommissionFromGross(activeDraft.rrp, commissionRate)));
         return (
         <>
         <div
@@ -882,7 +881,7 @@ export function PartnerOrderWorkspace({
                           {formatPrice(Math.max(0, activeDraft.rrp - (activeDraft.sizes[0]?.unitPrice ?? 0)))} Margin
                         </span>
                       </div>
-                      {isCollaborationDraft && draftCommission !== null && (
+                      {commissionRate > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className={rowLabelClass}>Online Referral</span>
                           <span className={commissionChipClass}>{formatPrice(draftCommission)} referral</span>
