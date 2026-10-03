@@ -719,8 +719,7 @@ async function buildCollaborationDesignFromForm(
     orderUrl.trim().length > 0 ||
     sizes.join(', ') !== DEFAULT_SIZE_OPTIONS.join(', ') ||
     wholesaleRaw.length > 0 ||
-    rrpRaw.length > 0 ||
-    design.referralCommissionRate != null;
+    rrpRaw.length > 0;
 
   if (!collaborationEnabled && !hasCustomContent) return null;
 
@@ -736,9 +735,6 @@ async function buildCollaborationDesignFromForm(
     sizes,
     partnerPrice: Math.max(0, Math.round(wholesalePrice * 100)),
     rrp: Math.max(0, Math.round(rrp * 100)),
-    ...(design.referralCommissionRate != null && Number.isFinite(design.referralCommissionRate) && design.referralCommissionRate >= 0
-      ? { referralCommissionRate: design.referralCommissionRate }
-      : {}),
   };
 }
 
@@ -802,6 +798,9 @@ async function buildCollaborationDesignsFromForm(
         sizes: design.sizes.length > 0 ? design.sizes : DEFAULT_SIZE_OPTIONS.slice(),
         partnerPrice: Math.max(0, Math.round(design.wholesalePrice)),
         rrp: Math.max(0, Math.round(design.rrp || design.wholesalePrice)),
+        ...(design.referralCommissionRate != null && Number.isFinite(design.referralCommissionRate) && design.referralCommissionRate >= 0
+          ? { referralCommissionRate: design.referralCommissionRate }
+          : {}),
       });
     }
 
