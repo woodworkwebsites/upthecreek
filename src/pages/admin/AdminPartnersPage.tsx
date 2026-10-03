@@ -47,6 +47,7 @@ interface CollaborationDesignDraft {
   sizes: string;
   wholesalePrice: string;
   rrp: string;
+  referralCommissionRate: string;
 }
 
 function emptyCollaborationDesignDraft(): CollaborationDesignDraft {
@@ -63,6 +64,7 @@ function emptyCollaborationDesignDraft(): CollaborationDesignDraft {
     sizes: DEFAULT_SIZE_OPTIONS.join(', '),
     wholesalePrice: '',
     rrp: '',
+    referralCommissionRate: '',
   };
 }
 
@@ -260,6 +262,7 @@ function designDraftFromApi(design: PartnerCollaborationDesign | null | undefine
     sizes: (design?.sizes ?? DEFAULT_SIZE_OPTIONS).join(', '),
     wholesalePrice: formatPoundsInput(design?.partnerPrice),
     rrp: formatPoundsInput(design?.rrp ?? design?.partnerPrice),
+    referralCommissionRate: design?.referralCommissionRate != null ? String(design.referralCommissionRate) : '',
   };
 }
 
@@ -581,6 +584,7 @@ export default function AdminPartnersPage() {
         sizes: string[];
         wholesalePrice: number;
         rrp: number;
+        referralCommissionRate: number | null;
         images: Array<
           | { type: 'file'; fileIndex: number; isDefault: boolean }
           | { type: 'url'; url: string; isDefault: boolean }
@@ -617,6 +621,9 @@ export default function AdminPartnersPage() {
           sizes: design.sizes.split(',').map((size) => size.trim()).filter(Boolean),
           wholesalePrice: Math.max(0, Math.round((Number(design.wholesalePrice) || 0) * 100)),
           rrp: Math.max(0, Math.round((Number(design.rrp) || 0) * 100)),
+          referralCommissionRate: design.referralCommissionRate.trim()
+            ? Math.max(0, Number(design.referralCommissionRate))
+            : null,
           images,
         });
       });
@@ -1234,6 +1241,19 @@ export default function AdminPartnersPage() {
                             placeholder="30.00"
                             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                           />
+                        </label>
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Referral commission %</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={design.referralCommissionRate}
+                            onChange={(e) => updateCollaborationDesign(design.id, (current) => ({ ...current, referralCommissionRate: e.target.value }))}
+                            placeholder="Uses partner default"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-navy-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                          <span className="block text-[11px] text-gray-400">Leave blank to use the partner’s standard rate.</span>
                         </label>
                       </div>
                     </div>
