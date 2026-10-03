@@ -223,7 +223,7 @@ export default function PartnersDashboardPage() {
                   ranges={ranges}
                   slug={session.slug}
                   accessToken={session.accessToken}
-                  commissionRate={partner.commissionRate}
+                  commissionRate={partner.commissionRate / 100}
                 />
               )}
             </div>
