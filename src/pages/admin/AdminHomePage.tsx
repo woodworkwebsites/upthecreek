@@ -73,16 +73,13 @@ export default function AdminHomePage() {
           <Link
             key={section.path}
             to={section.path}
-            className="group flex min-h-28 flex-col justify-between rounded-2xl border border-gray-200 bg-white p-3 sm:p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-navy-500 focus:ring-offset-2 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700 dark:focus:ring-offset-gray-950"
+            className="group flex min-h-24 flex-col rounded-2xl border-2 border-gray-200 bg-white p-3 sm:p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-navy-500 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-500 dark:focus:ring-offset-gray-950"
           >
             <div>
               <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider ${section.tone}`}>
                 {section.label}
               </span>
             </div>
-            <span className="mt-6 inline-flex items-center gap-1 text-xs font-semibold text-gray-400 transition group-hover:gap-2 group-hover:text-gray-700 dark:text-gray-500 dark:group-hover:text-gray-200">
-              Open section <span aria-hidden="true">→</span>
-            </span>
           </Link>
         ))}
       </div>
