@@ -197,7 +197,8 @@ function ProductMatrixCard({
   const partnerPrice = getPartnerUnitPrice(product, rrp);
   const margin = Math.max(0, rrp - partnerPrice);
   const isCollaboration = product.category === 'partner-collaboration';
-  const onlineReferral = Math.max(0, Math.round(calculateCommissionFromGross(rrp, commissionRate)));
+  const effectiveCommissionRate = product.referralCommissionRate ?? commissionRate;
+  const onlineReferral = Math.max(0, Math.round(calculateCommissionFromGross(rrp, effectiveCommissionRate)));
   const colorImages = useMemo(() => (activeColor ? getImagesForColor(product, activeColor.name) : []), [activeColor, product]);
   const activeImageSrc = colorImages.length > 0 ? colorImages[imageIndex % colorImages.length] : getImageForColor(product, activeColor?.name ?? '');
 
@@ -768,7 +769,8 @@ export function PartnerOrderWorkspace({
         const draftTotalPieces = draftLines.reduce((sum, line) => sum + lineCount(line), 0);
         const draftTotalValue = draftLines.reduce((sum, line) => sum + lineTotal(line), 0);
         const isCollaborationDraft = draftProduct?.category === 'partner-collaboration';
-        const draftCommission = Math.max(0, Math.round(calculateCommissionFromGross(activeDraft.rrp, commissionRate)));
+        const draftCommissionRate = draftProduct?.referralCommissionRate ?? commissionRate;
+        const draftCommission = Math.max(0, Math.round(calculateCommissionFromGross(activeDraft.rrp, draftCommissionRate)));
         return (
         <>
         <div
