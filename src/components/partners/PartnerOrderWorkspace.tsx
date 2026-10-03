@@ -780,9 +780,9 @@ export function PartnerOrderWorkspace({
             aria-modal="true"
             aria-label={`${activeDraft.title} ${activeDraft.color}`}
             onClick={(event) => event.stopPropagation()}
-            className="max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:rounded-[2rem]"
+            className="h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:rounded-[2rem]"
           >
-            <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)] lg:grid-rows-1">
+            <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)] lg:grid-rows-1">
               <div className="relative flex min-h-0 flex-col bg-gray-950">
                 <div className="relative flex h-[28dvh] min-h-[10rem] max-h-[18rem] shrink-0 items-center justify-center bg-white lg:h-auto lg:min-h-[22rem] lg:max-h-none">
                   <img
@@ -848,7 +848,7 @@ export function PartnerOrderWorkspace({
                 </div>
               </div>
 
-              <div className="flex h-full max-h-[88dvh] min-h-0 flex-col">
+              <div className="flex h-full min-h-0 flex-col">
                 <div className="flex items-start justify-between gap-2 border-b border-gray-100 p-3 sm:gap-4 sm:p-5">
                   <div>
                     <div className="flex items-center justify-between gap-3">
