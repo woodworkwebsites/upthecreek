@@ -126,6 +126,9 @@ export function buildCollaborationProduct(
     isEnabled: true,
     personalizationEnabled: false,
     sizeGuideImage: null,
+    referralCommissionRate: design.referralCommissionRate != null
+      ? design.referralCommissionRate / 100
+      : undefined,
     syncedAt: partner.updatedAt,
     createdAt: partner.createdAt,
     updatedAt: partner.updatedAt,
