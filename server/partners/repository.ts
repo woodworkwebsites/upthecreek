@@ -966,19 +966,30 @@ export async function createCollaborationCommissionsFromOrder(
   const grossTotal = collabItems.reduce((sum, entry) => sum + (entry.item.unitPrice * entry.item.quantity), 0);
   if (grossTotal <= 0) return;
 
-  const byPartner = new Map<string, number>();
+  const byPartner = new Map<string, { grossSales: number; weightedRate: number }>();
   for (const entry of collabItems) {
     const gross = entry.item.unitPrice * entry.item.quantity;
-    byPartner.set(entry.collab.partnerId, (byPartner.get(entry.collab.partnerId) ?? 0) + gross);
+    const partner = await getPartnerById(db, entry.collab.partnerId);
+    if (!partner || !partner.active) continue;
+    const override = partner.collaborationDesigns[entry.collab.designIndex]?.referralCommissionRate;
+    const commissionRate = override ?? partner.commissionRate;
+    const current = byPartner.get(entry.collab.partnerId) ?? { grossSales: 0, weightedRate: 0 };
+    byPartner.set(entry.collab.partnerId, {
+      grossSales: current.grossSales + gross,
+      weightedRate: current.weightedRate + (gross * commissionRate),
+    });
   }
 
   const discountAmount = order.discountAmount ?? 0;
-  for (const [partnerId, grossSales] of byPartner.entries()) {
+  for (const [partnerId, totals] of byPartner.entries()) {
     const partner = await getPartnerById(db, partnerId);
     if (!partner || !partner.active) continue;
 
-    const discountShare = Math.round((discountAmount * grossSales) / grossTotal);
-    await upsertPartnerCommission(db, partner.id, order, grossSales, discountShare, partner.commissionRate);
+    const discountShare = Math.round((discountAmount * totals.grossSales) / grossTotal);
+    const effectiveCommissionRate = totals.grossSales > 0
+      ? totals.weightedRate / totals.grossSales
+      : partner.commissionRate;
+    await upsertPartnerCommission(db, partner.id, order, totals.grossSales, discountShare, effectiveCommissionRate);
   }
 }
 
