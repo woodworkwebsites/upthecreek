@@ -484,17 +484,6 @@ export function PartnerOrderWorkspace({
     setCustomSizeValue('');
   }
 
-  function updateDraftRrp(value: number) {
-    const next = Number.isFinite(value) ? Math.max(0, Math.round(value * 100)) : 0;
-    setDraftLines((current) =>
-      current.map((line) =>
-        line.color === draftColor
-          ? { ...line, rrp: next }
-          : line,
-      ),
-    );
-  }
-
   function clearDraft() {
     setDraftLines((current) =>
       current.map((line) =>
@@ -900,19 +889,7 @@ export function PartnerOrderWorkspace({
                     <div className="mt-2 space-y-1.5 sm:mt-3 sm:space-y-2">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={rowLabelClass}>RRP</span>
-                        {isCollaborationDraft ? (
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={(activeDraft.rrp / 100).toFixed(2)}
-                            onChange={(event) => updateDraftRrp(Number(event.target.value))}
-                            className="h-8 w-28 rounded-full border border-gray-200 bg-white px-3 text-xs font-bold text-navy-900 outline-none transition-colors focus:border-navy-800"
-                            aria-label="Set collaboration RRP"
-                          />
-                        ) : (
-                          <span className={rrpChipClass}>{formatPrice(activeDraft.rrp)} RRP</span>
-                        )}
+                        <span className={rrpChipClass}>{formatPrice(activeDraft.rrp)} RRP</span>
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={rowLabelClass}>In-store</span>
