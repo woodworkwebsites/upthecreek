@@ -175,6 +175,8 @@ export interface Product {
   isEnabled: boolean;
   personalizationEnabled?: boolean;
   sizeGuideImage: string | null;
+  /** Normalized decimal override for collaboration products only. */
+  referralCommissionRate?: number;
   syncedAt: string;
   createdAt: string;
   updatedAt: string;
@@ -335,6 +337,8 @@ export interface PartnerCollaborationDesign {
   sizes: string[];
   partnerPrice: number;
   rrp: number;
+  /** Optional override in percentage points; blank uses the partner default. */
+  referralCommissionRate?: number;
 }
 
 export type PartnerCommissionStatus = 'pending' | 'paid' | 'void';
