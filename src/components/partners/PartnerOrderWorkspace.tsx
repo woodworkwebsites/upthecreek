@@ -957,22 +957,48 @@ export function PartnerOrderWorkspace({
                 <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
                   <div className="flex flex-wrap gap-2">
                     {activeDraft.sizes.map((entry) => (
-                      <button
+                      <div
                         key={entry.size}
-                        type="button"
-                        onClick={() => updateDraftQuantity(entry.size, entry.quantity > 0 ? 0 : 1)}
                         className={cn(
-                          'inline-flex min-w-[4.5rem] flex-col items-center justify-center rounded-full border px-4 py-3 text-center transition-colors',
+                          'inline-flex min-w-[5.25rem] flex-col items-center justify-center rounded-2xl border p-2 text-center transition-colors',
                           entry.quantity > 0
                             ? 'border-emerald-600 bg-emerald-500 text-white shadow-sm shadow-emerald-600/20'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-emerald-300 hover:bg-emerald-50',
+                            : 'border-gray-200 bg-white text-gray-700',
                         )}
                       >
-                        <span className="text-sm font-black">{entry.size}</span>
-                        <span className={cn('mt-1 text-[11px] font-semibold', entry.quantity > 0 ? 'text-white/85' : 'text-gray-500')}>
-                          {formatPrice(entry.unitPrice)}
-                        </span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => updateDraftQuantity(entry.size, entry.quantity > 0 ? 0 : 1)}
+                          aria-pressed={entry.quantity > 0}
+                          className="w-full rounded-xl px-2 py-1 hover:bg-black/5"
+                        >
+                          <span className="block text-sm font-black">{entry.size}</span>
+                          <span className={cn('mt-0.5 block text-[11px] font-semibold', entry.quantity > 0 ? 'text-white/85' : 'text-gray-500')}>
+                            {formatPrice(entry.unitPrice)}
+                          </span>
+                        </button>
+                        {entry.quantity > 0 && (
+                          <div className="mt-1 flex items-center justify-center gap-2 border-t border-white/25 pt-1" aria-label={`Quantity for ${entry.size}`}>
+                            <button
+                              type="button"
+                              onClick={() => updateDraftQuantity(entry.size, entry.quantity - 1)}
+                              aria-label={`Decrease ${entry.size} quantity`}
+                              className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-sm font-black text-white hover:bg-white/30"
+                            >
+                              −
+                            </button>
+                            <span className="min-w-4 text-center text-xs font-black" aria-live="polite">{entry.quantity}</span>
+                            <button
+                              type="button"
+                              onClick={() => updateDraftQuantity(entry.size, entry.quantity + 1)}
+                              aria-label={`Increase ${entry.size} quantity`}
+                              className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-sm font-black text-white hover:bg-white/30"
+                            >
+                              +
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     ))}
                     <button
                       type="button"
