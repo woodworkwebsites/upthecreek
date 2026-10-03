@@ -201,6 +201,9 @@ function serializeCollaborationDesigns(designs: PartnerCollaborationDesign[] | n
     sizes: normalizeCollaborationSizes(design.sizes),
     partnerPrice: Math.max(0, Math.round(design.partnerPrice)),
     rrp: Math.max(0, Math.round(design.rrp ?? design.partnerPrice)),
+    ...(design.referralCommissionRate != null
+      ? { referralCommissionRate: design.referralCommissionRate }
+      : {}),
   })));
 }
 
@@ -673,7 +676,14 @@ export async function ensurePartnerSchema(db: D1Database): Promise<void> {
 async function hydratePartnerRow(db: D1Database, row: PartnerRow): Promise<PartnerAdmin> {
   const tableDesigns = await loadPartnerCollaborationDesignRows(db, row.id);
   const serializedDesigns = parseCollaborationDesigns(row.collaboration_design);
-  const fallbackDesigns = tableDesigns.length >= serializedDesigns.length ? tableDesigns : serializedDesigns;
+  const fallbackDesigns = tableDesigns.length >= serializedDesigns.length
+    ? tableDesigns.map((design, index) => ({
+        ...design,
+        ...(serializedDesigns[index]?.referralCommissionRate != null
+          ? { referralCommissionRate: serializedDesigns[index].referralCommissionRate }
+          : {}),
+      }))
+    : serializedDesigns;
   const onboardingAssets = await loadPartnerOnboardingAssetRows(db, row.id);
 
   return {
