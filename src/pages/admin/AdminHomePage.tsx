@@ -42,9 +42,9 @@ export default function AdminHomePage() {
 
       <div className="space-y-6">
         {adminGroups.map((group) => (
-          <section key={group.title} aria-labelledby={`admin-group-${group.title.toLowerCase().replace(/\\s+/g, '-')}`}>
+          <section key={group.title} aria-labelledby={`admin-group-${group.title.toLowerCase().replace(/\s+/g, '-')}`}>
             <h2
-              id={`admin-group-${group.title.toLowerCase().replace(/\\s+/g, '-')}`}
+              id={`admin-group-${group.title.toLowerCase().replace(/\s+/g, '-')}`}
               className="mb-2 px-1 text-xs font-semibold uppercase tracking-[0.22em] text-gray-400 dark:text-gray-500"
             >
               {group.title}
