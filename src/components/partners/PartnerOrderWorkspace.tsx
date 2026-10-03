@@ -770,6 +770,7 @@ export function PartnerOrderWorkspace({
           ? Math.max(0, Math.round(calculateCommissionFromGross(activeDraft.rrp)))
           : null;
         return (
+        <>
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/70 p-2 backdrop-blur-sm sm:p-4"
           onClick={closeDraft}
@@ -1051,6 +1052,7 @@ export function PartnerOrderWorkspace({
             </div>
           </div>
         )}
+        </>
         );
       })()}
 
