@@ -123,7 +123,7 @@ export default function AdminLayout() {
                 className="flex items-center gap-2 rounded-lg outline-none transition-opacity hover:opacity-75 focus-visible:ring-2 focus-visible:ring-navy-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                 aria-label="Admin home"
               >
-                <img src="/Wordmark_Black.png" alt="" className="h-7 w-auto object-contain" />
+                <img src="/Wordmark_White.png" alt="" className="h-7 w-auto object-contain" />
                 <span className="text-sm font-semibold tracking-tight text-gray-900 dark:text-gray-100">Admin home</span>
               </Link>
               <button
