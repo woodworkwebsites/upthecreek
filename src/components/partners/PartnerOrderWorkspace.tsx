@@ -817,7 +817,7 @@ export function PartnerOrderWorkspace({
           : null;
         return (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/70 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/70 p-2 backdrop-blur-sm sm:p-4"
           onClick={closeDraft}
         >
           <div
@@ -825,11 +825,11 @@ export function PartnerOrderWorkspace({
             aria-modal="true"
             aria-label={`${activeDraft.title} ${activeDraft.color}`}
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-5xl overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_90px_rgba(0,0,0,0.35)]"
+            className="max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:rounded-[2rem]"
           >
-            <div className="grid lg:grid-cols-[360px_minmax(0,1fr)]">
-              <div className="relative bg-gray-950">
-                <div className="relative flex min-h-[22rem] items-center justify-center bg-white">
+            <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)] lg:grid-rows-1">
+              <div className="relative flex min-h-0 flex-col bg-gray-950">
+                <div className="relative flex h-[28dvh] min-h-[10rem] max-h-[18rem] shrink-0 items-center justify-center bg-white lg:h-auto lg:min-h-[22rem] lg:max-h-none">
                   <img
                     src={activeCarouselImage}
                     alt={`${activeDraft.title} ${activeDraft.color}`}
@@ -861,7 +861,7 @@ export function PartnerOrderWorkspace({
                     </>
                   )}
                 </div>
-                <div className="border-t border-gray-100 bg-white p-4">
+                <div className="shrink-0 border-t border-gray-100 bg-white p-2 sm:p-4">
                   <div className="flex items-center gap-2">
                     <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto">
                       {carouselImages.map((src, index) => (
@@ -870,7 +870,7 @@ export function PartnerOrderWorkspace({
                           type="button"
                           onClick={() => setDraftImageIndex(index)}
                           className={cn(
-                            'h-14 w-14 shrink-0 overflow-hidden rounded-xl border transition-colors',
+                            'h-10 w-10 shrink-0 overflow-hidden rounded-xl border transition-colors sm:h-14 sm:w-14',
                             index === draftImageIndex ? 'border-navy-800 ring-2 ring-navy-800/20' : 'border-gray-200 hover:border-navy-400',
                           )}
                         >
@@ -883,21 +883,21 @@ export function PartnerOrderWorkspace({
                     </div>
                   </div>
                 </div>
-                <div className="absolute inset-x-0 bottom-[72px] bg-gradient-to-t from-black/80 via-black/35 to-transparent p-5 text-white pointer-events-none">
+                <div className="pointer-events-none absolute inset-x-0 bottom-[52px] bg-gradient-to-t from-black/80 via-black/35 to-transparent p-3 text-white sm:bottom-[72px] sm:p-5">
                   <p className="text-[11px] font-bold uppercase tracking-[0.26em] text-white/70">{activeDraft.garment}</p>
-                  <h3 className="mt-2 text-2xl font-black tracking-tight">{activeDraft.title}</h3>
-                  <div className="mt-3 flex items-center gap-2">
+                  <h3 className="mt-1 text-lg font-black leading-tight tracking-tight sm:mt-2 sm:text-2xl">{activeDraft.title}</h3>
+                  <div className="mt-2 flex items-center gap-2 sm:mt-3">
                     <span className="h-4 w-4 rounded-full border border-white/20" style={{ backgroundColor: activeDraft.colorHex }} aria-hidden />
                     <span className="text-sm font-semibold uppercase tracking-[0.18em]">{activeDraft.color}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex max-h-[88vh] min-h-0 flex-col">
-                <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5">
+              <div className="flex h-full max-h-[88dvh] min-h-0 flex-col">
+                <div className="flex items-start justify-between gap-2 border-b border-gray-100 p-3 sm:gap-4 sm:p-5">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Select sizes</p>
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-2 space-y-1.5 sm:mt-3 sm:space-y-2">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={rowLabelClass}>RRP</span>
                         {isCollaborationDraft ? (
@@ -929,7 +929,7 @@ export function PartnerOrderWorkspace({
                       )}
                     </div>
                     {draftColors.length > 1 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
+                      <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-3">
                         {draftColors.map((color) => {
                           const queuedLine = draftLines.find((line) => line.color === color.name);
                           const queuedPieces = queuedLine ? lineCount(queuedLine) : 0;
@@ -977,7 +977,7 @@ export function PartnerOrderWorkspace({
                   </button>
                 </div>
 
-                <div className="min-h-0 flex-1 overflow-y-auto p-5">
+                <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
                   <div className="flex flex-wrap gap-2">
                     {activeDraft.sizes.map((entry) => (
                       <button
@@ -1008,8 +1008,8 @@ export function PartnerOrderWorkspace({
                   </div>
                 </div>
 
-                <div className="border-t border-gray-100 p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="shrink-0 border-t border-gray-100 p-3 sm:p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="info">{lineCount(activeDraft)} pcs this colour</Badge>
                       {draftLines.length > 1 && (
@@ -1021,7 +1021,7 @@ export function PartnerOrderWorkspace({
                       <button
                         type="button"
                         onClick={clearDraft}
-                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                        className="rounded-full border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 sm:px-4 sm:text-sm"
                       >
                         Clear quantities
                       </button>
@@ -1029,7 +1029,7 @@ export function PartnerOrderWorkspace({
                         type="button"
                         onClick={commitDraft}
                         disabled={draftTotalPieces === 0}
-                        className="rounded-full bg-navy-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                        className="rounded-full bg-navy-900 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 sm:text-sm"
                       >
                         Add to basket
                       </button>
