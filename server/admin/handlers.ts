@@ -324,6 +324,7 @@ type CollaborationDesignMeta = {
   sizes: string[];
   wholesalePrice: number;
   rrp: number;
+  referralCommissionRate?: number | null;
   images: CollaborationDesignImageMeta[];
 };
 
@@ -492,6 +493,14 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
         : typeof wholesaleRaw === 'string'
           ? Number(wholesaleRaw)
           : NaN;
+      const referralRaw = (entry as { referralCommissionRate?: unknown }).referralCommissionRate;
+      const referralCommissionRate = referralRaw === null || referralRaw === undefined || referralRaw === ''
+        ? null
+        : typeof referralRaw === 'number'
+          ? referralRaw
+          : typeof referralRaw === 'string'
+            ? Number(referralRaw)
+            : NaN;
       const rrpRaw = (entry as { rrp?: unknown }).rrp;
       const rrp = typeof rrpRaw === 'number'
         ? rrpRaw
@@ -517,7 +526,7 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
         return [{ type: 'url' as const, url, isDefault }];
       });
 
-      if (!title && !description && !garment && !orderUrl && images.length === 0 && sizes.length === 0 && !Number.isFinite(wholesalePrice) && !Number.isFinite(rrp)) {
+      if (!title && !description && !garment && !orderUrl && images.length === 0 && sizes.length === 0 && !Number.isFinite(wholesalePrice) && !Number.isFinite(rrp) && !Number.isFinite(referralCommissionRate)) {
         return [];
       }
 
@@ -531,6 +540,7 @@ function parseCollaborationDesignsMeta(raw: string): CollaborationDesignMeta[] {
         sizes,
         wholesalePrice: Number.isFinite(wholesalePrice) && wholesalePrice >= 0 ? Math.round(wholesalePrice) : 0,
         rrp: Number.isFinite(rrp) && rrp >= 0 ? Math.round(rrp) : (Number.isFinite(wholesalePrice) && wholesalePrice >= 0 ? Math.round(wholesalePrice) : 0),
+        referralCommissionRate: Number.isFinite(referralCommissionRate) && referralCommissionRate >= 0 ? referralCommissionRate : null,
         images,
       }];
     });
@@ -709,7 +719,8 @@ async function buildCollaborationDesignFromForm(
     orderUrl.trim().length > 0 ||
     sizes.join(', ') !== DEFAULT_SIZE_OPTIONS.join(', ') ||
     wholesaleRaw.length > 0 ||
-    rrpRaw.length > 0;
+    rrpRaw.length > 0 ||
+    design.referralCommissionRate != null;
 
   if (!collaborationEnabled && !hasCustomContent) return null;
 
@@ -725,6 +736,9 @@ async function buildCollaborationDesignFromForm(
     sizes,
     partnerPrice: Math.max(0, Math.round(wholesalePrice * 100)),
     rrp: Math.max(0, Math.round(rrp * 100)),
+    ...(design.referralCommissionRate != null && Number.isFinite(design.referralCommissionRate) && design.referralCommissionRate >= 0
+      ? { referralCommissionRate: design.referralCommissionRate }
+      : {}),
   };
 }
 
