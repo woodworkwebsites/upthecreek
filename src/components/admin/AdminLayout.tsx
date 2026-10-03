@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import AdminLoginPage from '../../pages/admin/AdminLoginPage.js';
 import { adminFetchOrders } from '../../lib/api.js';
@@ -118,10 +118,14 @@ export default function AdminLayout() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between md:h-14 md:gap-6 md:py-0">
             <div className="flex items-center justify-between gap-3 md:justify-start md:gap-6">
-              <div className="flex items-center gap-2">
+              <Link
+                to="/admin"
+                className="flex items-center gap-2 rounded-lg outline-none transition-opacity hover:opacity-75 focus-visible:ring-2 focus-visible:ring-navy-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+                aria-label="Admin home"
+              >
                 <img src="/Wordmark_Black.png" alt="Up the Creek Padel Apparel" className="h-7 w-auto object-contain" />
                 <span className="text-sm font-semibold tracking-tight text-gray-900 dark:text-gray-100">Admin</span>
-              </div>
+              </Link>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen((current) => !current)}
