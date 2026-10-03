@@ -540,6 +540,7 @@ export function PartnerOrderWorkspace({
                     key={product.id}
                     product={product}
                     onOpenDraft={openDraft}
+                    commissionRate={commissionRate}
                   />
                 ))}
               </div>
