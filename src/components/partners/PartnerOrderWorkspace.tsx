@@ -768,7 +768,6 @@ export function PartnerOrderWorkspace({
         const activeCarouselImage = carouselImages[draftImageIndex % carouselImages.length] ?? activeDraft.imageSrc;
         const draftTotalPieces = draftLines.reduce((sum, line) => sum + lineCount(line), 0);
         const draftTotalValue = draftLines.reduce((sum, line) => sum + lineTotal(line), 0);
-        const isCollaborationDraft = draftProduct?.category === 'partner-collaboration';
         const draftCommissionRate = draftProduct?.referralCommissionRate ?? commissionRate;
         const draftCommission = Math.max(0, Math.round(calculateCommissionFromGross(activeDraft.rrp, draftCommissionRate)));
         return (
