@@ -763,104 +763,92 @@ export default function AdminPartnersPage() {
       )}
 
       <div className="space-y-4">
-        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900">
-          {partners.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">No partners yet.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full table-fixed divide-y divide-gray-100 dark:divide-gray-800">
-                <colgroup>
-                  <col className="w-[26%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[16%]" />
-                  <col className="w-[14%]" />
-                </colgroup>
-                <thead className="bg-gray-50 dark:bg-gray-950">
-                  <tr>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Partner</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Code</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Commission</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Status</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Collab</th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Updated</th>
-                    <th className="px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {partners.map((partner) => (
-                    <tr
-                      key={partner.id}
-                      onClick={() => startEdit(partner)}
-                      className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
-                        editingId === partner.id ? 'bg-gray-50 dark:bg-gray-800/40' : ''
-                      }`}
+        {partners.length === 0 ? (
+          <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-sm text-gray-500 dark:text-gray-400">No partners yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {partners.map((partner) => (
+              <article
+                key={partner.id}
+                onClick={() => startEdit(partner)}
+                className={`cursor-pointer rounded-2xl border bg-white p-4 shadow-sm transition hover:border-gray-300 hover:shadow-md dark:bg-gray-900 dark:hover:border-gray-700 ${
+                  editingId === partner.id
+                    ? 'border-navy-400 ring-2 ring-navy-100 dark:border-navy-500 dark:ring-navy-900/40'
+                    : 'border-gray-200 dark:border-gray-800'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+                    {partner.logoUrl ? (
+                      <img src={partner.logoUrl} alt="" className="h-full w-full object-contain p-1.5" />
+                    ) : (
+                      <span className="text-sm font-black uppercase text-gray-400">{partner.name.slice(0, 1)}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="truncate text-base font-semibold text-gray-900 dark:text-gray-100">{partner.name}</h2>
+                    <p className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">
+                      Updated {formatDate(partner.updatedAt)}
+                    </p>
+                  </div>
+                  <Badge variant={partner.active ? 'success' : 'default'}>
+                    {partner.active ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-3 dark:bg-gray-950">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Club code</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {partner.discountCode ?? partner.slug.toUpperCase()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Commission</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{partner.commissionRate}%</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant={partner.collaborationEnabled ? 'info' : 'default'}>
+                      {partner.collaborationEnabled ? 'Collab live' : 'No collab'}
+                    </Badge>
+                    {partner.collaborationEnabled && (
+                      <Badge variant="default">
+                        {partner.collaborationDesigns.length || (partner.collaborationDesign ? 1 : 0)} designs
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        startEdit(partner);
+                      }}
+                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
                     >
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
-                            {partner.logoUrl ? (
-                              <img src={partner.logoUrl} alt="" className="h-full w-full object-contain p-1.5" />
-                            ) : (
-                              <span className="text-xs font-black uppercase text-gray-400">{partner.name.slice(0, 1)}</span>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{partner.name}</p>
-                            <p className="truncate text-xs text-gray-500 dark:text-gray-400">
-                              Code {partner.discountCode ?? partner.slug.toUpperCase()}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.discountCode ?? '—'}</td>
-                      <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{partner.commissionRate}%</td>
-                      <td className="px-3 py-3">
-                        <Badge variant={partner.active ? 'success' : 'default'}>
-                          {partner.active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-3">
-                        <Badge variant={partner.collaborationEnabled ? 'info' : 'default'}>
-                          {partner.collaborationEnabled ? 'Live' : 'Off'}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-3 text-sm text-gray-500 dark:text-gray-400">{formatDate(partner.updatedAt)}</td>
-                      <td className="px-3 py-3">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              startEdit(partner);
-                            }}
-                            className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void handleDelete(partner.id);
-                            }}
-                            className="rounded-lg border border-red-200 px-2.5 py-1.5 text-[11px] font-semibold text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleDelete(partner.id);
+                      }}
+                      className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
 
         {selectedPartner && (
           <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_20px_70px_rgba(5,13,31,0.07)] dark:border-gray-800 dark:bg-gray-900">
