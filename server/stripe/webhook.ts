@@ -287,9 +287,9 @@ export async function processCompletedSession(
     text: `${customerEmail} · ${((session.amount_total ?? 0) / 100).toFixed(2)} ${(session.currency ?? 'gbp').toUpperCase()}\n${itemSummary}\nShip to: ${fullName}, ${address.address1}, ${address.city}, ${address.zip}, ${address.country}`,
   });
 
-  await updateOrderStatus(env.DB, orderId, 'awaiting_fulfillment');
+  await updateOrderStatus(env.DB, orderId, 'order_received');
   const customerOrder = await getOrderWithItems(env.DB, orderId);
   if (customerOrder) await sendCustomerOrderConfirmationEmail(env, customerOrder);
-  await syncPartnerCommissionStatusByOrderId(env.DB, orderId, 'awaiting_fulfillment');
+  await syncPartnerCommissionStatusByOrderId(env.DB, orderId, 'order_received');
   logger.info('Order awaiting manual fulfillment', { orderId });
 }
