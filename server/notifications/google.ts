@@ -24,6 +24,7 @@ export async function ensureEmailTables(env: Env): Promise<void> {
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS google_mail_auth (id INTEGER PRIMARY KEY CHECK(id=1), encrypted_token TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)').run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS google_oauth_states (state TEXT PRIMARY KEY, expires_at INTEGER NOT NULL)').run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS order_confirmation_emails (order_id TEXT PRIMARY KEY, status TEXT NOT NULL, sent_at TEXT, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)').run();
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS order_dispatch_emails (order_id TEXT PRIMARY KEY, status TEXT NOT NULL, sent_at TEXT, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)').run();
 }
 export async function mailConnected(env: Env): Promise<boolean> {
   await ensureEmailTables(env);
@@ -56,10 +57,14 @@ function safe(v:string):string {return v.replace(/[&<>"']/g,c=>({'&':'&amp;','<'
 export const DEFAULT_CONFIRMATION_SUBJECT = 'Thanks for your order | Up The Creek Padel';
 export const DEFAULT_CONFIRMATION_BODY = "Hi {{first_name}},\n\nThanks for choosing Up The Creek Padel.\n\nWe've placed your order and everything is now being prepared.\n\nWe'll be in touch when your order is on its way.\n\nOrder reference: {{order_reference}}\n\nYour order:\n{{items}}\n\nThanks again for supporting UTC.\n\nUp The Creek Padel\npadel apparel\nupthecreekpadel.club";
 
-export async function renderGoogleOrderConfirmation(env: Env, order: Order): Promise<{subject:string;html:string;text:string}> {
+export const DEFAULT_DISPATCH_SUBJECT = 'Your order is on its way | Up The Creek Padel';
+export const DEFAULT_DISPATCH_BODY = "Hi {{first_name}},\n\nGood news — your Up The Creek Padel order has been dispatched.\n\nOrder reference: {{order_reference}}\n\nYour order:\n{{items}}\n\nThanks again for choosing UTC.\n\nUp The Creek Padel\npadel apparel\nupthecreekpadel.club";
+
+export type OrderEmailKind = 'confirmation' | 'dispatch';
+export async function renderGoogleOrderConfirmation(env: Env, order: Order, kind: OrderEmailKind = 'confirmation'): Promise<{subject:string;html:string;text:string}> {
   const {getSetting}=await import('../settings/repository.js');
-  const subjectTemplate=(await getSetting(env.DB,'confirmation_email_subject')) || DEFAULT_CONFIRMATION_SUBJECT;
-  const bodyTemplate=(await getSetting(env.DB,'confirmation_email_body')) || DEFAULT_CONFIRMATION_BODY;
+  const subjectTemplate=(await getSetting(env.DB,kind === 'dispatch' ? 'dispatch_email_subject' : 'confirmation_email_subject')) || (kind === 'dispatch' ? DEFAULT_DISPATCH_SUBJECT : DEFAULT_CONFIRMATION_SUBJECT);
+  const bodyTemplate=(await getSetting(env.DB,kind === 'dispatch' ? 'dispatch_email_body' : 'confirmation_email_body')) || (kind === 'dispatch' ? DEFAULT_DISPATCH_BODY : DEFAULT_CONFIRMATION_BODY);
   const variables: Record<string,string>={
     first_name: (order.customerName || order.shippingName || '').trim().split(/\s+/)[0] || 'there',
     order_reference: order.id.slice(0,8).toUpperCase(),
@@ -77,13 +82,13 @@ export async function renderGoogleOrderConfirmation(env: Env, order: Order): Pro
   return {subject,html,text};
 }
 
-export async function sendGoogleOrderConfirmation(env:Env, order:Order, recipient?:string):Promise<void> {
+export async function sendGoogleOrderConfirmation(env:Env, order:Order, recipient?:string, kind: OrderEmailKind = 'confirmation'):Promise<void> {
   await ensureEmailTables(env);
   const saved=await env.DB.prepare('SELECT encrypted_token FROM google_mail_auth WHERE id=1').first<{encrypted_token:string}>();
   if(!saved) throw new Error('Connect Google Workspace in Admin Settings first');
   const to=(recipient || order.customerEmail).trim();
   if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(to) || /[\r\n]/.test(to)) throw new Error('Invalid recipient email address');
-  const {html, text:message, subject}=await renderGoogleOrderConfirmation(env,order);
+  const {html, text:message, subject}=await renderGoogleOrderConfirmation(env,order,kind);
   const refresh=await decrypt(env,saved.encrypted_token);
   const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID!,client_secret:env.GOOGLE_CLIENT_SECRET!,refresh_token:refresh,grant_type:'refresh_token'})});
   const token=await tokenRes.json() as {access_token?:string};
