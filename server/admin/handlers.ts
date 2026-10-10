@@ -126,13 +126,6 @@ export async function handleFulfillOrder(
   return json({ success: true });
 }
 
-const transitions: Record<string, string[]> = {
-  order_received: ['ordered_sellshirts','cancelled'],
-  ordered_sellshirts: ['dispatched','cancelled'],
-  dispatched: ['delivered','cancelled'],
-  delivered: [], cancelled: [], failed: [],
-};
-
 export async function handleUpdateOrderStatus(
   env: Env,
   id: string,
@@ -146,14 +139,13 @@ export async function handleUpdateOrderStatus(
   }
 
   const status = body.status?.trim();
-  if (!status || !['ordered_sellshirts','dispatched','delivered','cancelled'].includes(status)) {
+  if (!status || !['order_received','ordered_sellshirts','dispatched','delivered','cancelled'].includes(status)) {
     return json({ error: 'Invalid status' }, 400);
   }
 
   const order = await getOrderWithItems(env.DB, id);
   if (!order) return json({ error: 'Order not found' }, 404);
 
-  if (!(transitions[order.status] ?? []).includes(status)) return json({ error: 'Invalid status transition' }, 409);
   await updateOrderStatus(env.DB, id, status as OrderStatus, {
     externalOrderRef: body.externalOrderRef?.trim() || undefined,
   });
