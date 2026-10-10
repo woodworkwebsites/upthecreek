@@ -51,3 +51,17 @@
     @apply h-4 w-4 text-brand-500 flex-shrink-0;
   }
 }
+
+
+@font-face {
+  font-family: "UMP1RE Times Square";
+  src: url("https://ump1re-web.pages.dev/assets/TimesSquare-m105.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+.ump1re-americano-font {
+  font-family: "UMP1RE Times Square", monospace;
+  letter-spacing: 0.04em;
+}
