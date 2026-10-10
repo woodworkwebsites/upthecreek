@@ -15,6 +15,11 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'error' 
   awaiting_fulfillment: 'warning',
   fulfilled:            'success',
   failed:               'error',
+  order_received: 'info',
+  ordered_sellshirts: 'warning',
+  dispatched: 'info',
+  delivered: 'success',
+  cancelled: 'error',
 };
 
 const providerVariant: Record<string, 'default' | 'info'> = {
@@ -198,7 +203,7 @@ function OrderRow({
             <Badge variant={statusVariant[shown.status] ?? 'default'} className="shrink-0">
               {labels[shown.status] ?? shown.status.replace(/_/g, ' ')}
             </Badge>
-            {nextStatus[shown.status] && <button type="button" onClick={() => { void advanceOrder(nextStatus[shown.status]!); }} disabled={statusSaving} className="h-8 rounded-lg bg-navy-800 px-3 text-xs font-semibold text-white disabled:opacity-50">{statusSaving ? 'Saving…' : labels[nextStatus[shown.status]!]}</button>}
+            {nextStatus[shown.status] && shown.status !== 'order_received' && <button type="button" onClick={() => { void advanceOrder(nextStatus[shown.status]!); }} disabled={statusSaving} className="h-8 rounded-lg bg-navy-800 px-3 text-xs font-semibold text-white disabled:opacity-50">{statusSaving ? 'Saving…' : labels[nextStatus[shown.status]!]}</button>}
             {['order_received','ordered_sellshirts','dispatched'].includes(shown.status) && <button type="button" onClick={() => { if(window.confirm('Cancel this order? This does not refund the Stripe payment.')) void advanceOrder('cancelled'); }} disabled={statusSaving} className="h-8 rounded-lg border border-red-300 px-3 text-xs font-semibold text-red-700 disabled:opacity-50">Cancel order</button>}
             {statusError && <div className="text-xs text-red-600 dark:text-red-400">{statusError}</div>}
           </div>
