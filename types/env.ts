@@ -16,6 +16,8 @@ export interface Env {
   ADMIN_TOKEN: string;
   PUSHOVER_APP_TOKEN?: string;
   PUSHOVER_USER_KEY?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
   SMTP_HOST?: string;
   SMTP_PORT?: string;
   SMTP_USER?: string;
