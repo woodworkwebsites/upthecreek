@@ -53,13 +53,23 @@ function mimeBase64(value:string):string {
   return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 function safe(v:string):string {return v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] || c));}
-export function renderGoogleOrderConfirmation(order: Order): { subject: string; html: string; text: string } {
-  const first=(order.customerName || order.shippingName || '').trim().split(/\s+/)[0] || 'there';
-  const ref=order.id.slice(0,8).toUpperCase();
-  const items=(order.items || []).map(i=>i.quantity+' × '+i.title+' ('+i.color+', '+i.size+')'+(i.personalization?' — Personalisation: '+i.personalization:''));
-  const message='Hi '+first+',\n\nThanks for choosing Up The Creek Padel.\n\nWe\'ve placed your order and everything is now being prepared.\n\nWe\'ll be in touch when your order is on its way.\n\nOrder reference: '+ref+'\n\nYour order:\n'+items.join('\n')+'\n\nThanks again for supporting UTC.\n\nUp The Creek Padel\npadel apparel\nupthecreekpadel.club';
-  const html='<div style="max-width:560px;margin:auto;font-family:Arial,sans-serif;color:#242424"><div style="background:#242424;color:#d7f23b;padding:24px;font-size:22px;font-weight:bold">UP THE CREEK PADEL</div><div style="padding:26px"><h1>Thanks for your order.</h1><p>Hi '+safe(first)+',</p><p>Thanks for choosing Up The Creek Padel.</p><p>We\'ve placed your order and everything is now being prepared.</p><p>We\'ll be in touch when your order is on its way.</p><p><strong>Order reference:</strong> '+safe(ref)+'</p><h3>Your order</h3><ul>'+items.map(i=>'<li>'+safe(i)+'</li>').join('')+'</ul><p>Thanks again for supporting UTC.</p><strong>Up The Creek Padel</strong><p>padel apparel<br>upthecreekpadel.club</p></div></div>';
-  return { subject: 'Thanks for your order | Up The Creek Padel', html, text: message };
+export const DEFAULT_CONFIRMATION_SUBJECT = 'Thanks for your order | Up The Creek Padel';
+export const DEFAULT_CONFIRMATION_BODY = "Hi {{first_name}},\n\nThanks for choosing Up The Creek Padel.\n\nWe've placed your order and everything is now being prepared.\n\nWe'll be in touch when your order is on its way.\n\nOrder reference: {{order_reference}}\n\nYour order:\n{{items}}\n\nThanks again for supporting UTC.\n\nUp The Creek Padel\npadel apparel\nupthecreekpadel.club";
+
+export async function renderGoogleOrderConfirmation(env: Env, order: Order): Promise<{subject:string;html:string;text:string}> {
+  const {getSetting}=await import('../settings/repository.js');
+  const subjectTemplate=(await getSetting(env.DB,'confirmation_email_subject')) || DEFAULT_CONFIRMATION_SUBJECT;
+  const bodyTemplate=(await getSetting(env.DB,'confirmation_email_body')) || DEFAULT_CONFIRMATION_BODY;
+  const variables: Record<string,string>={
+    first_name: (order.customerName || order.shippingName || '').trim().split(/\s+/)[0] || 'there',
+    order_reference: order.id.slice(0,8).toUpperCase(),
+    items: (order.items || []).map(i => i.quantity+' × '+i.title+' ('+i.color+', '+i.size+')'+(i.personalization ? ' — Personalisation: '+i.personalization : '')).join('\n'),
+  };
+  const expand=(s:string)=>s.replace(/\{\{(first_name|order_reference|items)\}\}/g,(_m,key:string)=>variables[key] || '');
+  const subject=expand(subjectTemplate).replace(/[\r\n]+/g,' ').trim();
+  const text=expand(bodyTemplate);
+  const html='<div style="max-width:560px;margin:auto;font:16px/1.6 Arial,sans-serif;color:#242424"><div style="background:#242424;color:#d7f23b;padding:24px;font-size:22px;font-weight:bold">UP THE CREEK PADEL</div><div style="padding:26px;white-space:pre-wrap">'+safe(text)+'</div></div>';
+  return {subject,html,text};
 }
 
 export async function sendGoogleOrderConfirmation(env:Env, order:Order, recipient?:string):Promise<void> {
@@ -67,8 +77,8 @@ export async function sendGoogleOrderConfirmation(env:Env, order:Order, recipien
   const saved=await env.DB.prepare('SELECT encrypted_token FROM google_mail_auth WHERE id=1').first<{encrypted_token:string}>();
   if(!saved) throw new Error('Connect Google Workspace in Admin Settings first');
   const to=(recipient || order.customerEmail).trim();
-  if (!/^[^\\s@<>]+@[^\\s@<>]+\\.[^\\s@<>]+$/.test(to) || /[\\r\\n]/.test(to)) throw new Error('Invalid recipient email address');
-  const {html, text:message, subject}=renderGoogleOrderConfirmation(order);
+  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(to) || /[\r\n]/.test(to)) throw new Error('Invalid recipient email address');
+  const {html, text:message, subject}=await renderGoogleOrderConfirmation(env,order);
   const refresh=await decrypt(env,saved.encrypted_token);
   const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID!,client_secret:env.GOOGLE_CLIENT_SECRET!,refresh_token:refresh,grant_type:'refresh_token'})});
   const token=await tokenRes.json() as {access_token?:string};
