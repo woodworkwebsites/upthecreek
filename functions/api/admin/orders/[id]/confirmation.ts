@@ -18,10 +18,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params, request }
   if (!order) return Response.json({ error: 'Order not found' }, { status: 404 });
   if (!['ordered_sellshirts', 'dispatched', 'delivered'].includes(order.status)) return Response.json({ error: 'Order must be paid and awaiting supplier processing before confirmation' }, { status: 409 });
   const existing = await env.DB.prepare('SELECT status, sent_at FROM order_confirmation_emails WHERE order_id=?').bind(id).first<{status:string;sent_at:string|null}>();
-  if (existing && !isTest) return Response.json({ error: 'Order confirmation already sent or in progress' }, { status: 409 });
   const input=await request.json().catch(()=>({})) as {recipient?:string};
   const recipient=(input.recipient || order.customerEmail).trim();
   const isTest=recipient.toLowerCase()!==order.customerEmail.toLowerCase();
+  if (existing && !isTest) return Response.json({ error: 'Order confirmation already sent or in progress' }, { status: 409 });
   const claim = isTest ? null : await env.DB.prepare("INSERT OR IGNORE INTO order_confirmation_emails(order_id,status) VALUES(?,'sending')").bind(id).run();
   if (!isTest && claim?.meta.changes !== 1) return Response.json({ error: 'Order confirmation already in progress' }, { status: 409 });
   try {
