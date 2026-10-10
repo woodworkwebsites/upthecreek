@@ -27,7 +27,6 @@ const providerVariant: Record<string, 'default' | 'info'> = {
   manual:   'info',
 };
 
-const nextStatus: Partial<Record<Order['status'], Order['status']>> = { order_received:'ordered_sellshirts', ordered_sellshirts:'dispatched', dispatched:'delivered' };
 const labels: Record<string,string> = { order_received:'Order received',ordered_sellshirts:'Ordered from SellShirts',dispatched:'Dispatched',delivered:'Delivered',cancelled:'Cancelled',failed:'Failed' };
 
 function OrderRow({
@@ -219,8 +218,10 @@ function OrderRow({
             <Badge variant={statusVariant[shown.status] ?? 'default'} className="shrink-0">
               {labels[shown.status] ?? shown.status.replace(/_/g, ' ')}
             </Badge>
-            {nextStatus[shown.status] && shown.status !== 'order_received' && <button type="button" onClick={() => { void advanceOrder(nextStatus[shown.status]!); }} disabled={statusSaving} className="h-8 rounded-lg bg-navy-800 px-3 text-xs font-semibold text-white disabled:opacity-50">{statusSaving ? 'Saving…' : labels[nextStatus[shown.status]!]}</button>}
-            {['order_received','ordered_sellshirts','dispatched'].includes(shown.status) && <button type="button" onClick={() => { if(window.confirm('Cancel this order? This does not refund the Stripe payment.')) void advanceOrder('cancelled'); }} disabled={statusSaving} className="h-8 rounded-lg border border-red-300 px-3 text-xs font-semibold text-red-700 disabled:opacity-50">Cancel order</button>}
+            <select value={status} onChange={e=>setStatus(e.target.value as Order['status'])} className="h-8 rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+              {(['order_received','ordered_sellshirts','dispatched','delivered','cancelled'] as Order['status'][]).map(value=><option key={value} value={value}>{labels[value]}</option>)}
+            </select>
+            <button type="button" onClick={()=>void handleUpdateStatus()} disabled={statusSaving || status===shown.status} className="h-8 rounded-lg bg-navy-800 px-3 text-xs font-semibold text-white disabled:opacity-50">{statusSaving?'Saving…':'Move status'}</button>
             {statusError && <div className="text-xs text-red-600 dark:text-red-400">{statusError}</div>}
           </div>
         </td>
