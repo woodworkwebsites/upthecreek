@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { adminGetSettings, adminUpdateSettings } from '../../lib/api.js';
+import { adminGetSettings, adminUpdateSettings, adminGoogleStatus, adminGoogleConnect } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
 
 export default function AdminSettingsPage() {
   const { token } = useAdminToken();
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [googleConnecting, setGoogleConnecting] = useState(false);
   const [liveOrders, setLiveOrders]       = useState(false);
   const [stripeTestMode, setStripeTestMode] = useState(false);
   const [loading, setLoading]              = useState(true);
@@ -16,7 +19,8 @@ export default function AdminSettingsPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const settings = await adminGetSettings(token);
+      const [settings, mail] = await Promise.all([adminGetSettings(token), adminGoogleStatus(token)]);
+      setGoogleConnected(mail.connected);
       setLiveOrders(settings.live_orders_enabled === 'true');
       setStripeTestMode(settings.stripe_test_mode === 'true');
     } catch (err) {
@@ -46,11 +50,27 @@ export default function AdminSettingsPage() {
     }
   }
 
+  async function connectGoogle() {
+    if (!token) return;
+    setGoogleConnecting(true);
+    setGoogleError(null);
+    try { const {url} = await adminGoogleConnect(token); window.location.assign(url); }
+    catch(e) { setGoogleError(e instanceof Error ? e.message : 'Unable to connect Google'); setGoogleConnecting(false); }
+  }
+
   if (loading) return <PageLoader />;
 
   return (
     <div className="space-y-8 max-w-lg">
       <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Settings</h1>
+
+      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-6 space-y-4">
+        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Customer order emails</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">From orders@upthecreekpadel.club, sent manually once the SellShirts order has been placed.</p>
+        <p className="text-xs font-semibold">{googleConnected ? "Google Workspace connected" : "Google Workspace not connected"}</p>
+        <button type="button" onClick={() => void connectGoogle()} disabled={googleConnecting} className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{googleConnecting ? "Connecting…" : googleConnected ? "Reconnect Google Workspace" : "Connect Google Workspace"}</button>
+        {googleError && <p className="text-xs text-red-600">{googleError}</p>}
+      </div>
 
       <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-6 space-y-4">
         <div>
