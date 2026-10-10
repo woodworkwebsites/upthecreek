@@ -82,6 +82,7 @@ export interface OrderRow {
   error: string | null;
   fulfillment_provider: FulfillmentProvider;
   external_order_ref: string | null;
+  royal_mail_tracking: string | null;
   discount_code: string | null;
   discount_amount: number;
   shipping_name: string;
@@ -199,6 +200,7 @@ export interface Order {
   error: string | null;
   fulfillmentProvider: FulfillmentProvider;
   externalOrderRef: string | null;
+  royalMailTracking: string | null;
   discountCode: string | null;
   discountAmount: number;
   shippingName: string;
