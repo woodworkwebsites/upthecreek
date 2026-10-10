@@ -197,7 +197,7 @@ export default function HomePage() {
         >
           <div className="flex flex-col items-center gap-4">
             <div className="min-w-0 text-center text-sm font-medium leading-snug sm:text-base">
-              <p className="ump1re-americano-font text-xl leading-tight sm:text-3xl">Running an Americano?</p>
+              <p className="ump1re-americano-font text-2xl leading-tight sm:text-4xl">Running an Americano?</p>
               <p>Try out this free scoring tool from</p>
               <img
                 src="https://ump1re-web.pages.dev/assets/logo-black.png"
@@ -209,7 +209,7 @@ export default function HomePage() {
               href="https://ump1re-web.pages.dev/americano/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-full bg-[#24262e] px-6 py-3 text-[#dcff00] transition-transform hover:scale-[1.02] sm:max-w-md"
+              className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-full bg-[#0a090f] px-6 py-3 text-[#dcff00] transition-transform hover:scale-[1.02] sm:max-w-md"
             >
               <img
                 src="https://ump1re-web.pages.dev/assets/icon-192.png"
