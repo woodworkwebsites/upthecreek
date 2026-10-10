@@ -180,10 +180,11 @@ export async function adminUpdateOrderStatus(
   id: string,
   status: Order['status'],
   externalOrderRef?: string,
+  royalMailTracking?: string,
 ): Promise<void> {
   await adminFetch(`/api/admin/orders/${id}`, token, {
     method: 'PATCH',
-    body: JSON.stringify({ status, externalOrderRef }),
+    body: JSON.stringify({ status, externalOrderRef, royalMailTracking }),
   });
 }
 
