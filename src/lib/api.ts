@@ -157,6 +157,10 @@ export async function adminFetchOrder(token: string, id: string): Promise<Order>
   return data.order;
 }
 
+export async function adminGoogleStatus(token: string): Promise<{ connected: boolean }> { return adminFetch('/api/admin/google', token); }
+export async function adminGoogleConnect(token: string): Promise<{ url: string }> { return adminFetch('/api/admin/google', token, { method: 'POST' }); }
+export async function adminSendOrderConfirmation(token: string, id: string): Promise<void> { await adminFetch(`/api/admin/orders/${id}/confirmation`, token, { method: 'POST' }); }
+
 export async function adminFulfillOrder(
   token: string,
   id: string,
