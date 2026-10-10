@@ -13,7 +13,7 @@ import {
 } from '../orders/repository.js';
 import { getProductByPrintifyId } from '../products/repository.js';
 import { getStripeKeys } from '../env.js';
-import { sendOrderNotificationEmail, sendCustomerOrderConfirmationEmail } from '../notifications/email.js';
+import { sendOrderNotificationEmail } from '../notifications/email.js';
 import { sendPushoverNotification } from '../notifications/pushover.js';
 import { logger } from '../logging.js';
 import {
@@ -288,8 +288,6 @@ export async function processCompletedSession(
   });
 
   await updateOrderStatus(env.DB, orderId, 'awaiting_fulfillment');
-  const customerOrder = await getOrderWithItems(env.DB, orderId);
-  if (customerOrder) await sendCustomerOrderConfirmationEmail(env, customerOrder);
   await syncPartnerCommissionStatusByOrderId(env.DB, orderId, 'awaiting_fulfillment');
   logger.info('Order awaiting manual fulfillment', { orderId });
 }
