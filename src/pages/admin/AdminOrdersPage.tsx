@@ -308,7 +308,7 @@ function OrderRow({
                   >
                     {receiptDownloading ? 'Preparing receipt…' : 'Download receipt'}
                   </button>
-                  <button type="button" onClick={() => void handleSendConfirmation()} disabled={confirmationSending || confirmationSent || shown.status !== 'fulfilled'} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-800 disabled:opacity-50 dark:text-gray-100">{confirmationSending ? 'Sending…' : confirmationSent ? 'Confirmation sent' : 'Send confirmation'}</button>
+                  <button type="button" onClick={() => void handleSendConfirmation()} disabled={confirmationSending || confirmationSent || !['awaiting_fulfillment', 'fulfillment_started', 'fulfilled'].includes(shown.status)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-800 disabled:opacity-50 dark:text-gray-100">{confirmationSending ? 'Sending…' : confirmationSent ? 'Confirmation sent' : 'Send confirmation'}</button>
                   {confirmationError && <span className="text-xs text-red-600">{confirmationError}</span>}
                   {receiptError && <span className="text-xs text-red-600 dark:text-red-400">{receiptError}</span>}
                 </div>
