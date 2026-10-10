@@ -159,6 +159,8 @@ export async function adminFetchOrder(token: string, id: string): Promise<Order>
 
 export async function adminGoogleStatus(token: string): Promise<{ connected: boolean }> { return adminFetch('/api/admin/google', token); }
 export async function adminGoogleConnect(token: string): Promise<{ url: string }> { return adminFetch('/api/admin/google', token, { method: 'POST' }); }
+export async function adminPreviewDispatchEmail(token:string,id:string):Promise<{subject:string;html:string;text:string;recipient:string;from:string;sentAt:string|null}> { return adminFetch(`/api/admin/orders/${id}/dispatch-email`,token); }
+export async function adminSendDispatchEmail(token:string,id:string,recipient?:string):Promise<void> { await adminFetch(`/api/admin/orders/${id}/dispatch-email`,token,{method:'POST',body:JSON.stringify({recipient})}); }
 export async function adminPreviewOrderConfirmation(token:string,id:string):Promise<{subject:string;html:string;text:string;recipient:string;from:string;sentAt:string|null}> { return adminFetch(`/api/admin/orders/${id}/confirmation`,token); }
 export async function adminSendOrderConfirmation(token: string, id: string, recipient?:string): Promise<void> { await adminFetch(`/api/admin/orders/${id}/confirmation`, token, { method: 'POST',body:JSON.stringify({recipient}) }); }
 
