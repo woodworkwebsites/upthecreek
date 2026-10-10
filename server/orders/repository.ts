@@ -34,6 +34,7 @@ function parseOrder(row: OrderRow): Order {
     error:                 row.error,
     fulfillmentProvider:   row.fulfillment_provider,
     externalOrderRef:      row.external_order_ref,
+    royalMailTracking:     row.royal_mail_tracking ?? null,
     discountCode:          row.discount_code,
     discountAmount:        row.discount_amount,
     shippingName:          row.shipping_name,
@@ -67,6 +68,7 @@ export async function ensureOrderSchema(db: D1Database): Promise<void> {
           updated_at            TEXT NOT NULL DEFAULT (datetime('now')),
           fulfillment_provider  TEXT NOT NULL DEFAULT 'manual',
           external_order_ref    TEXT,
+          royal_mail_tracking TEXT,
           shipping_name         TEXT NOT NULL DEFAULT '',
           shipping_phone        TEXT NOT NULL DEFAULT '',
           shipping_address1     TEXT NOT NULL DEFAULT '',
@@ -113,6 +115,7 @@ export async function ensureOrderSchema(db: D1Database): Promise<void> {
       const additions: Array<[string, string]> = [
         ['fulfillment_provider', "ALTER TABLE orders ADD COLUMN fulfillment_provider TEXT NOT NULL DEFAULT 'manual'"],
         ['external_order_ref', 'ALTER TABLE orders ADD COLUMN external_order_ref TEXT'],
+        ['royal_mail_tracking', 'ALTER TABLE orders ADD COLUMN royal_mail_tracking TEXT'],
         ['shipping_name', "ALTER TABLE orders ADD COLUMN shipping_name TEXT NOT NULL DEFAULT ''"],
         ['shipping_phone', "ALTER TABLE orders ADD COLUMN shipping_phone TEXT NOT NULL DEFAULT ''"],
         ['shipping_address1', "ALTER TABLE orders ADD COLUMN shipping_address1 TEXT NOT NULL DEFAULT ''"],
@@ -342,6 +345,7 @@ export async function updateOrderStatus(
   extra?: {
     error?: string;
     externalOrderRef?: string;
+    royalMailTracking?: string;
   },
 ): Promise<void> {
   await ensureOrderSchema(db);
@@ -352,6 +356,7 @@ export async function updateOrderStatus(
       SET status             = ?,
           error              = COALESCE(?, error),
           external_order_ref = COALESCE(?, external_order_ref),
+          royal_mail_tracking = COALESCE(?, royal_mail_tracking),
           updated_at         = datetime('now')
       WHERE id = ?
     `)
@@ -359,6 +364,7 @@ export async function updateOrderStatus(
       status,
       extra?.error ?? null,
       extra?.externalOrderRef ?? null,
+      extra?.royalMailTracking ?? null,
       id,
     )
     .run();
