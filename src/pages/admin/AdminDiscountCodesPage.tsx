@@ -264,15 +264,15 @@ export default function AdminDiscountCodesPage() {
       </div>
 
       {formOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4">
           <div
             role="dialog"
             aria-modal="true"
             aria-label={editingId ? 'Edit discount code' : 'Add discount code'}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-xl rounded-[1.75rem] bg-white p-5 shadow-[0_30px_90px_rgba(0,0,0,0.35)] dark:bg-gray-900"
+            className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-xl min-h-0 flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_30px_90px_rgba(0,0,0,0.35)] dark:bg-gray-900 sm:max-h-[calc(100dvh-2rem)]"
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex shrink-0 items-start justify-between gap-4 p-5 pb-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Discount codes</p>
                 <h2 className="mt-1 text-xl font-black tracking-tight text-gray-900 dark:text-gray-100">
@@ -291,7 +291,7 @@ export default function AdminDiscountCodesPage() {
               </button>
             </div>
 
-            <div className="mt-5 space-y-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-3">
               <label className="block space-y-1">
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Code</span>
                 <input
@@ -375,7 +375,9 @@ export default function AdminDiscountCodesPage() {
                 Active
               </label>
 
-              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            </div>
+
+            <div className="flex shrink-0 flex-col gap-2 border-t border-gray-100 bg-white p-4 sm:flex-row sm:justify-end dark:border-gray-800 dark:bg-gray-900">
                 <button
                   type="button"
                   onClick={closeForm}
@@ -391,7 +393,6 @@ export default function AdminDiscountCodesPage() {
                 >
                   {saving ? 'Saving…' : editingId ? 'Update code' : 'Create code'}
                 </button>
-              </div>
             </div>
           </div>
         </div>
