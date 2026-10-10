@@ -193,32 +193,32 @@ export default function HomePage() {
       <div className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8 sm:pb-14">
         <section
           aria-label="UMP1RE Americano scoring tool"
-          className="rounded-[1.75rem] border border-[#24262e]/20 bg-[#dcff00] px-5 py-5 text-[#24262e] shadow-[0_24px_70px_rgba(5,13,31,0.16)] sm:px-8 sm:py-6"
+          className="rounded-[1.75rem] border border-[#24262e]/20 bg-[#dcff00] px-5 py-5 text-center text-[#24262e] shadow-[0_24px_70px_rgba(5,13,31,0.16)] sm:px-8 sm:py-6"
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-            <div className="min-w-0 text-sm font-medium leading-snug sm:text-base">
-              <p className="ump1re-americano-font text-lg leading-tight sm:text-2xl">Running an Americano?</p>
+          <div className="flex flex-col items-center gap-4">
+            <div className="min-w-0 text-center text-sm font-medium leading-snug sm:text-base">
+              <p className="ump1re-americano-font text-xl leading-tight sm:text-3xl">Running an Americano?</p>
               <p>Try out this free scoring tool from</p>
               <img
                 src="https://ump1re-web.pages.dev/assets/logo-black.png"
                 alt="UMP1RE"
-                className="mt-1 h-6 w-auto max-w-[7rem] object-contain object-left sm:h-7 sm:max-w-[8rem]"
+                className="mx-auto mt-1 h-8 w-auto max-w-[9rem] object-contain sm:h-9 sm:max-w-[10rem]"
               />
             </div>
             <a
               href="https://ump1re-web.pages.dev/americano/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-14 shrink-0 items-center justify-center gap-3 rounded-full bg-[#24262e] px-6 py-3 text-[#dcff00] transition-transform hover:scale-[1.02] sm:min-w-52"
+              className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-full bg-[#24262e] px-6 py-3 text-[#dcff00] transition-transform hover:scale-[1.02] sm:max-w-md"
             >
               <img
                 src="https://ump1re-web.pages.dev/assets/icon-192.png"
                 alt=""
                 width="36"
                 height="36"
-                className="h-9 w-9 mix-blend-screen"
+                className="h-9 w-9"
               />
-              <span className="ump1re-americano-font text-xl leading-none sm:text-2xl">Americano</span>
+              <span className="ump1re-americano-font text-2xl leading-none sm:text-3xl">Americano</span>
             </a>
           </div>
         </section>
