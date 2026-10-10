@@ -170,12 +170,20 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="mt-4 flex justify-start">
+          <div className="mt-4 flex justify-center">
             <Link
               to="/partners"
-              className="inline-flex items-center justify-center rounded-full border border-navy-800/15 bg-white px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white"
+              className="group inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-full border border-navy-800/15 bg-white px-6 py-3 text-center text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white"
             >
-              Interested in stocking UTC Apparel?
+              <span>Interested in stocking</span>
+              <span className="inline-flex items-center gap-1">
+                <img
+                  src="/Wordmark_Black.png"
+                  alt="Up the Creek Padel Apparel"
+                  className="h-5 w-auto object-contain transition-[filter] group-hover:brightness-0 group-hover:invert"
+                />
+                <span>?</span>
+              </span>
             </Link>
           </div>
         </div>
