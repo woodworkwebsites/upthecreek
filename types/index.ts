@@ -152,7 +152,12 @@ export type OrderStatus =
   | 'fulfillment_started'
   | 'awaiting_fulfillment'
   | 'fulfilled'
-  | 'failed';
+  | 'failed'
+  | 'order_received'
+  | 'ordered_sellshirts'
+  | 'dispatched'
+  | 'delivered'
+  | 'cancelled';
 
 export interface Product {
   id: string;
