@@ -184,10 +184,10 @@ export default function HomePage() {
       {/* ── UMP1RE Americano CTA ───────────────────────────────── */}
       <div className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8 sm:pb-14">
         <section
-          aria-labelledby="americano-cta-title"
-          className="overflow-hidden rounded-[2rem] border border-[#dcff00]/35 bg-[#24262e] px-6 py-7 text-white shadow-[0_24px_70px_rgba(5,13,31,0.2)] sm:px-9 sm:py-8"
+          aria-label="UMP1RE Americano scoring tool"
+          className="rounded-[1.75rem] border border-[#dcff00]/35 bg-[#24262e] px-5 py-5 text-white shadow-[0_24px_70px_rgba(5,13,31,0.2)] sm:px-8 sm:py-6"
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
             <div className="flex min-w-0 items-center gap-3 sm:gap-4">
               <img
                 src="https://ump1re-web.pages.dev/assets/icon-192.png"
@@ -196,22 +196,30 @@ export default function HomePage() {
                 height="48"
                 className="h-10 w-10 shrink-0 rounded-xl sm:h-12 sm:w-12"
               />
-              <p className="min-w-0 text-sm font-medium leading-relaxed text-white/75 sm:text-base">
-                Running an Americano? Try out this free scoring tool by{' '}
+              <div className="min-w-0 text-sm font-medium leading-snug text-white/75 sm:text-base">
+                <p>Running an Americano?</p>
+                <p>Try out this free scoring tool from</p>
                 <img
                   src="https://ump1re-web.pages.dev/assets/UMP1RE_Logo.svg"
                   alt="UMP1RE"
-                  className="inline-block h-[1em] w-auto max-w-[4.5rem] translate-y-[0.12em] object-contain align-baseline"
+                  className="mt-1 h-4 w-auto max-w-[5rem] object-contain object-left"
                 />
-              </p>
+              </div>
             </div>
             <a
               href="https://ump1re-web.pages.dev/americano/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#dcff00] px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-[#24262e] transition-transform hover:scale-[1.02] sm:min-w-44"
+              className="inline-flex min-h-12 shrink-0 items-center justify-center gap-3 rounded-full bg-[#dcff00] px-6 py-2.5 text-[#24262e] transition-transform hover:scale-[1.02] sm:min-w-48"
             >
-              Open scoring
+              <img
+                src="https://ump1re-web.pages.dev/assets/icon-192.png"
+                alt=""
+                width="32"
+                height="32"
+                className="h-8 w-8 rounded-lg"
+              />
+              <span className="ump1re-americano-font text-base leading-none sm:text-lg">Americano</span>
             </a>
           </div>
         </section>
