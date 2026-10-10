@@ -9,7 +9,7 @@ export default function AdminSettingsPage() {
   const [emailBody,setEmailBody]=useState("Hi {{first_name}},\n\nThanks for choosing Up The Creek Padel.\n\nWe've placed your order and everything is now being prepared.\n\nWe'll be in touch when your order is on its way.\n\nOrder reference: {{order_reference}}\n\nYour order:\n{{items}}\n\nThanks again for supporting UTC.\n\nUp The Creek Padel\npadel apparel\nupthecreekpadel.club");
   const [emailKind,setEmailKind]=useState<'confirmation'|'dispatch'>('confirmation');
   const [dispatchSubject,setDispatchSubject]=useState('Your order is on its way | Up The Creek Padel');
-  const [dispatchBody,setDispatchBody]=useState("Hi {{first_name}},\n\nGood news — your Up The Creek Padel order has been dispatched.\n\nOrder reference: {{order_reference}}\n\nYour order:\n{{items}}\n\nThanks again for choosing UTC.\n\nUp The Creek Padel\npadel apparel\nupthecreekpadel.club");
+  const [dispatchBody,setDispatchBody]=useState("Hi {{first_name}},\n\nGood news — your Up The Creek Padel order has been dispatched.\n\nOrder reference: {{order_reference}}\n\nYour order:\n{{items}}\n\nRoyal Mail tracking: {{royal_mail_tracking}}\nTrack your parcel: {{tracking_url}}\n\nThanks again for choosing UTC.\n\nUp The Creek Padel\npadel apparel\nupthecreekpadel.club");
   const [savedDispatchSubject,setSavedDispatchSubject]=useState('');
   const [savedDispatchBody,setSavedDispatchBody]=useState('');
   const [emailModalOpen,setEmailModalOpen]=useState(false);
@@ -224,7 +224,7 @@ export default function AdminSettingsPage() {
               <label className="block text-sm font-semibold" style={{color:'#202527'}}>Message
                 <textarea value={emailKind==='dispatch'?dispatchBody:emailBody} onChange={e=>emailKind==='dispatch'?setDispatchBody(e.target.value):setEmailBody(e.target.value)} rows={13} maxLength={10000} style={{backgroundColor:'#fff',color:'#202527',WebkitTextFillColor:'#202527'}} className="mt-1 block min-h-[260px] w-full resize-y rounded-lg border border-gray-300 px-3 py-3 text-sm leading-relaxed"/>
               </label>
-              <p className="text-xs" style={{color:'#56606a'}}>Available fields: {'{{first_name}}'}, {'{{order_reference}}'}, {'{{items}}'}. UTC branding is applied automatically.</p>
+              <p className="text-xs" style={{color:'#56606a'}}>Available fields: {'{{first_name}}'}, {'{{order_reference}}'}, {'{{items}}'}, {'{{royal_mail_tracking}}'}, {'{{tracking_url}}'}. UTC branding is applied automatically.</p>
               {emailMessage && <p className="text-sm text-red-600">{emailMessage}</p>}
             </div>
             <div className="flex shrink-0 items-center justify-end gap-3 border-t border-gray-200 bg-white px-4 py-3" style={{backgroundColor:'#fff'}}>
