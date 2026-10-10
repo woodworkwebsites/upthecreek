@@ -131,7 +131,7 @@ export async function handleUpdateOrderStatus(
   id: string,
   request: Request,
 ): Promise<Response> {
-  let body: { status?: string; externalOrderRef?: string };
+  let body: { status?: string; externalOrderRef?: string; royalMailTracking?: string };
   try {
     body = await request.json().catch(() => ({})) as { status?: string; externalOrderRef?: string };
   } catch {
@@ -146,8 +146,10 @@ export async function handleUpdateOrderStatus(
   const order = await getOrderWithItems(env.DB, id);
   if (!order) return json({ error: 'Order not found' }, 404);
 
+  if (body.royalMailTracking !== undefined && (typeof body.royalMailTracking !== 'string' || !/^[a-zA-Z0-9 -]{0,80}$/.test(body.royalMailTracking))) return json({error:'Invalid Royal Mail tracking reference'},400);
   await updateOrderStatus(env.DB, id, status as OrderStatus, {
     externalOrderRef: body.externalOrderRef?.trim() || undefined,
+    royalMailTracking: body.royalMailTracking?.trim() || undefined,
   });
   await syncPartnerCommissionStatusByOrderId(env.DB, id, status as OrderStatus);
 
