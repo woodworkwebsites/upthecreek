@@ -71,7 +71,7 @@ export async function renderGoogleOrderConfirmation(env: Env, order: Order): Pro
   const wordmark='https://upthecreekpadel.club/Wordmark_White.png';
   const logo='https://upthecreekpadel.club/UTC_Logo_White_Trans_BG.png';
   const html='<div style="margin:0;padding:32px 16px;background:#f4f4f1;font-family:Arial,Helvetica,sans-serif;color:#222"><div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e6e6e1">'
-  +'<div style="background:#202527;padding:26px 28px;text-align:center"><img src="'+logo+'" alt="UTC" width="60" height="60" style="display:block;width:60px;height:60px;object-fit:contain;margin:0 auto 16px;border:0"><img src="'+wordmark+'" alt="Up The Creek Padel" width="320" style="display:block;width:100%;max-width:320px;height:auto;margin:0 auto;border:0"></div>'
+  +'<div style="background:#202527;padding:26px 28px;text-align:center"><img src="'+wordmark+'" alt="Up The Creek Padel" width="320" style="display:block;width:100%;max-width:320px;height:auto;margin:0 auto;border:0"></div>'
   +'<div style="padding:30px 28px 34px"><div style="font-size:16px;line-height:1.7;white-space:pre-wrap;color:#222">'+safe(text)+'</div></div>'
   +'<div style="background:#d7f23b;height:6px"></div></div></div>';
   return {subject,html,text};
