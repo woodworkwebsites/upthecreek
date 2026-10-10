@@ -7,7 +7,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params }) => {
   await ensureEmailTables(env);
   const order = await getOrderWithItems(env.DB, id);
   if (!order) return Response.json({ error: 'Order not found' }, { status: 404 });
-  if (order.status !== 'fulfilled') return Response.json({ error: 'Mark the SellShirts order fulfilled before sending a confirmation' }, { status: 409 });
+  if (!['awaiting_fulfillment', 'fulfillment_started', 'fulfilled'].includes(order.status)) return Response.json({ error: 'Order must be paid and awaiting supplier processing before confirmation' }, { status: 409 });
   const existing = await env.DB.prepare('SELECT status, sent_at FROM order_confirmation_emails WHERE order_id=?').bind(id).first<{status:string;sent_at:string|null}>();
   if (existing) return Response.json({ error: 'Order confirmation already sent or in progress' }, { status: 409 });
   const claim = await env.DB.prepare("INSERT OR IGNORE INTO order_confirmation_emails(order_id,status) VALUES(?,'sending')").bind(id).run();
