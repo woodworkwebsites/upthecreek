@@ -424,8 +424,10 @@ async function upsertPartnerCommission(
 function commissionStatusFromOrderStatus(status: Order['status']): PartnerCommissionStatus {
   switch (status) {
     case 'fulfilled':
+    case 'delivered':
       return 'paid';
     case 'failed':
+    case 'cancelled':
       return 'void';
     default:
       return 'pending';
