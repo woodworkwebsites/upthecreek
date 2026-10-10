@@ -58,7 +58,7 @@ export const DEFAULT_CONFIRMATION_SUBJECT = 'Thanks for your order | Up The Cree
 export const DEFAULT_CONFIRMATION_BODY = "Hi {{first_name}},\n\nThanks for choosing Up The Creek Padel.\n\nWe've placed your order and everything is now being prepared.\n\nWe'll be in touch when your order is on its way.\n\nOrder reference: {{order_reference}}\n\nYour order:\n{{items}}\n\nThanks again for supporting UTC.\n\nUp The Creek Padel\npadel apparel\nupthecreekpadel.club";
 
 export const DEFAULT_DISPATCH_SUBJECT = 'Your order is on its way | Up The Creek Padel';
-export const DEFAULT_DISPATCH_BODY = "Hi {{first_name}},\n\nGood news — your Up The Creek Padel order has been dispatched.\n\nOrder reference: {{order_reference}}\n\nYour order:\n{{items}}\n\nThanks again for choosing UTC.\n\nUp The Creek Padel\npadel apparel\nupthecreekpadel.club";
+export const DEFAULT_DISPATCH_BODY = "Hi {{first_name}},\n\nGood news — your Up The Creek Padel order has been dispatched.\n\nOrder reference: {{order_reference}}\n\nYour order:\n{{items}}\n\nRoyal Mail tracking: {{royal_mail_tracking}}\nTrack your parcel: {{tracking_url}}\n\nThanks again for choosing UTC.\n\nUp The Creek Padel\npadel apparel\nupthecreekpadel.club";
 
 export type OrderEmailKind = 'confirmation' | 'dispatch';
 export async function renderGoogleOrderConfirmation(env: Env, order: Order, kind: OrderEmailKind = 'confirmation'): Promise<{subject:string;html:string;text:string}> {
@@ -68,9 +68,11 @@ export async function renderGoogleOrderConfirmation(env: Env, order: Order, kind
   const variables: Record<string,string>={
     first_name: (order.customerName || order.shippingName || '').trim().split(/\s+/)[0] || 'there',
     order_reference: order.id.slice(0,8).toUpperCase(),
+    royal_mail_tracking: order.royalMailTracking || 'Not provided yet',
+    tracking_url: order.royalMailTracking ? 'https://www.royalmail.com/track-your-item' : 'https://www.royalmail.com/track-your-item',
     items: (order.items || []).map(i => i.quantity+' × '+i.title+' ('+i.color+', '+i.size+')'+(i.personalization ? ' — Personalisation: '+i.personalization : '')).join('\n'),
   };
-  const expand=(s:string)=>s.replace(/\{\{(first_name|order_reference|items)\}\}/g,(_m,key:string)=>variables[key] || '');
+  const expand=(s:string)=>s.replace(/\{\{(first_name|order_reference|items|royal_mail_tracking|tracking_url)\}\}/g,(_m,key:string)=>variables[key] || '');
   const subject=expand(subjectTemplate).replace(/[\r\n]+/g,' ').trim();
   const text=expand(bodyTemplate);
   const wordmark='https://upthecreekpadel.club/Wordmark_White.png';
