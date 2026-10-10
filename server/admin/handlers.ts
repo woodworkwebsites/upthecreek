@@ -117,22 +117,21 @@ export async function handleFulfillOrder(
   const order = await getOrderWithItems(env.DB, id);
   if (!order) return json({ error: 'Order not found' }, 404);
 
-  await updateOrderStatus(env.DB, id, 'fulfilled', {
+  if (order.status !== 'order_received') return json({ error: 'Supplier order can only be placed after order received' }, 409);
+  await updateOrderStatus(env.DB, id, 'ordered_sellshirts', {
     externalOrderRef: body.externalOrderRef?.trim() || undefined,
   });
-  await syncPartnerCommissionStatusByOrderId(env.DB, id, 'fulfilled');
+  await syncPartnerCommissionStatusByOrderId(env.DB, id, 'ordered_sellshirts');
 
   return json({ success: true });
 }
 
-const validOrderStatuses: OrderStatus[] = [
-  'pending',
-  'paid',
-  'fulfillment_started',
-  'awaiting_fulfillment',
-  'fulfilled',
-  'failed',
-] as const;
+const transitions: Record<string, string[]> = {
+  order_received: ['ordered_sellshirts','cancelled'],
+  ordered_sellshirts: ['dispatched','cancelled'],
+  dispatched: ['delivered','cancelled'],
+  delivered: [], cancelled: [], failed: [],
+};
 
 export async function handleUpdateOrderStatus(
   env: Env,
@@ -147,13 +146,14 @@ export async function handleUpdateOrderStatus(
   }
 
   const status = body.status?.trim();
-  if (!status || !validOrderStatuses.includes(status as OrderStatus)) {
+  if (!status || !['ordered_sellshirts','dispatched','delivered','cancelled'].includes(status)) {
     return json({ error: 'Invalid status' }, 400);
   }
 
   const order = await getOrderWithItems(env.DB, id);
   if (!order) return json({ error: 'Order not found' }, 404);
 
+  if (!(transitions[order.status] ?? []).includes(status)) return json({ error: 'Invalid status transition' }, 409);
   await updateOrderStatus(env.DB, id, status as OrderStatus, {
     externalOrderRef: body.externalOrderRef?.trim() || undefined,
   });
