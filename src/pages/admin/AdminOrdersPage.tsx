@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Order } from '../../../types/index.js';
-import { adminFetchOrders, adminFetchOrder, adminFulfillOrder, adminUpdateOrderStatus, adminDeleteOrder, adminDownloadOrderReceipt } from '../../lib/api.js';
+import { adminFetchOrders, adminFetchOrder, adminFulfillOrder, adminUpdateOrderStatus, adminDeleteOrder, adminDownloadOrderReceipt, adminSendOrderConfirmation } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Badge } from '../../components/ui/Badge.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -51,6 +51,9 @@ function OrderRow({
   const [externalOrderRef, setExternalOrderRef] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [confirmationSending, setConfirmationSending] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
+  const [confirmationError, setConfirmationError] = useState<string | null>(null);
   const [receiptDownloading, setReceiptDownloading] = useState(false);
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
@@ -126,6 +129,14 @@ function OrderRow({
     } finally {
       setDeleting(false);
     }
+  }
+
+  async function handleSendConfirmation() {
+    if (!window.confirm('Send order confirmation to ' + order.customerEmail + '? Only do this after paying SellShirts.')) return;
+    setConfirmationSending(true); setConfirmationError(null);
+    try { await adminSendOrderConfirmation(token, order.id); setConfirmationSent(true); }
+    catch(e) { setConfirmationError(e instanceof Error ? e.message : 'Email failed'); }
+    finally { setConfirmationSending(false); }
   }
 
   async function handleDownloadReceipt() {
@@ -297,6 +308,8 @@ function OrderRow({
                   >
                     {receiptDownloading ? 'Preparing receipt…' : 'Download receipt'}
                   </button>
+                  <button type="button" onClick={() => void handleSendConfirmation()} disabled={confirmationSending || confirmationSent || shown.status !== 'fulfilled'} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-800 disabled:opacity-50 dark:text-gray-100">{confirmationSending ? 'Sending…' : confirmationSent ? 'Confirmation sent' : 'Send confirmation'}</button>
+                  {confirmationError && <span className="text-xs text-red-600">{confirmationError}</span>}
                   {receiptError && <span className="text-xs text-red-600 dark:text-red-400">{receiptError}</span>}
                 </div>
 
