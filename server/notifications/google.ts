@@ -53,22 +53,28 @@ function mimeBase64(value:string):string {
   return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 function safe(v:string):string {return v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] || c));}
-export async function sendGoogleOrderConfirmation(env:Env, order:Order):Promise<void> {
-  await ensureEmailTables(env);
-  const saved=await env.DB.prepare('SELECT encrypted_token FROM google_mail_auth WHERE id=1').first<{encrypted_token:string}>();
-  if(!saved) throw new Error('Connect Google Workspace in Admin Settings first');
-  if(!order.customerEmail || order.customerEmail==='unknown' || /[\r\n]/.test(order.customerEmail)) throw new Error('Order has no valid customer email');
+export function renderGoogleOrderConfirmation(order: Order): { subject: string; html: string; text: string } {
   const first=(order.customerName || order.shippingName || '').trim().split(/\s+/)[0] || 'there';
   const ref=order.id.slice(0,8).toUpperCase();
   const items=(order.items || []).map(i=>i.quantity+' × '+i.title+' ('+i.color+', '+i.size+')'+(i.personalization?' — Personalisation: '+i.personalization:''));
   const message='Hi '+first+',\n\nThanks for choosing Up The Creek Padel.\n\nWe\'ve placed your order and everything is now being prepared.\n\nWe\'ll be in touch when your order is on its way.\n\nOrder reference: '+ref+'\n\nYour order:\n'+items.join('\n')+'\n\nThanks again for supporting UTC.\n\nUp The Creek Padel\npadel apparel\nupthecreekpadel.club';
   const html='<div style="max-width:560px;margin:auto;font-family:Arial,sans-serif;color:#242424"><div style="background:#242424;color:#d7f23b;padding:24px;font-size:22px;font-weight:bold">UP THE CREEK PADEL</div><div style="padding:26px"><h1>Thanks for your order.</h1><p>Hi '+safe(first)+',</p><p>Thanks for choosing Up The Creek Padel.</p><p>We\'ve placed your order and everything is now being prepared.</p><p>We\'ll be in touch when your order is on its way.</p><p><strong>Order reference:</strong> '+safe(ref)+'</p><h3>Your order</h3><ul>'+items.map(i=>'<li>'+safe(i)+'</li>').join('')+'</ul><p>Thanks again for supporting UTC.</p><strong>Up The Creek Padel</strong><p>padel apparel<br>upthecreekpadel.club</p></div></div>';
+  return { subject: 'Thanks for your order | Up The Creek Padel', html, text: message };
+}
+
+export async function sendGoogleOrderConfirmation(env:Env, order:Order, recipient?:string):Promise<void> {
+  await ensureEmailTables(env);
+  const saved=await env.DB.prepare('SELECT encrypted_token FROM google_mail_auth WHERE id=1').first<{encrypted_token:string}>();
+  if(!saved) throw new Error('Connect Google Workspace in Admin Settings first');
+  const to=(recipient || order.customerEmail).trim();
+  if (!/^[^\\s@<>]+@[^\\s@<>]+\\.[^\\s@<>]+$/.test(to) || /[\\r\\n]/.test(to)) throw new Error('Invalid recipient email address');
+  const {html, text:message, subject}=renderGoogleOrderConfirmation(order);
   const refresh=await decrypt(env,saved.encrypted_token);
   const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID!,client_secret:env.GOOGLE_CLIENT_SECRET!,refresh_token:refresh,grant_type:'refresh_token'})});
   const token=await tokenRes.json() as {access_token?:string};
   if(!tokenRes.ok || !token.access_token) throw new Error('Google authorisation expired. Reconnect in Settings.');
   const boundary='utc-'+crypto.randomUUID();
-  const mime=['From: Up The Creek Padel <'+sender+'>','To: '+order.customerEmail,'Reply-To: '+sender,'Subject: Thanks for your order | Up The Creek Padel','MIME-Version: 1.0','Content-Type: multipart/alternative; boundary="'+boundary+'"','','--'+boundary,'Content-Type: text/plain; charset=UTF-8','',''+message,'--'+boundary,'Content-Type: text/html; charset=UTF-8','',html,'--'+boundary+'--'].join('\r\n');
+  const mime=['From: Up The Creek Padel <'+sender+'>','To: '+to,'Reply-To: '+sender,'Subject: '+subject,'MIME-Version: 1.0','Content-Type: multipart/alternative; boundary="'+boundary+'"','','--'+boundary,'Content-Type: text/plain; charset=UTF-8','',''+message,'--'+boundary,'Content-Type: text/html; charset=UTF-8','',html,'--'+boundary+'--'].join('\r\n');
   const res=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{Authorization:'Bearer '+token.access_token,'Content-Type':'application/json'},body:JSON.stringify({raw:mimeBase64(mime)})});
   if(!res.ok) throw new Error('Gmail rejected the message ('+res.status+'). Confirm the Orders sending alias in Gmail.');
 }
