@@ -30,7 +30,7 @@ function parseOrder(row: OrderRow): Order {
     customerName:          row.customer_name,
     amountTotal:           row.amount_total,
     currency:              row.currency,
-    status:                row.status,
+    status:                ({pending:'order_received',paid:'order_received',awaiting_fulfillment:'order_received',fulfillment_started:'ordered_sellshirts',fulfilled:'ordered_sellshirts'} as Record<string, OrderStatus>)[row.status] ?? row.status,
     error:                 row.error,
     fulfillmentProvider:   row.fulfillment_provider,
     externalOrderRef:      row.external_order_ref,
