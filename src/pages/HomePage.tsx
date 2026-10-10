@@ -176,13 +176,12 @@ export default function HomePage() {
               className="group flex w-full flex-col items-center justify-center gap-2 rounded-full border border-navy-800/15 bg-white px-6 py-4 text-center text-xs font-bold uppercase tracking-[0.24em] text-navy-800 transition-colors hover:bg-navy-800 hover:text-white"
             >
               <span>Interested in stocking</span>
-              <span className="flex w-full items-center justify-center gap-1">
+              <span className="flex w-full items-center justify-center">
                 <img
                   src="/Wordmark_Black.png"
                   alt="Up the Creek Padel Apparel"
                   className="h-auto w-[50%] object-contain transition-[filter] group-hover:brightness-0 group-hover:invert"
                 />
-                <span>?</span>
               </span>
             </Link>
           </div>
