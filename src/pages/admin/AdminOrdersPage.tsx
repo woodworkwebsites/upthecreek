@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Order } from '../../../types/index.js';
-import { adminFetchOrders, adminFetchOrder, adminFulfillOrder, adminUpdateOrderStatus, adminDeleteOrder, adminDownloadOrderReceipt, adminSendOrderConfirmation, adminPreviewOrderConfirmation } from '../../lib/api.js';
+import { adminFetchOrders, adminFetchOrder, adminFulfillOrder, adminUpdateOrderStatus, adminDeleteOrder, adminDownloadOrderReceipt, adminSendOrderConfirmation, adminPreviewOrderConfirmation, adminPreviewDispatchEmail, adminSendDispatchEmail } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
 import { Badge } from '../../components/ui/Badge.js';
 import { PageLoader } from '../../components/ui/LoadingSpinner.js';
@@ -49,6 +49,7 @@ function OrderRow({
   const [externalOrderRef, setExternalOrderRef] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [emailKind,setEmailKind]=useState<'confirmation'|'dispatch'>('confirmation');
   const [previewOpen,setPreviewOpen]=useState(false);
   const [previewLoading,setPreviewLoading]=useState(false);
   const [preview,setPreview]=useState<{subject:string;html:string;text:string;recipient:string;from:string;sentAt:string|null}|null>(null);
@@ -145,9 +146,10 @@ function OrderRow({
     }
   }
 
-  async function openConfirmationPreview() {
+  async function openConfirmationPreview(kind: 'confirmation'|'dispatch' = 'confirmation') {
+    setEmailKind(kind);setPreview(null);
     setPreviewOpen(true);setPreviewLoading(true);setConfirmationError(null);
-    try {const data=await adminPreviewOrderConfirmation(token,order.id);setPreview(data);setRecipient(data.recipient);}
+    try {const data=kind==='dispatch' ? await adminPreviewDispatchEmail(token,order.id) : await adminPreviewOrderConfirmation(token,order.id);setPreview(data);setRecipient(data.recipient);}
     catch(e){setConfirmationError(e instanceof Error?e.message:'Preview unavailable');}
     finally{setPreviewLoading(false);}
   }
@@ -158,8 +160,9 @@ function OrderRow({
     if (!window.confirm(test ? 'Send a test copy to '+recipient+'? The customer will not be marked as emailed.' : 'Send this confirmation to the customer?')) return;
     setConfirmationSending(true); setConfirmationError(null);
     try {
-      await adminSendOrderConfirmation(token, order.id, recipient.trim());
-      if(!test)setConfirmationSent(true);
+      if(emailKind==='dispatch') await adminSendDispatchEmail(token,order.id,recipient.trim());
+      else await adminSendOrderConfirmation(token, order.id, recipient.trim());
+      if(!test && emailKind==='confirmation')setConfirmationSent(true);
       setPreviewOpen(false);
     } catch(e) { setConfirmationError(e instanceof Error ? e.message : 'Email failed'); }
     finally {setConfirmationSending(false);}
@@ -321,7 +324,8 @@ function OrderRow({
                   >
                     {receiptDownloading ? 'Preparing receipt…' : 'Download receipt'}
                   </button>
-                  <button type="button" onClick={() => void openConfirmationPreview()} disabled={confirmationSending || !['ordered_sellshirts','dispatched','delivered'].includes(shown.status)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-800 disabled:opacity-50 dark:text-gray-100">{confirmationSending ? 'Sending…' : confirmationSent ? 'Preview / test email' : 'Preview / send email'}</button>
+                  <button type="button" onClick={() => void openConfirmationPreview('confirmation')} disabled={confirmationSending || !['ordered_sellshirts','dispatched','delivered'].includes(shown.status)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-800 disabled:opacity-50 dark:text-gray-100">{confirmationSending ? 'Sending…' : confirmationSent ? 'Preview / test email' : 'Preview / send email'}</button>
+                  {['dispatched','delivered'].includes(shown.status) && <button type="button" onClick={()=>void openConfirmationPreview('dispatch')} disabled={confirmationSending} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-800 disabled:opacity-50 dark:text-gray-100">Preview / send dispatched email</button>}
                   {confirmationError && <span className="text-xs text-red-600">{confirmationError}</span>}
                   {receiptError && <span className="text-xs text-red-600 dark:text-red-400">{receiptError}</span>}
                 </div>
@@ -347,13 +351,13 @@ function OrderRow({
             <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-3 sm:p-6" onClick={()=>!confirmationSending&&setPreviewOpen(false)}>
               <div style={{backgroundColor:"#ffffff",color:"#202527",colorScheme:"light"}} className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl shadow-2xl" onClick={e=>e.stopPropagation()}>
                 <div style={{backgroundColor:"#ffffff",color:"#202527"}} className="shrink-0 border-b border-gray-200 p-4">
-                  <div className="flex items-center justify-between"><h2 className="text-lg font-bold">Email preview</h2><button onClick={()=>setPreviewOpen(false)} className="text-sm font-semibold text-gray-800">Close</button></div>
+                  <div className="flex items-center justify-between"><h2 className="text-lg font-bold">{emailKind==='dispatch'?'Dispatch email preview':'Order confirmation preview'}</h2><button onClick={()=>setPreviewOpen(false)} className="text-sm font-semibold text-gray-800">Close</button></div>
                   <p className="mt-2 text-xs text-gray-500">From: orders@upthecreekpadel.club</p>
                   <label className="mt-3 block text-xs font-semibold text-gray-800">To (editable for test email)
                     <input type="email" value={recipient} onChange={e=>setRecipient(e.target.value)} style={{backgroundColor:"#ffffff",color:"#202527",WebkitTextFillColor:"#202527"}} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"/>
                   </label>
                   {preview && <p className="mt-2 break-words text-sm text-gray-900"><strong>Subject:</strong> {preview.subject}</p>}
-                  {preview?.sentAt && <p className="mt-2 text-xs text-green-700">Customer confirmation sent {preview.sentAt}. Test copies remain available.</p>}
+                  {preview?.sentAt && <p className="mt-2 text-xs text-green-700">{emailKind==='dispatch'?'Dispatch email':'Order confirmation'} sent {preview.sentAt}. Test copies remain available.</p>}
                 </div>
                 <div className="min-h-0 flex-1 overflow-y-auto bg-gray-100 p-3 sm:p-4">
                   {previewLoading ? <p>Loading preview…</p> : preview ? <iframe title="Rendered customer email" sandbox="" srcDoc={preview.html} className="h-[420px] w-full rounded-lg border border-gray-200 bg-white"/> : <p>Preview unavailable</p>}
@@ -361,7 +365,7 @@ function OrderRow({
                 {confirmationError && <p className="px-4 text-xs text-red-600">{confirmationError}</p>}
                 <div style={{backgroundColor:"#ffffff",color:"#202527"}} className="flex shrink-0 justify-end gap-2 border-t border-gray-200 p-4">
                   <button type="button" onClick={()=>setPreviewOpen(false)} style={{backgroundColor:"#ffffff",color:"#202527"}} className="rounded-lg border border-gray-300 px-4 py-2 text-sm">Cancel</button>
-                  <button type="button" disabled={!preview || confirmationSending || !recipient.trim() || (!!preview.sentAt && recipient.trim().toLowerCase()===preview.recipient.toLowerCase()) || (confirmationSent && recipient.trim().toLowerCase()===preview?.recipient.toLowerCase())} onClick={()=>void handleSendConfirmation()} className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{confirmationSending?'Sending…':preview && recipient.trim().toLowerCase()!==preview.recipient.toLowerCase()?'Send test email':'Send to customer'}</button>
+                  <button type="button" disabled={!preview || confirmationSending || !recipient.trim() || (!!preview.sentAt && recipient.trim().toLowerCase()===preview.recipient.toLowerCase()) || (emailKind==='confirmation' && confirmationSent && recipient.trim().toLowerCase()===preview?.recipient.toLowerCase())} onClick={()=>void handleSendConfirmation()} className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{confirmationSending?'Sending…':preview && recipient.trim().toLowerCase()!==preview.recipient.toLowerCase()?'Send test email':'Send to customer'}</button>
                 </div>
               </div>
             </div>
