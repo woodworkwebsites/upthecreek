@@ -196,7 +196,7 @@ export default function HomePage() {
         >
           <div className="flex flex-col items-center gap-4">
             <div className="min-w-0 text-center text-sm font-medium leading-snug sm:text-base">
-              <p className="ump1re-americano-font text-2xl leading-tight sm:text-4xl">Running an Americano?</p>
+              <p className="ump1re-americano-font text-[36px] leading-tight sm:text-4xl">Running an Americano?</p>
               <p>Try out this free scoring tool from</p>
               <img
                 src="https://ump1re-web.pages.dev/assets/logo-black.png"
