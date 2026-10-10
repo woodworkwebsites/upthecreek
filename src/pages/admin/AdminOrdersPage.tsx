@@ -47,6 +47,7 @@ function OrderRow({
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [externalOrderRef, setExternalOrderRef] = useState('');
+  const [royalMailTracking,setRoyalMailTracking]=useState(order.royalMailTracking ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [emailKind,setEmailKind]=useState<'confirmation'|'dispatch'>('confirmation');
@@ -69,6 +70,7 @@ function OrderRow({
   useEffect(() => {
     const shown = detail ?? order;
     setStatus(shown.status);
+    setRoyalMailTracking(shown.royalMailTracking ?? '');
   }, [detail, order.status]);
 
   async function toggleExpanded() {
@@ -119,10 +121,11 @@ function OrderRow({
     setStatusSaving(true);
     setStatusError(null);
     try {
-      await adminUpdateOrderStatus(token, order.id, status, externalOrderRef.trim() || undefined);
+      await adminUpdateOrderStatus(token, order.id, status, externalOrderRef.trim() || undefined, royalMailTracking.trim() || undefined);
       const updated: Order = {
         ...(detail ?? order),
         status,
+        royalMailTracking:royalMailTracking.trim() || (detail ?? order).royalMailTracking,
         externalOrderRef: externalOrderRef.trim() || (detail ?? order).externalOrderRef,
       };
       setDetail(updated);
@@ -317,6 +320,12 @@ function OrderRow({
                   </div>
                 </div>
 
+                <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-950">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200">Royal Mail tracking reference
+                    <input type="text" maxLength={80} value={royalMailTracking} onChange={e=>setRoyalMailTracking(e.target.value)} placeholder="Tracking number from SellShirts" className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"/>
+                  </label>
+                  <button type="button" onClick={()=>void handleUpdateStatus()} disabled={statusSaving || !royalMailTracking.trim()} className="mt-2 rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{statusSaving?'Saving…':'Save tracking reference'}</button>
+                </div>
                 <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
