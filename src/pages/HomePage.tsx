@@ -197,7 +197,7 @@ export default function HomePage() {
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
             <div className="min-w-0 text-sm font-medium leading-snug sm:text-base">
-              <p>Running an Americano?</p>
+              <p className="ump1re-americano-font text-lg leading-tight sm:text-2xl">Running an Americano?</p>
               <p>Try out this free scoring tool from</p>
               <img
                 src="https://ump1re-web.pages.dev/assets/logo-black.png"
