@@ -1555,7 +1555,7 @@ export async function handleUpdateSettings(env: Env, request: Request): Promise<
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  const allowed = ['live_orders_enabled', 'stripe_test_mode', 'fulfillment_provider'];
+  const allowed = ['live_orders_enabled', 'stripe_test_mode', 'fulfillment_provider', 'confirmation_email_subject', 'confirmation_email_body'];
   const allowedCatalogKeys = [
     'catalog_audience_options',
     'catalog_product_options',
@@ -1565,6 +1565,7 @@ export async function handleUpdateSettings(env: Env, request: Request): Promise<
   ];
   for (const [key, value] of Object.entries(body)) {
     if (!allowed.includes(key) && !allowedCatalogKeys.includes(key)) return json({ error: `Unknown setting: ${key}` }, 400);
+    if ((key === 'confirmation_email_subject' && (typeof value !== 'string' || value.length > 180 || /[\r\n]/.test(value))) || (key === 'confirmation_email_body' && (typeof value !== 'string' || value.length > 10000))) return json({error:'Invalid email template'},400);
     if (key === 'fulfillment_provider') {
       await setSetting(env.DB, key, 'manual');
       continue;
