@@ -74,7 +74,9 @@ export async function renderGoogleOrderConfirmation(env: Env, order: Order, kind
   };
   const expand=(s:string)=>s.replace(/\{\{(first_name|order_reference|items|royal_mail_tracking|tracking_url)\}\}/g,(_m,key:string)=>variables[key] || '');
   const subject=expand(subjectTemplate).replace(/[\r\n]+/g,' ').trim();
-  const text=expand(bodyTemplate);
+  const hasTrackingField=bodyTemplate.includes('{{royal_mail_tracking}}');
+  const trackingSuffix=kind==='dispatch' && order.royalMailTracking && !hasTrackingField ? '\n\nRoyal Mail tracking: '+order.royalMailTracking+'\nTrack your parcel: https://www.royalmail.com/track-your-item' : '';
+  const text=expand(bodyTemplate)+trackingSuffix;
   const wordmark='https://upthecreekpadel.club/Wordmark_White.png';
   const logo='https://upthecreekpadel.club/UTC_Logo_White_Trans_BG.png';
   const html='<div style="margin:0;padding:32px 16px;background:#f4f4f1;font-family:Arial,Helvetica,sans-serif;color:#222"><div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e6e6e1">'
