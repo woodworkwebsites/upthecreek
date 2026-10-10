@@ -181,6 +181,47 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── UMP1RE Americano CTA ───────────────────────────────── */}
+      <div className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8 sm:pb-14">
+        <section
+          aria-labelledby="americano-cta-title"
+          className="overflow-hidden rounded-[2rem] border border-[#dcff00]/35 bg-[#24262e] px-6 py-7 text-white shadow-[0_24px_70px_rgba(5,13,31,0.2)] sm:px-9 sm:py-8"
+        >
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4 sm:items-center">
+              <img
+                src="https://ump1re-web.pages.dev/assets/icon-192.png"
+                alt=""
+                width="52"
+                height="52"
+                className="mt-1 h-12 w-12 shrink-0 rounded-xl sm:mt-0 sm:h-[52px] sm:w-[52px]"
+              />
+              <div>
+                <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-medium leading-relaxed text-white/65 sm:text-sm">
+                  <span>Running an Americano? Try out this free scoring tool by</span>
+                  <img
+                    src="https://ump1re-web.pages.dev/assets/UMP1RE_Logo.svg"
+                    alt="UMP1RE"
+                    className="inline-block h-4 w-auto max-w-[5rem] object-contain"
+                  />
+                </p>
+                <h2 id="americano-cta-title" className="mt-2 text-2xl font-black tracking-tight text-[#dcff00] sm:text-3xl">
+                  Run an Americano
+                </h2>
+              </div>
+            </div>
+            <a
+              href="https://ump1re-web.pages.dev/americano/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#dcff00] px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-[#24262e] transition-transform hover:scale-[1.02]"
+            >
+              Try it free
+            </a>
+          </div>
+        </section>
+      </div>
+
       {/* ── Footer ──────────────────────────────────────────────── */}
       <footer className="bg-navy-800">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
