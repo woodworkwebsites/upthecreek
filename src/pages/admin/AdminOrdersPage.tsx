@@ -22,14 +22,8 @@ const providerVariant: Record<string, 'default' | 'info'> = {
   manual:   'info',
 };
 
-const orderStatuses: Order['status'][] = [
-  'pending',
-  'paid',
-  'fulfillment_started',
-  'awaiting_fulfillment',
-  'fulfilled',
-  'failed',
-];
+const nextStatus: Partial<Record<Order['status'], Order['status']>> = { order_received:'ordered_sellshirts', ordered_sellshirts:'dispatched', dispatched:'delivered' };
+const labels: Record<string,string> = { order_received:'Order received',ordered_sellshirts:'Ordered from SellShirts',dispatched:'Dispatched',delivered:'Delivered',cancelled:'Cancelled',failed:'Failed' };
 
 function OrderRow({
   order,
@@ -88,7 +82,7 @@ function OrderRow({
     setSubmitError(null);
     try {
       await adminFulfillOrder(token, order.id, externalOrderRef.trim() || undefined);
-      const updated: Order = { ...(detail ?? order), status: 'fulfilled', externalOrderRef: externalOrderRef.trim() || null };
+      const updated: Order = { ...(detail ?? order), status: 'ordered_sellshirts', externalOrderRef: externalOrderRef.trim() || null };
       setDetail(updated);
       onFulfilled(updated);
     } catch (err) {
@@ -96,6 +90,18 @@ function OrderRow({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function advanceOrder(next: Order['status']) {
+    setStatus(next);
+    setStatusSaving(true);
+    setStatusError(null);
+    try {
+      await adminUpdateOrderStatus(token,order.id,next,externalOrderRef.trim() || undefined);
+      const updated: Order={...(detail??order),status:next,externalOrderRef:externalOrderRef.trim() || (detail??order).externalOrderRef};
+      setDetail(updated);onFulfilled(updated);
+    } catch(e) {setStatusError(e instanceof Error ? e.message : 'Could not update order');}
+    finally {setStatusSaving(false);}
   }
 
   async function handleUpdateStatus() {
@@ -190,25 +196,10 @@ function OrderRow({
         <td className="px-3 py-2 align-middle">
           <div className="flex flex-wrap items-start gap-2 md:flex-nowrap md:items-center md:whitespace-nowrap md:overflow-x-auto" onClick={(e) => e.stopPropagation()}>
             <Badge variant={statusVariant[shown.status] ?? 'default'} className="shrink-0">
-              {shown.status.replace(/_/g, ' ')}
+              {labels[shown.status] ?? shown.status.replace(/_/g, ' ')}
             </Badge>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as Order['status'])}
-              className="h-8 rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-            >
-              {orderStatuses.map((value) => (
-                <option key={value} value={value}>{value.replace(/_/g, ' ')}</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={handleUpdateStatus}
-              disabled={statusSaving || status === shown.status}
-              className="h-8 rounded-lg bg-navy-800 px-3 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
-            >
-              {statusSaving ? 'Saving…' : 'Move status'}
-            </button>
+            {nextStatus[shown.status] && <button type="button" onClick={() => { void advanceOrder(nextStatus[shown.status]!); }} disabled={statusSaving} className="h-8 rounded-lg bg-navy-800 px-3 text-xs font-semibold text-white disabled:opacity-50">{statusSaving ? 'Saving…' : labels[nextStatus[shown.status]!]}</button>}
+            {['order_received','ordered_sellshirts','dispatched'].includes(shown.status) && <button type="button" onClick={() => { if(window.confirm('Cancel this order? This does not refund the Stripe payment.')) void advanceOrder('cancelled'); }} disabled={statusSaving} className="h-8 rounded-lg border border-red-300 px-3 text-xs font-semibold text-red-700 disabled:opacity-50">Cancel order</button>}
             {statusError && <div className="text-xs text-red-600 dark:text-red-400">{statusError}</div>}
           </div>
         </td>
@@ -308,39 +299,19 @@ function OrderRow({
                   >
                     {receiptDownloading ? 'Preparing receipt…' : 'Download receipt'}
                   </button>
-                  <button type="button" onClick={() => void handleSendConfirmation()} disabled={confirmationSending || confirmationSent || !['awaiting_fulfillment', 'fulfillment_started', 'fulfilled'].includes(shown.status)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-800 disabled:opacity-50 dark:text-gray-100">{confirmationSending ? 'Sending…' : confirmationSent ? 'Confirmation sent' : 'Send confirmation'}</button>
+                  <button type="button" onClick={() => void handleSendConfirmation()} disabled={confirmationSending || confirmationSent || !['ordered_sellshirts','dispatched','delivered'].includes(shown.status)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-800 disabled:opacity-50 dark:text-gray-100">{confirmationSending ? 'Sending…' : confirmationSent ? 'Confirmation sent' : 'Send confirmation'}</button>
                   {confirmationError && <span className="text-xs text-red-600">{confirmationError}</span>}
                   {receiptError && <span className="text-xs text-red-600 dark:text-red-400">{receiptError}</span>}
                 </div>
 
-                {shown.fulfillmentProvider === 'manual' && (
-                  <div className="rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 p-3">
-                    <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Manual Fulfillment (SellShirts)
-                    </p>
-                    {shown.status === 'fulfilled' ? (
-                      <p className="text-xs text-green-600 dark:text-green-400">
-                        ✓ Fulfilled{shown.externalOrderRef ? ` — SellShirts ref: ${shown.externalOrderRef}` : ''}
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="text"
-                          value={externalOrderRef}
-                          onChange={(e) => setExternalOrderRef(e.target.value)}
-                          placeholder="SellShirts order ref (optional)"
-                          className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-navy-400 focus:outline-none md:w-auto"
-                        />
-                        <button
-                          onClick={handleMarkFulfilled}
-                          disabled={submitting}
-                          className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50 transition-colors"
-                        >
-                          {submitting ? 'Saving…' : 'Mark as fulfilled'}
-                        </button>
-                        {submitError && <span className="text-xs text-red-600 dark:text-red-400">{submitError}</span>}
-                      </div>
-                    )}
+                {shown.fulfillmentProvider === 'manual' && shown.status === 'order_received' && (
+                  <div className="rounded-lg border border-gray-200 bg-white p-3 dark:bg-gray-950 dark:border-gray-800">
+                    <p className="mb-2 text-xs font-semibold">SellShirts supplier reference (optional)</p>
+                    <div className="flex flex-wrap gap-2">
+                      <input value={externalOrderRef} onChange={e=>setExternalOrderRef(e.target.value)} placeholder="SellShirts order reference" className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-xs dark:bg-gray-900 dark:border-gray-700"/>
+                      <button type="button" disabled={submitting} onClick={() => void handleMarkFulfilled()} className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{submitting?'Saving…':'Record SellShirts order'}</button>
+                    </div>
+                    {submitError && <p className="text-xs text-red-600">{submitError}</p>}
                   </div>
                 )}
               </div>
