@@ -163,9 +163,17 @@ export default function ProductPage({
     return product.images.find((img) => img.isDefault)?.src ?? product.images[0]?.src ?? '';
   }, [product, activeVariantIds, selectedColor]);
 
-  const configuredInitialsArea = product?.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1] : undefined;
-  const configuredInitialsImage = configuredInitialsArea?.imageSrc && product?.images.some(i=>i.src===configuredInitialsArea.imageSrc) ? configuredInitialsArea.imageSrc : '';
-  const missingInitialsTemplate = product?.personalizationType === 'initials' && (!configuredInitialsArea?.imageSrc || !configuredInitialsImage);
+  const savedInitialsArea = product?.personalizationType === 'initials' ? Object.entries(product.initialsPlacements ?? {}).find(([key]) => key.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase())?.[1] : undefined;
+  const selectedGarmentImage = product?.images.find(i => i.color?.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase() && i.isDefault)?.src
+    ?? product?.images.find(i => i.color?.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase())?.src
+    ?? miniPreviewSrc;
+  // Match the default placement shown by admin when an older product has no saved placement yet.
+  const configuredInitialsArea = product?.personalizationType === 'initials'
+    ? (savedInitialsArea ?? {x:35,y:35,width:30,height:12,fontSize:38,color:'#ffffff',imageSrc:selectedGarmentImage})
+    : undefined;
+  const configuredInitialsImage = configuredInitialsArea?.imageSrc && product?.images.some(i => i.src === configuredInitialsArea.imageSrc)
+    ? configuredInitialsArea.imageSrc : selectedGarmentImage;
+  const missingInitialsTemplate = false;
   function openBasketOptions() {
     setBasketMessage(null);
     setBasketOptionsOpen(true);
@@ -392,7 +400,7 @@ export default function ProductPage({
                 <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-white" style={{containerType:"inline-size"}}>
                   {(configuredInitialsImage || miniPreviewSrc) && <img src={configuredInitialsImage || miniPreviewSrc} alt="Personalised garment" className="absolute inset-0 h-full w-full object-contain" />}
                   {product.personalizationType==='initials' && !missingInitialsTemplate && (() => {
-                    const area=Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1];
+                    const area=configuredInitialsArea;
                     return area?.imageSrc ? <div className="absolute flex items-center justify-center overflow-hidden" style={{left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}}>
                       <span className="whitespace-nowrap leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(area.fontSize*0.27)+'cqw',color:area.color}}>{personalization}</span>
                     </div> : null;
@@ -476,7 +484,7 @@ export default function ProductPage({
               {(() => {
                 const normalizedColor=(selectedColor??'').trim().toLowerCase();
                 const previewImage=product.images.find(i=>i.src===configuredInitialsImage) ?? product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor && i.isDefault) ?? product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor) ?? product.images.find(i=>i.isDefault) ?? product.images[0];
-                const area=product.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===normalizedColor)?.[1] : undefined;
+                const area=product.personalizationType==='initials' ? configuredInitialsArea : undefined;
                 return (
                   <div className="space-y-2">
                     <div className="relative mx-auto aspect-square w-full max-w-[290px] overflow-hidden rounded-xl bg-gray-50" style={{containerType:"inline-size"}}>
@@ -494,7 +502,7 @@ export default function ProductPage({
                         </div>
                       )}
                     </div>
-                    {missingInitialsTemplate && <p className="text-center text-xs font-semibold text-amber-800">Personalisation template unavailable for this colour. Please choose another colour.</p>}
+                    {!savedInitialsArea && product.personalizationType === 'initials' && <p className="text-center text-xs text-gray-500">Using the standard print placement. Final print may vary.</p>}
                     <p className="text-center text-[11px] text-gray-500">Illustrative preview · Final print may vary</p>
                   </div>
                 );
@@ -510,7 +518,7 @@ export default function ProductPage({
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
               <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);setPersonalizationReviewOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" disabled={Boolean(missingInitialsTemplate) || !personalizationDraft.trim()} onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setPersonalizationReviewOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">Apply personalisation</button>
+              <button type="button" disabled={!personalizationDraft.trim()} onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setPersonalizationReviewOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">Apply personalisation</button>
             </footer>
           </section>
         </div>
