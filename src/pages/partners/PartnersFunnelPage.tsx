@@ -128,7 +128,7 @@ export default function PartnersFunnelPage() {
                   {error}
                 </div>
               ) : featuredProducts.length > 0 ? (
-                <ProductGrid products={featuredProducts} priceLabel="RRP" />
+                <ProductGrid products={featuredProducts} priceLabel="RRP" showPartnerMargins />
               ) : (
                 <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-sm text-gray-500">
                   No products are available right now.
