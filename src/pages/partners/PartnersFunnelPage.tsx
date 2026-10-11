@@ -107,6 +107,9 @@ export default function PartnersFunnelPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 pb-16 pt-6 text-navy-900 sm:px-6 lg:px-8">
+        <h2 className="mx-auto mb-8 max-w-3xl text-center text-2xl font-black tracking-tight text-navy-900 sm:text-3xl">
+          Partners collect both margin from wholesale and commission from referrals.
+        </h2>
         <div className="rounded-[2rem] border border-gray-200 bg-white p-5 shadow-[0_25px_80px_rgba(5,13,31,0.08)] sm:p-6">
           <div className="mx-auto mt-12 max-w-6xl rounded-[2rem] border border-white/10 bg-navy-950/50 p-5 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-6">
             <p className="px-1 pb-4 text-xs font-bold uppercase tracking-[0.28em] text-white/50">Featured products</p>
@@ -133,9 +136,6 @@ export default function PartnersFunnelPage() {
           </div>
         </div>
 
-        <h2 className="mx-auto max-w-3xl text-center text-2xl font-black tracking-tight text-navy-900 sm:text-3xl">
-          Partners collect both margin from wholesale and commission from referrals.
-        </h2>
         <div className="mx-auto mt-8 max-w-2xl">
           <article className="rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
             <p className="label">How it works</p>
