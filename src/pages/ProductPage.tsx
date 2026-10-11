@@ -63,7 +63,6 @@ export default function ProductPage({
   const [personalization, setPersonalization] = useState('');
   const [personalizationDraft,setPersonalizationDraft]=useState('');
   const [personalizationModalOpen,setPersonalizationModalOpen]=useState(false);
-  const [personalizationReviewOpen,setPersonalizationReviewOpen]=useState(false);
   const [previewActivation,setPreviewActivation]=useState(0);
   const [basketMessage, setBasketMessage] = useState<string | null>(null);
   const [basketOptionsOpen, setBasketOptionsOpen] = useState(false);
@@ -108,7 +107,6 @@ export default function ProductPage({
 
   useEffect(() => {
     setPersonalization('');
-    setPersonalizationReviewOpen(false);
   }, [product?.id]);
 
   useEffect(() => {
@@ -163,12 +161,8 @@ export default function ProductPage({
     return product.images.find((img) => img.isDefault)?.src ?? product.images[0]?.src ?? '';
   }, [product, activeVariantIds, selectedColor]);
 
-  const savedInitialsArea = product?.personalizationType === 'initials' ? Object.entries(product.initialsPlacements ?? {}).find(([key]) => key.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase())?.[1] : undefined;
-  // Only saved admin coordinates are valid; never invent a centred print position.
-  const configuredInitialsArea = savedInitialsArea;
-  const configuredInitialsImage = savedInitialsArea?.imageSrc || '';
-  // The placement is authoritative. Don't reject it if an image URL was updated or reordered.
-  const missingInitialsTemplate = product?.personalizationType === 'initials' && !savedInitialsArea;
+  const configuredInitialsArea = product?.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1] : undefined;
+  const configuredInitialsImage = configuredInitialsArea?.imageSrc && product?.images.some(i=>i.src===configuredInitialsArea.imageSrc) ? configuredInitialsArea.imageSrc : '';
   function openBasketOptions() {
     setBasketMessage(null);
     setBasketOptionsOpen(true);
@@ -394,8 +388,8 @@ export default function ProductPage({
               <div className="mt-4 flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-3">
                 <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-white" style={{containerType:"inline-size"}}>
                   {(configuredInitialsImage || miniPreviewSrc) && <img src={configuredInitialsImage || miniPreviewSrc} alt="Personalised garment" className="absolute inset-0 h-full w-full object-contain" />}
-                  {product.personalizationType==='initials' && !missingInitialsTemplate && (() => {
-                    const area=configuredInitialsArea;
+                  {product.personalizationType==='initials' && (() => {
+                    const area=Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1];
                     return area?.imageSrc ? <div className="absolute flex items-center justify-center overflow-hidden" style={{left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}}>
                       <span className="whitespace-nowrap leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(area.fontSize*0.27)+'cqw',color:area.color}}>{personalization}</span>
                     </div> : null;
@@ -479,25 +473,18 @@ export default function ProductPage({
               {(() => {
                 const normalizedColor=(selectedColor??'').trim().toLowerCase();
                 const previewImage=product.images.find(i=>i.src===configuredInitialsImage) ?? product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor && i.isDefault) ?? product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor) ?? product.images.find(i=>i.isDefault) ?? product.images[0];
-                const area=product.personalizationType==='initials' ? configuredInitialsArea : undefined;
+                const area=product.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===normalizedColor)?.[1] : undefined;
                 return (
                   <div className="space-y-2">
                     <div className="relative mx-auto aspect-square w-full max-w-[290px] overflow-hidden rounded-xl bg-gray-50" style={{containerType:"inline-size"}}>
                       {previewImage?.src ? <img src={previewImage.src} alt={product.title+' in '+(selectedColor??'selected colour')} className="absolute inset-0 h-full w-full object-contain"/> : <div className="flex h-full items-center justify-center text-sm text-gray-500">Product image unavailable</div>}
-                      {previewImage?.src && !missingInitialsTemplate && (
-                        <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={area?.imageSrc
-                          ? {left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}
-                          : {left:'27%',top:'40%',width:'46%',height:'18%'}}>
-                          <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-center leading-none" style={{
-                            fontFamily:"'Bebas Neue', Impact, sans-serif",
-                            fontSize:area?.imageSrc ? (area.fontSize*0.27)+'cqw' : '9cqw',
-                            color:area?.color ?? '#16223a',
-                            textShadow:'0 1px 2px rgba(255,255,255,.45)'
-                          }}>{personalizationDraft.trim() || (product.personalizationType==='initials'?'ABC':product.personalizationType==='name'?'YOUR NAME':'YOUR TEXT')}</span>
+                      {area?.imageSrc && previewImage?.src && (
+                        <div className="absolute flex items-center justify-center overflow-hidden" style={{left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}}>
+                          <span className="max-w-full whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(area.fontSize*0.27)+'cqw',color:area.color}}>{personalizationDraft||'ABC'}</span>
                         </div>
                       )}
                     </div>
-                    {missingInitialsTemplate && <p className="text-center text-xs font-semibold text-amber-800">The print position has not been saved for this colour. Please contact the club shop.</p>}
+                    {product.personalizationType==='initials' && !area && <p className="text-center text-xs text-amber-800">Preview placement hasn't been configured for this colour yet.</p>}
                     <p className="text-center text-[11px] text-gray-500">Illustrative preview · Final print may vary</p>
                   </div>
                 );
@@ -512,39 +499,8 @@ export default function ProductPage({
               <p className="text-right text-xs text-gray-500">{personalizationDraft.length}/{personalizationLimit}</p>
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
-              <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);setPersonalizationReviewOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" disabled={!personalizationDraft.trim() || Boolean(missingInitialsTemplate)} onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setPersonalizationReviewOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">Apply personalisation</button>
-            </footer>
-          </section>
-        </div>
-      )}
-      {personalizationReviewOpen && product.personalizationEnabled && (
-        <div className="fixed inset-0 z-[65] flex items-end justify-center bg-navy-900/75 sm:items-center sm:p-5" onClick={() => setPersonalizationReviewOpen(false)}>
-          <section role="dialog" aria-modal="true" aria-label="Review your personalisation" className="flex max-h-[96dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white text-navy-800 shadow-2xl sm:rounded-3xl" onClick={event => event.stopPropagation()}>
-            <header className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4">
-              <div>
-                <h2 className="text-xl font-black">Review your personalisation</h2>
-                <p className="mt-1 text-xs text-gray-500">Check the garment and text before continuing.</p>
-              </div>
-              <button type="button" aria-label="Close review" onClick={() => setPersonalizationReviewOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xl">×</button>
-            </header>
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              <div className="relative mx-auto aspect-square w-full max-w-[300px] overflow-hidden rounded-xl bg-gray-50" style={{containerType:'inline-size'}}>
-                {(configuredInitialsImage || product.images.find(image => image.color?.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase() && image.isDefault)?.src || miniPreviewSrc) && (
-                  <img src={configuredInitialsImage || product.images.find(image => image.color?.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase() && image.isDefault)?.src || miniPreviewSrc} alt="Personalised garment preview" className="absolute inset-0 h-full w-full object-contain" />
-                )}
-                {!missingInitialsTemplate && <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={configuredInitialsArea?.imageSrc
-                  ? {left:configuredInitialsArea.x+'%',top:configuredInitialsArea.y+'%',width:(configuredInitialsArea.width??30)+'%',height:(configuredInitialsArea.height??12)+'%'}
-                  : {left:'27%',top:'40%',width:'46%',height:'18%'}}>
-                  <span className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:configuredInitialsArea?.imageSrc ? (configuredInitialsArea.fontSize*0.27)+'cqw':'9cqw',color:configuredInitialsArea?.color ?? '#16223a'}}>{personalization}</span>
-                </div>}
-              </div>
-              <p className="mt-3 text-center text-xs text-gray-500">Illustrative preview · Final print may vary</p>
-              <p className="mt-3 break-words text-center text-lg font-black">{personalization}</p>
-            </div>
-            <footer className="flex shrink-0 gap-3 border-t border-gray-100 bg-white px-5 py-4">
-              <button type="button" className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-bold" onClick={() => {setPersonalizationDraft(personalization);setPersonalizationReviewOpen(false);setPersonalizationModalOpen(true);}}>Edit</button>
-              <button type="button" className="min-w-0 flex-1 rounded-xl bg-navy-800 px-4 py-3 text-sm font-bold text-white" onClick={() => {setPersonalizationReviewOpen(false);setBasketOptionsOpen(true);}}>Confirm &amp; choose size</button>
+              <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
+              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setBasketOptionsOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Apply personalisation</button>
             </footer>
           </section>
         </div>
