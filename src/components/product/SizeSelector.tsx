@@ -29,9 +29,6 @@ export function SizeSelector({
           )}
         </div>
       )}
-      {hideLabel && selected && (
-        <span className="text-xs font-semibold text-navy-800">{selected}</span>
-      )}
       <div className="flex flex-wrap gap-2">
         {sizes.map((size) => {
           const isUnavailable = unavailable.includes(size);
