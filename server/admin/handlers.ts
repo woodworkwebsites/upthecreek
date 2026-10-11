@@ -1115,6 +1115,7 @@ export async function handleUpdateProduct(
     isEnabled?: boolean;
     personalizationEnabled?: boolean;
     personalizationType?: 'initials' | 'name' | 'free';
+  initialsPlacements?: Record<string, {x:number;y:number;fontSize:number;color:string}>;
     checkSizing?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: unknown;
@@ -1239,6 +1240,7 @@ export async function handleUpdateProduct(
     personalizationEnabled: body.personalizationEnabled,
     personalizationType: body.personalizationType,
     checkSizing: body.checkSizing,
+    initialsPlacements: body.initialsPlacements,
     sizeGuideImage,
     hiddenColors: body.hiddenColors !== undefined ? normalizeHiddenColors(body.hiddenColors) : undefined,
   });
