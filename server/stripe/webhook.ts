@@ -226,7 +226,8 @@ export async function processCompletedSession(
       size:       variant.size,
       quantity:   compact.qty,
       unitPrice:  variant.price,
-      personalization: personalizations.get(itemIndex) ?? '',
+      personalization: personalizations.get(itemIndex)?.text ?? '',
+      personalizationType: personalizations.get(itemIndex)?.type ?? '',
     });
 
     lineItems.push({
