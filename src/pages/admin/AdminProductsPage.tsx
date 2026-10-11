@@ -476,6 +476,7 @@ function ProductRow({
   const [checkSizing,setCheckSizing]=useState(product.checkSizing === true);
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
   const [personalizationEnabled, setPersonalizationEnabled] = useState(product.personalizationEnabled);
+  const [personalizationType,setPersonalizationType]=useState<'initials'|'name'|'free'>(product.personalizationType ?? 'free');
   const [sizeGuideUploadFile, setSizeGuideUploadFile] = useState<File | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [imageUploadFiles, setImageUploadFiles] = useState<File[]>([]);
@@ -519,6 +520,7 @@ function ProductRow({
     setCheckSizing(product.checkSizing === true);
     setIsEnabled(product.isEnabled);
     setPersonalizationEnabled(product.personalizationEnabled);
+    setPersonalizationType(product.personalizationType ?? 'free');
     setImages(product.images);
   }, [product, ranges]);
 
@@ -775,6 +777,7 @@ function ProductRow({
     || isEnabled !== product.isEnabled
     || checkSizing !== (product.checkSizing === true)
     || personalizationEnabled !== product.personalizationEnabled
+    || personalizationType !== (product.personalizationType ?? 'free')
     || currentPricingSignature !== originalPricingSignature
     || currentSizeSignature !== originalSizeSignature
     || currentColorSignature !== originalColorSignature
@@ -816,6 +819,7 @@ function ProductRow({
         hiddenColors: [],
         isEnabled,
         personalizationEnabled,
+        personalizationType,
       });
       setSaved(true);
       if (closeDetails) {
@@ -994,6 +998,13 @@ function ProductRow({
                         <span className="mt-0.5 block text-[10px] text-gray-500 dark:text-gray-400">Show a customer input on the product page</span>
                       </span>
                     </label>
+                    {personalizationEnabled && <label className="mt-2 block text-xs font-semibold text-gray-800 dark:text-gray-100">Personalisation type
+                      <select value={personalizationType} onChange={e=>setPersonalizationType(e.target.value as 'initials'|'name'|'free')} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white">
+                        <option value="initials">Initials — 3 characters</option>
+                        <option value="name">Name — 20 characters</option>
+                        <option value="free">Free Text — 56 characters</option>
+                      </select>
+                    </label>}
                   </div>
                 </div>
 
