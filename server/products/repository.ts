@@ -219,6 +219,7 @@ interface ProductMetadata {
   colors?: PrintifyColor[];
   personalizationEnabled?: boolean;
   personalizationType?: 'initials' | 'name' | 'free';
+  initialsPlacements?: Record<string, {x:number;y:number;fontSize:number;color:string}>;
   checkSizing?: boolean;
 }
 
@@ -239,6 +240,7 @@ function parseProductMetadata(rawCategory: string | null | undefined): ProductMe
       garment: typeof metadata.garment === 'string' ? metadata.garment : undefined,
       personalizationEnabled: metadata.personalizationEnabled === true,
       personalizationType: metadata.personalizationType === 'initials' || metadata.personalizationType === 'name' ? metadata.personalizationType : 'free',
+      initialsPlacements: metadata.initialsPlacements && typeof metadata.initialsPlacements === 'object' && !Array.isArray(metadata.initialsPlacements) ? metadata.initialsPlacements as ProductMetadata['initialsPlacements'] : {},
       checkSizing: metadata.checkSizing === true,
       pricingMatrix: parseJsonObject<PricingMatrixRow>(
         typeof metadata.pricingMatrix === 'string'
@@ -267,6 +269,7 @@ function serializeProductMetadata(metadata: ProductMetadata): string {
   if (metadata.garment !== undefined) payload.garment = metadata.garment;
   if (metadata.personalizationEnabled !== undefined) payload.personalizationEnabled = metadata.personalizationEnabled;
   if (metadata.personalizationType !== undefined) payload.personalizationType = metadata.personalizationType;
+  if (metadata.initialsPlacements !== undefined) payload.initialsPlacements = metadata.initialsPlacements;
   if (metadata.checkSizing !== undefined) payload.checkSizing = metadata.checkSizing;
   if (metadata.pricingMatrix !== undefined) payload.pricingMatrix = metadata.pricingMatrix;
   if (metadata.colors !== undefined) payload.colors = metadata.colors;
@@ -283,6 +286,7 @@ function mergeProductMetadata(existingCategory: string | null | undefined, field
     garment: fields.garment ?? current.garment,
     personalizationEnabled: fields.personalizationEnabled !== undefined ? fields.personalizationEnabled : current.personalizationEnabled,
     personalizationType: fields.personalizationType !== undefined ? fields.personalizationType : current.personalizationType,
+    initialsPlacements: fields.initialsPlacements !== undefined ? fields.initialsPlacements : current.initialsPlacements,
     checkSizing: fields.checkSizing !== undefined ? fields.checkSizing : current.checkSizing,
     pricingMatrix: fields.pricingMatrix !== undefined ? fields.pricingMatrix : current.pricingMatrix,
     colors: fields.colors !== undefined ? fields.colors : current.colors,
@@ -380,6 +384,7 @@ function parseProduct(row: ProductRow, view: 'public' | 'admin' = 'public'): Pro
     isEnabled:      row.is_enabled === 1,
     personalizationEnabled: categoryMetadata.personalizationEnabled === true,
     personalizationType: categoryMetadata.personalizationType ?? 'free',
+    initialsPlacements: categoryMetadata.initialsPlacements ?? {},
     checkSizing: categoryMetadata.checkSizing === true,
     sizeGuideImage: row.size_guide_image ?? null,
     syncedAt:       row.synced_at,
@@ -633,6 +638,7 @@ export interface UpdateProductFields {
   isEnabled?: boolean;
   personalizationEnabled?: boolean;
   personalizationType?: 'initials' | 'name' | 'free';
+  initialsPlacements?: Record<string, {x:number;y:number;fontSize:number;color:string}>;
   checkSizing?: boolean;
   sizeGuideImage?: string | null;
   hiddenColors?: string[];
@@ -681,7 +687,8 @@ export async function updateProductFields(
     fields.colors !== undefined ||
     fields.personalizationEnabled !== undefined ||
     fields.personalizationType !== undefined ||
-    fields.checkSizing !== undefined
+    fields.checkSizing !== undefined ||
+    fields.initialsPlacements !== undefined
   );
 
   const nextCategory = setCategoryMetadata
@@ -693,6 +700,7 @@ export async function updateProductFields(
         personalizationEnabled: fields.personalizationEnabled,
         personalizationType: fields.personalizationType,
         checkSizing: fields.checkSizing,
+        initialsPlacements: fields.initialsPlacements,
         pricingMatrix: fields.pricingMatrix,
         colors: fields.colors !== undefined ? nextColors : undefined,
       })
