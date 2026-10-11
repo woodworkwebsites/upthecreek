@@ -119,7 +119,7 @@ export function ProductCard({ product, priceLabel, toPrefix = '/product', showPa
             {priceLabel ? `${priceLabel} ` : ''}{formatPriceRange(product.minPrice, product.maxPrice)}
           </p>
         )}
-        {displayColors.length > 0 && (
+        {!showPartnerMargins && displayColors.length > 0 && (
           <div className="flex items-center gap-1.5 pt-1.5">
             {displayColors.slice(0, 7).map((c) => (
               <span
