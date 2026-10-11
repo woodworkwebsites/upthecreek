@@ -868,9 +868,9 @@ function ProductRow({
   }
 
   const activePlacement = initialsPlacements[placementColor] ?? {x:35,y:35,width:30,height:12,fontSize:38,color:'#ffffff'};
-  const placementImage = images.find(i=>i.color===placementColor && i.isDefault) ?? images.find(i=>i.color===placementColor) ?? img;
-  function updatePlacement(partial: Partial<{x:number;y:number;width:number;height:number;fontSize:number;color:string}>) {
-    setInitialsPlacements(previous=>({...previous,[placementColor]:{...(previous[placementColor] ?? {x:35,y:35,width:30,height:12,fontSize:38,color:'#ffffff'}),...partial}}));
+  const placementImage = images.find(i=>i.src===activePlacement.imageSrc) ?? images.find(i=>i.color===placementColor && i.isDefault) ?? images.find(i=>i.color===placementColor) ?? img;
+  function updatePlacement(partial: Partial<{x:number;y:number;width:number;height:number;fontSize:number;color:string;imageSrc:string}>) {
+    setInitialsPlacements(previous=>({...previous,[placementColor]:{...(previous[placementColor] ?? {x:35,y:35,width:30,height:12,fontSize:38,color:'#ffffff'}),imageSrc:previous[placementColor]?.imageSrc ?? placementImage?.src,...partial}}));
   }
   function positionArea(event: PointerEvent<HTMLDivElement>) {
     const bounds=event.currentTarget.getBoundingClientRect();
@@ -887,6 +887,11 @@ function ProductRow({
             <label className="block text-sm font-semibold">Garment colour
               <select value={placementColor} onChange={e=>setPlacementColor(e.target.value)} className="mt-1 w-full rounded-lg border p-2">
                 {product.colors.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
+              </select>
+            </label>
+            <label className="block text-sm font-semibold">Preview garment image
+              <select value={placementImage?.src ?? ''} onChange={e=>updatePlacement({imageSrc:e.target.value})} className="mt-1 w-full rounded-lg border p-2">
+                {images.filter(i=>i.color===placementColor).map((image,index)=><option key={image.src} value={image.src}>{image.color} · Image {index+1}{image.isDefault?' (default)':''}</option>)}
               </select>
             </label>
             <div onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);positionArea(e);}} onPointerMove={e=>{if(e.buttons===1)positionArea(e);}} className="relative mx-auto w-full max-w-sm touch-none overflow-hidden rounded-xl border bg-gray-100" style={{aspectRatio:'1',containerType:"inline-size"}}>
