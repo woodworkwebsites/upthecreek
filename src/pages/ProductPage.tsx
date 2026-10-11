@@ -63,6 +63,7 @@ export default function ProductPage({
   const [personalization, setPersonalization] = useState('');
   const [personalizationDraft,setPersonalizationDraft]=useState('');
   const [personalizationModalOpen,setPersonalizationModalOpen]=useState(false);
+  const [previewActivation,setPreviewActivation]=useState(0);
   const [basketMessage, setBasketMessage] = useState<string | null>(null);
   const [basketOptionsOpen, setBasketOptionsOpen] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
@@ -275,6 +276,7 @@ export default function ProductPage({
                 personalizationEnabled={product.personalizationEnabled}
                 initialsPlacement={configuredInitialsArea?.imageSrc ? configuredInitialsArea : undefined}
                 personalizationText={personalization}
+                previewActivation={previewActivation}
                 title={product.title}
                 priceLabel={!selectedVariant && product.minPrice !== product.maxPrice ? `From ${displayPrice}` : displayPrice}
               />
@@ -498,7 +500,7 @@ export default function ProductPage({
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
               <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationModalOpen(false);setBasketOptionsOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Apply personalisation</button>
+              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setBasketOptionsOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Apply personalisation</button>
             </footer>
           </section>
         </div>
