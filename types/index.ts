@@ -528,6 +528,8 @@ export interface CheckoutItem {
 }
 
 export interface BasketItem extends CheckoutItem {
+  personalizationFee?: number;
+  initialsPlacement?: {x:number;y:number;width?:number;height?:number;fontSize:number;color:string};
   id: string;
   title: string;
   color: string;
