@@ -866,14 +866,15 @@ function ProductRow({
     }
   }
 
-  const activePlacement = initialsPlacements[placementColor] ?? {x:50,y:48,fontSize:38,color:'#ffffff'};
+  const activePlacement = initialsPlacements[placementColor] ?? {x:35,y:35,width:30,height:12,fontSize:38,color:'#ffffff'};
   const placementImage = images.find(i=>i.color===placementColor && i.isDefault) ?? images.find(i=>i.color===placementColor) ?? img;
-  function updatePlacement(partial: Partial<{x:number;y:number;fontSize:number;color:string}>) {
-    setInitialsPlacements(previous=>({...previous,[placementColor]:{...(previous[placementColor] ?? {x:50,y:48,fontSize:38,color:'#ffffff'}),...partial}}));
+  function updatePlacement(partial: Partial<{x:number;y:number;width:number;height:number;fontSize:number;color:string}>) {
+    setInitialsPlacements(previous=>({...previous,[placementColor]:{...(previous[placementColor] ?? {x:35,y:35,width:30,height:12,fontSize:38,color:'#ffffff'}),...partial}}));
   }
-  function positionInitials(event: PointerEvent<HTMLDivElement>) {
+  function positionArea(event: PointerEvent<HTMLDivElement>) {
     const bounds=event.currentTarget.getBoundingClientRect();
-    updatePlacement({x:Math.round(Math.max(0,Math.min(100,(event.clientX-bounds.left)/bounds.width*100))),y:Math.round(Math.max(0,Math.min(100,(event.clientY-bounds.top)/bounds.height*100)))});
+    const width=activePlacement.width ?? 30,height=activePlacement.height ?? 12;
+    updatePlacement({x:Math.round(Math.max(0,Math.min(100-width,(event.clientX-bounds.left)/bounds.width*100-width/2))),y:Math.round(Math.max(0,Math.min(100-height,(event.clientY-bounds.top)/bounds.height*100-height/2)))});
   }
 
   return (
@@ -887,12 +888,20 @@ function ProductRow({
                 {product.colors.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
               </select>
             </label>
-            <div onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);positionInitials(e);}} onPointerMove={e=>{if(e.buttons===1)positionInitials(e);}} className="relative mx-auto w-full max-w-sm touch-none overflow-hidden rounded-xl border bg-gray-100" style={{aspectRatio:'1'}}>
+            <div onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);positionArea(e);}} onPointerMove={e=>{if(e.buttons===1)positionArea(e);}} className="relative mx-auto w-full max-w-sm touch-none overflow-hidden rounded-xl border bg-gray-100" style={{aspectRatio:'1'}}>
               {placementImage && <img src={placementImage.src} alt="Garment placement" className="h-full w-full object-contain" draggable={false}/>}
-              <span className="pointer-events-none absolute whitespace-nowrap leading-none" style={{left:activePlacement.x+'%',top:activePlacement.y+'%',transform:'translate(-50%,-50%)',fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:activePlacement.fontSize+'px',color:activePlacement.color}}>ABC</span>
+              <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden border-2 border-dashed border-lime-400 bg-lime-300/10" style={{left:activePlacement.x+'%',top:activePlacement.y+'%',width:(activePlacement.width??30)+'%',height:(activePlacement.height??12)+'%'}}>
+                <span className="max-w-full whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:'min('+activePlacement.fontSize+'px, 9vw)',color:activePlacement.color}}>ABC</span>
+              </div>
             </div>
-            <p className="text-xs text-gray-500">Drag or tap on the garment to position the sample initials.</p>
-            <label className="block text-sm font-semibold">Font size: {activePlacement.fontSize}px
+            <p className="text-xs text-gray-500">Drag to position the print area. Adjust its width and height below.</p>
+            <label className="block text-sm font-semibold">Print area width: {activePlacement.width??30}%
+              <input type="range" min="10" max="80" value={activePlacement.width??30} onChange={e=>updatePlacement({width:Number(e.target.value),x:Math.min(activePlacement.x,100-Number(e.target.value))})} className="mt-2 w-full"/>
+            </label>
+            <label className="block text-sm font-semibold">Print area height: {activePlacement.height??12}%
+              <input type="range" min="5" max="50" value={activePlacement.height??12} onChange={e=>updatePlacement({height:Number(e.target.value),y:Math.min(activePlacement.y,100-Number(e.target.value))})} className="mt-2 w-full"/>
+            </label>
+            <label className="block text-sm font-semibold">Maximum font size: {activePlacement.fontSize}px
               <input type="range" min="12" max="90" value={activePlacement.fontSize} onChange={e=>updatePlacement({fontSize:Number(e.target.value)})} className="mt-2 w-full"/>
             </label>
             <label className="flex items-center gap-3 text-sm font-semibold">Initials colour
