@@ -3,6 +3,21 @@ import { useState, useEffect, useRef } from 'react';
 import type { PrintifyProductImage } from '../../../types/index.js';
 import { cn } from '../../lib/utils.js';
 
+export interface PersonalisationPlacement {x:number;y:number;width?:number;height?:number;fontSize:number;color:string;imageSrc?:string}
+
+// The admin coordinates are defined against a square object-contain canvas.
+// Reuse this canvas on the product page, gallery slide and review sheet.
+export function PersonalisationCanvas({src, text, placement, title}: {src:string; text:string; placement?:PersonalisationPlacement; title:string}) {
+  return (
+    <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full overflow-hidden bg-white" style={{containerType:'inline-size'}}>
+      <img src={src} alt={title} className="absolute inset-0 h-full w-full object-contain" />
+      {placement && <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={{left:placement.x+'%',top:placement.y+'%',width:(placement.width??30)+'%',height:(placement.height??12)+'%'}}>
+        <span className="max-w-full whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(placement.fontSize*.27)+'cqw',color:placement.color}}>{text || 'ABC'}</span>
+      </div>}
+    </div>
+  );
+}
+
 interface ImageGalleryProps {
   images: PrintifyProductImage[];
   activeVariantIds?: number[];
@@ -57,8 +72,8 @@ export function ImageGallery({
     ? [defaultImage, ...imageSource.filter((image) => image !== defaultImage)]
     : imageSource;
 
-  const configuredImage=initialsPlacement?.imageSrc ? images.find(image=>image.src===initialsPlacement.imageSrc) : undefined;
-  const hasPreview=Boolean(personalizationEnabled && configuredImage && initialsPlacement);
+  const configuredImageSrc = initialsPlacement?.imageSrc || '';
+  const hasPreview=Boolean(personalizationEnabled && configuredImageSrc && initialsPlacement);
   const previewIndex=displayImages.length;
   const totalImages=displayImages.length+(hasPreview?1:0);
   const showingPreview=hasPreview && activeIndex===previewIndex;
@@ -101,8 +116,8 @@ export function ImageGallery({
     else        setActiveIndex((i) => Math.max(i - 1, 0));
   }
 
-  const current = (showingPreview ? configuredImage : displayImages[activeIndex]) ?? displayImages[0];
-  if (!current) {
+  const current = displayImages[activeIndex] ?? displayImages[0];
+  if (!current && !showingPreview) {
     return (
       <div className="aspect-[3/4] w-full rounded-2xl bg-gray-100 flex items-center justify-center">
         <span className="text-gray-400 text-sm">No image</span>
@@ -119,13 +134,11 @@ export function ImageGallery({
         onTouchEnd={handleTouchEnd}
       >
         <div className="relative min-h-0 flex-1 overflow-hidden" style={{containerType:"inline-size"}}>
-          <img
-            src={current.src}
-            alt={title}
-            className="h-full w-full object-contain object-center transition-opacity duration-200"
-            loading="eager"
-          />
-          {showingPreview && initialsPlacement && <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={{left:initialsPlacement.x+'%',top:initialsPlacement.y+'%',width:(initialsPlacement.width??30)+'%',height:(initialsPlacement.height??12)+'%'}}><span className="whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(initialsPlacement.fontSize*0.27)+'cqw',color:initialsPlacement.color}}>{personalizationText || 'ABC'}</span></div>}
+          {showingPreview ? (
+            <PersonalisationCanvas src={configuredImageSrc} text={personalizationText} placement={initialsPlacement} title={title+' personalised preview'} />
+          ) : (
+            <img src={current!.src} alt={title} className="h-full w-full object-contain object-center transition-opacity duration-200" loading="eager" />
+          )}
           {personalizationEnabled && (
             <span className="absolute left-3 top-3 z-10 rounded-full bg-navy-800 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-md sm:left-4 sm:top-4 sm:px-3.5 sm:text-xs">
               Personalise This
@@ -197,7 +210,7 @@ export function ImageGallery({
               />
             </button>
           ))}
-          {hasPreview && <button type="button" onClick={()=>setActiveIndex(previewIndex)} className={cn('relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-xl border-2',showingPreview?'border-navy-800':'border-transparent opacity-70')} aria-label="View initials preview"><img src={configuredImage!.src} alt="Initials preview" className="h-full w-full object-contain bg-white"/><div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={{left:initialsPlacement!.x+'%',top:initialsPlacement!.y+'%',width:(initialsPlacement!.width??30)+'%',height:(initialsPlacement!.height??12)+'%',containerType:'inline-size'}}><span className="whitespace-nowrap leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(initialsPlacement!.fontSize*.27)+'cqw',color:initialsPlacement!.color}}>{personalizationText||'ABC'}</span></div></button>}
+          {hasPreview && <button type="button" onClick={()=>setActiveIndex(previewIndex)} className={cn('relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-xl border-2',showingPreview?'border-navy-800':'border-transparent opacity-70')} aria-label="View initials preview"><PersonalisationCanvas src={configuredImageSrc} text={personalizationText} placement={initialsPlacement} title="Initials preview"/></button>}
         </div>
       )}
     </div>
