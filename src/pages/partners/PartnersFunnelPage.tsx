@@ -76,7 +76,7 @@ export default function PartnersFunnelPage() {
 
           </div>
 
-        <div className="relative left-1/2 mt-5 w-screen -translate-x-1/2 border-y border-gray-200 bg-[linear-gradient(180deg,_#f7f3eb_0%,_#efe7db_100%)] p-3 sm:p-4">
+        <div className="relative left-1/2 mt-5 w-screen -translate-x-1/2 border-y border-gray-200 bg-[linear-gradient(180deg,_#f7f3eb_0%,_#efe7db_100%)] px-3 py-2 sm:px-4 sm:py-3">
               {loading ? (
                 <div className="flex gap-3 overflow-x-auto">
                   {Array.from({ length: 4 }).map((_, index) => (
