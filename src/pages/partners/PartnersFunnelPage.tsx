@@ -70,7 +70,7 @@ export default function PartnersFunnelPage() {
             <img src="/Wordmark_White.png?v=dfc90b8" alt="Up the Creek Padel — padel apparel" className="h-[84px] w-auto max-w-full object-contain sm:h-[84px] lg:h-[96px]" />
           </div>
 
-          <div className="mx-auto max-w-4xl pt-10 text-center animate-fade-up sm:pt-14">
+          <div className="mx-auto max-w-4xl pt-2 text-center animate-fade-up sm:pt-14">
             <p className="label text-white/60">Partner programme</p>
             <NavLink to="/partners/login" className="mx-auto mt-4 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-5 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md sm:hidden">
               Partner login
