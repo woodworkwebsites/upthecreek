@@ -11,7 +11,7 @@ const facts = [
   {
     label: 'Commission',
     value: '10%',
-    detail: 'Earn on attributed online orders.',
+    detail: 'On all online orders that use your club’s referral code',
   },
   {
     label: 'Online sales',
