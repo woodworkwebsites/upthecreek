@@ -381,7 +381,6 @@ export default function ProductPage({
             <div className="mt-6 flex items-center justify-between gap-3">
               <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Size</span>
               <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-                {product.checkSizing && <span className="text-xs font-semibold text-navy-800">These garments come up large - check your size →</span>}
               {product.sizeGuideImage && (
                 <button
                   type="button"
@@ -394,7 +393,7 @@ export default function ProductPage({
               </div>
             </div>
             <div className="mt-3">
-              <SizeSelector sizes={product.sizes} selected={selectedSize} onSelect={setSelectedSize} hideLabel />
+              <SizeSelector sizes={product.sizes} selected={selectedSize} onSelect={setSelectedSize} hideLabel warning={product.checkSizing ? 'These garments come up large - check the size guide' : undefined} />
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-4">
