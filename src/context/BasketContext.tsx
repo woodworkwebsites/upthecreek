@@ -14,7 +14,7 @@ interface AddToBasketInput {
   imageSrc: string;
   personalization?: string;
   personalizationFee?: number;
-  initialsPlacement?: {x:number;y:number;width?:number;height?:number;fontSize:number;color:string};
+  initialsPlacement?: {x:number;y:number;width?:number;height?:number;fontSize:number;color:string;imageSrc?:string};
 }
 
 interface BasketContextValue {
