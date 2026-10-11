@@ -105,8 +105,8 @@ export function ProductCard({ product, priceLabel, toPrefix = '/product', showPa
         {showPartnerMargins ? (
           <div className="space-y-1.5 pt-1">
             <div className="flex flex-wrap gap-1.5">
-              <span className="inline-flex items-center rounded-full bg-emerald-700 px-2.5 py-1 text-xs font-bold text-white">{formatPrice(partnerPrice)} partner</span>
               <span className="inline-flex items-center rounded-full bg-gray-700 px-2.5 py-1 text-xs font-bold text-white">{formatPrice(rrp)} RRP</span>
+              <span className="inline-flex items-center rounded-full bg-emerald-700 px-2.5 py-1 text-xs font-bold text-white">{formatPrice(partnerPrice)} partner</span>
               <span className="inline-flex items-center rounded-full bg-sky-700 px-2.5 py-1 text-xs font-bold text-white">{formatPrice(margin)} Margin</span>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
