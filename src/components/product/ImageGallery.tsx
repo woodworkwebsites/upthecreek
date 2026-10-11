@@ -9,6 +9,8 @@ interface ImageGalleryProps {
   selectedColor?: string | null;
   previewTriggerRef?: RefObject<HTMLDivElement | null>;
   personalizationEnabled?: boolean;
+  personalizationText?: string;
+  initialsPlacement?: {x:number;y:number;width?:number;height?:number;fontSize:number;color:string};
   title: string;
   priceLabel: string;
 }
@@ -19,6 +21,8 @@ export function ImageGallery({
   selectedColor,
   previewTriggerRef,
   personalizationEnabled = false,
+  personalizationText = '',
+  initialsPlacement,
   title,
   priceLabel,
 }: ImageGalleryProps) {
@@ -56,17 +60,17 @@ export function ImageGallery({
   }, [activeVariantIds, selectedColor]);
 
   useEffect(() => {
-    if (activeIndex >= displayImages.length) {
+    if (activeIndex >= displayImages.length + (hasPreview ? 1 : 0)) {
       setActiveIndex(0);
     }
-  }, [activeIndex, displayImages.length]);
+  }, [activeIndex, displayImages.length, hasPreview]);
 
   function goPrevious() {
-    setActiveIndex((index) => (index - 1 + displayImages.length) % displayImages.length);
+    setActiveIndex((index) => (index - 1 + totalImages) % totalImages);
   }
 
   function goNext() {
-    setActiveIndex((index) => (index + 1) % displayImages.length);
+    setActiveIndex((index) => (index + 1) % totalImages);
   }
 
   function handleTouchStart(e: React.TouchEvent) {
@@ -78,11 +82,15 @@ export function ImageGallery({
     const dx = touchStartX.current - e.changedTouches[0].clientX;
     const dy = touchStartY.current - e.changedTouches[0].clientY;
     if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
-    if (dx > 0) setActiveIndex((i) => Math.min(i + 1, displayImages.length - 1));
+    if (dx > 0) setActiveIndex((i) => Math.min(i + 1, totalImages - 1));
     else        setActiveIndex((i) => Math.max(i - 1, 0));
   }
 
-  const current = displayImages[activeIndex] ?? displayImages[0];
+  const hasPreview=Boolean(personalizationEnabled && initialsPlacement && displayImages.length);
+  const previewIndex=displayImages.length;
+  const totalImages=displayImages.length+(hasPreview?1:0);
+  const showingPreview=hasPreview && activeIndex===previewIndex;
+  const current = displayImages[showingPreview?0:activeIndex] ?? displayImages[0];
   if (!current) {
     return (
       <div className="aspect-[3/4] w-full rounded-2xl bg-gray-100 flex items-center justify-center">
@@ -106,12 +114,13 @@ export function ImageGallery({
             className="h-full w-full object-contain object-center transition-opacity duration-200"
             loading="eager"
           />
+          {showingPreview && initialsPlacement && <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={{left:initialsPlacement.x+'%',top:initialsPlacement.y+'%',width:(initialsPlacement.width??30)+'%',height:(initialsPlacement.height??12)+'%'}}><span className="whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:'min('+initialsPlacement.fontSize+'px, 8vw)',color:initialsPlacement.color}}>{personalizationText || 'ABC'}</span></div>}
           {personalizationEnabled && (
             <span className="absolute left-3 top-3 z-10 rounded-full bg-navy-800 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-md sm:left-4 sm:top-4 sm:px-3.5 sm:text-xs">
               Personalise This
             </span>
           )}
-          {displayImages.length > 1 && (
+          {totalImages > 1 && (
             <>
               <button
                 type="button"
@@ -134,7 +143,7 @@ export function ImageGallery({
           {/* Dot indicators — mobile only */}
           {displayImages.length > 1 && (
             <div className="lg:hidden absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-              {displayImages.map((_, i) => (
+              {Array.from({length:totalImages},(_,i) => (
                 <button
                   key={i}
                   onClick={() => setActiveIndex(i)}
@@ -155,7 +164,7 @@ export function ImageGallery({
         <div ref={previewTriggerRef} aria-hidden className="absolute left-0 top-0 h-px w-px" />
       </div>
 
-      {displayImages.length > 1 && (
+      {totalImages > 1 && (
         <div aria-label="Product images" className="absolute inset-y-0 right-0 flex min-h-0 w-16 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain pb-1 touch-pan-y sm:w-[4.75rem] lg:w-[5.5rem]">
           {displayImages.map((img, i) => (
             <button
@@ -177,6 +186,7 @@ export function ImageGallery({
               />
             </button>
           ))}
+          {hasPreview && <button type="button" onClick={()=>setActiveIndex(previewIndex)} className={cn('relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-xl border-2',showingPreview?'border-navy-800':'border-transparent opacity-70')} aria-label="View initials preview"><img src={displayImages[0].src} alt="Initials preview" className="h-full w-full object-contain bg-white"/><span className="absolute bottom-0 inset-x-0 bg-navy-800 px-1 text-center text-[9px] font-bold text-white">ABC</span></button>}
         </div>
       )}
     </div>
