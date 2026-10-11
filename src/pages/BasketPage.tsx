@@ -236,7 +236,7 @@ export default function BasketPage() {
                 <input
                   type="text"
                   value={discountCode}
-                  onChange={(e) => setDiscountCode(e.target.value)}
+                  onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
                   placeholder="Enter code"
                   className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-navy-800 outline-none transition-colors placeholder:text-gray-300 focus:border-navy-800"
                 />
