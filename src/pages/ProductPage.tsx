@@ -189,8 +189,8 @@ export default function ProductPage({
   const isHook = /hook/i.test([product.productType,product.garment].join(' '));
   const personalizationLimit = product.personalizationType==='initials'?3:product.personalizationType==='name'?20:56;
   const displayPrice = selectedVariant
-    ? formatPrice(selectedVariant.price)
-    : formatPrice(product.minPrice);
+    ? formatPrice(selectedVariant.price + (personalization.trim() && !isHook ? 500 : 0))
+    : formatPrice(product.minPrice + (personalization.trim() && !isHook ? 500 : 0));
 
   const canBuy = !!selectedVariant && quantity >= 1;
 
