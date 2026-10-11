@@ -432,41 +432,49 @@ export default function ProductPage({
       )}
 
       {personalizationModalOpen && product.personalizationEnabled && (
-        <div className="fixed inset-0 z-[65] flex items-center justify-center bg-navy-900/70 p-3 sm:p-6" onClick={()=>setPersonalizationModalOpen(false)}>
-          <div role="dialog" aria-modal="true" aria-label="Personalise this product" className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white text-navy-800 shadow-2xl" onClick={e=>e.stopPropagation()}>
-            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-4">
-              <h2 className="text-lg font-black">Personalise This</h2>
-              <button type="button" aria-label="Close personalisation" onClick={()=>setPersonalizationModalOpen(false)} className="text-2xl text-navy-800">×</button>
-            </div>
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-              <p className="text-sm text-gray-600">{product.personalizationType==='initials'?'Initials · 3 characters max':product.personalizationType==='name'?'Name · 20 characters max':'Free text · 56 characters max'}{!isHook?' · £5 additional charge':''}</p>
-              <label className="block text-sm font-bold">
-                Your {product.personalizationType==='initials'?'initials':product.personalizationType==='name'?'name':'text'}
-                <textarea value={personalizationDraft} onChange={e=>setPersonalizationDraft(e.target.value.slice(0,personalizationLimit))} maxLength={personalizationLimit} rows={product.personalizationType==='free'?3:1} placeholder={product.personalizationType==='initials'?'Enter up to 3 initials':product.personalizationType==='name'?'Enter a name':'Enter your text'} className="mt-2 block w-full resize-none rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-navy-800 focus:border-navy-800 focus:outline-none"/>
+        <div className="fixed inset-0 z-[65] flex items-end justify-center bg-navy-900/75 sm:items-center sm:p-5" onClick={()=>setPersonalizationModalOpen(false)}>
+          <section role="dialog" aria-modal="true" aria-label="Personalise this product" className="flex max-h-[96dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white text-navy-800 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl" onClick={e=>e.stopPropagation()}>
+            <header className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4">
+              <div>
+                <h2 className="text-xl font-black">Personalise This</h2>
+                <p className="mt-0.5 text-xs font-medium text-gray-500">{product.personalizationType==='initials'?'Up to 3 initials':product.personalizationType==='name'?'Name · 20 characters':'Free text · 56 characters'}{!isHook?' · +£5':''}</p>
+              </div>
+              <button type="button" aria-label="Close personalisation" onClick={()=>setPersonalizationModalOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xl text-navy-800">×</button>
+            </header>
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
+              {(() => {
+                const normalizedColor=(selectedColor??'').trim().toLowerCase();
+                const previewImage=product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor && i.isDefault) ?? product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor) ?? product.images.find(i=>i.isDefault) ?? product.images[0];
+                const area=product.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===normalizedColor)?.[1] : undefined;
+                return (
+                  <div className="space-y-2">
+                    <div className="relative mx-auto aspect-square w-full max-w-[290px] overflow-hidden rounded-xl bg-gray-50">
+                      {previewImage?.src ? <img src={previewImage.src} alt={product.title+' in '+(selectedColor??'selected colour')} className="absolute inset-0 h-full w-full object-contain"/> : <div className="flex h-full items-center justify-center text-sm text-gray-500">Product image unavailable</div>}
+                      {area && previewImage?.src && (
+                        <div className="absolute flex items-center justify-center overflow-hidden" style={{left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}}>
+                          <span className="max-w-full whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:'min('+area.fontSize+'px, 8vw)',color:area.color}}>{personalizationDraft||'ABC'}</span>
+                        </div>
+                      )}
+                    </div>
+                    {product.personalizationType==='initials' && !area && <p className="text-center text-xs text-amber-800">Preview placement hasn't been configured for this colour yet.</p>}
+                    <p className="text-center text-[11px] text-gray-500">Illustrative preview · Final print may vary</p>
+                  </div>
+                );
+              })()}
+              <label className="block text-xs font-bold uppercase tracking-wide text-navy-800">
+                {product.personalizationType==='initials'?'Your initials':product.personalizationType==='name'?'Your name':'Your text'}
+                {product.personalizationType==='free' ?
+                  <textarea value={personalizationDraft} onChange={e=>setPersonalizationDraft(e.target.value.slice(0,personalizationLimit))} maxLength={personalizationLimit} rows={2} className="mt-2 block w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base font-semibold normal-case text-navy-800 outline-none focus:border-navy-800"/> :
+                  <input type="text" value={personalizationDraft} onChange={e=>setPersonalizationDraft(e.target.value.slice(0,personalizationLimit))} maxLength={personalizationLimit} placeholder={product.personalizationType==='initials'?'ABC':'Enter name'} className="mt-2 block w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base font-semibold normal-case text-navy-800 outline-none focus:border-navy-800"/>
+                }
               </label>
               <p className="text-right text-xs text-gray-500">{personalizationDraft.length}/{personalizationLimit}</p>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-center">
-                <p className="mb-4 text-xs font-bold uppercase tracking-widest text-gray-500">Personalisation preview</p>
-                {(() => {
-                  const previewImage = product.images.find(i=>i.color===selectedColor && i.isDefault) ?? product.images.find(i=>i.color===selectedColor) ?? product.images.find(i=>i.isDefault) ?? product.images[0];
-                  const area = product.personalizationType==='initials' ? product.initialsPlacements?.[selectedColor ?? ''] : undefined;
-                  return previewImage?.src ? (
-                    <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-lg bg-white" style={{aspectRatio:'1'}}>
-                      <img src={previewImage.src} alt={product.title+' personalisation preview'} className="absolute inset-0 h-full w-full object-contain"/>
-                      {area ? <div className="absolute flex items-center justify-center overflow-hidden" style={{left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}}>
-                        <span className="max-w-full whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:'min('+area.fontSize+'px, 9vw)',color:area.color}}>{personalizationDraft || 'ABC'}</span>
-                      </div> : <div className="absolute inset-x-4 bottom-3 rounded bg-white/90 px-3 py-2 text-center text-sm font-bold text-navy-800">{personalizationDraft || 'Your text here'}</div>}
-                    </div>
-                  ) : <div className="rounded-lg border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-600">No product image available for preview.</div>;
-                })()}
-                <p className="mt-3 text-xs text-gray-500">Preview is illustrative; final print may vary.</p>
-              </div>
             </div>
-            <div className="flex shrink-0 gap-2 border-t border-gray-200 bg-white p-4">
-              <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);}} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationModalOpen(false);}} className="flex-1 rounded-lg bg-navy-800 px-4 py-2 text-sm font-bold text-white">Apply personalisation</button>
-            </div>
-          </div>
+            <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
+              <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
+              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationModalOpen(false);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Apply personalisation</button>
+            </footer>
+          </section>
         </div>
       )}
       {/* ── Size guide modal ────────────────────────────────────── */}
