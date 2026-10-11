@@ -139,15 +139,9 @@ export function ImageGallery({
       >
         <div className="relative min-h-0 flex-1 overflow-hidden" style={{containerType:"inline-size"}}>
           {showingPreview ? (
-            <PersonalisationCanvas src={configuredImageSrc} text={personalizationText} placement={initialsPlacement} title={title+' personalised preview'} />
+            <PersonalisationCanvas src={configuredImageSrc} text="ABC" placement={initialsPlacement} title={title+' personalised preview'} />
           ) : (
             <img src={current!.src} alt={title} className="h-full w-full object-contain object-center transition-opacity duration-200" loading="eager" />
-          )}
-          {showingPreview && personalizationText.trim() && !personalisationConfirmed && onConfirmPersonalisation && (
-            <button type="button" onClick={onConfirmPersonalisation} className="absolute bottom-16 left-3 right-3 z-20 rounded-xl bg-navy-800 px-4 py-3 text-sm font-bold text-white shadow-lg sm:bottom-20">Confirm this personalisation</button>
-          )}
-          {showingPreview && personalizationText.trim() && personalisationConfirmed && (
-            <span className="absolute bottom-16 left-3 right-3 z-20 rounded-xl bg-white/95 px-4 py-2 text-center text-sm font-bold text-emerald-700 sm:bottom-20">Personalisation confirmed</span>
           )}
           {personalizationEnabled && (
             <span className="absolute left-3 top-3 z-10 rounded-full bg-navy-800 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-md sm:left-4 sm:top-4 sm:px-3.5 sm:text-xs">
@@ -220,7 +214,7 @@ export function ImageGallery({
               />
             </button>
           ))}
-          {hasPreview && <button type="button" onClick={()=>setActiveIndex(previewIndex)} className={cn('relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-xl border-2',showingPreview?'border-navy-800':'border-transparent opacity-70')} aria-label="View initials preview"><PersonalisationCanvas src={configuredImageSrc} text={personalizationText} placement={initialsPlacement} title="Initials preview"/></button>}
+          {hasPreview && <button type="button" onClick={()=>setActiveIndex(previewIndex)} className={cn('relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-xl border-2',showingPreview?'border-navy-800':'border-transparent opacity-70')} aria-label="View initials preview"><PersonalisationCanvas src={configuredImageSrc} text="ABC" placement={initialsPlacement} title="Initials preview"/></button>}
         </div>
       )}
     </div>
