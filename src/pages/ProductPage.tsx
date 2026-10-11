@@ -164,8 +164,9 @@ export default function ProductPage({
 
   const configuredInitialsArea = product?.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1] : undefined;
   const configuredInitialsImage = configuredInitialsArea?.imageSrc ?? '';
+  const validInitialsTemplate = product?.personalizationType !== 'initials' || Boolean(configuredInitialsArea?.imageSrc);
   function openBasketOptions() {
-    if (personalization.trim() && !personalizationConfirmed) { setPreviewActivation(v=>v+1); return; }
+    if (personalization.trim() && !personalizationConfirmed) { setBasketMessage('Confirm the personalisation shown in the gallery first.'); setPreviewActivation(v=>v+1); return; }
     setBasketMessage(null);
     setBasketOptionsOpen(true);
   }
@@ -303,6 +304,8 @@ export default function ProductPage({
               onSelect={(color) => {
                 setSelectedColor(color);
                 setSelectedSize(null);
+                setPersonalization('');
+                setPersonalizationDraft('');
                 setPersonalizationConfirmed(false);
               }}
             />
@@ -478,7 +481,8 @@ export default function ProductPage({
               <button type="button" aria-label="Close personalisation" onClick={()=>setPersonalizationModalOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xl text-navy-800">×</button>
             </header>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
-              <p className="text-sm text-gray-600">Enter your initials below. Your chosen garment template will appear in the product image carousel for confirmation.</p>
+              <p className="text-sm text-gray-600">Enter your personalisation below. Check its appearance on the product image carousel before confirming.</p>
+              {!validInitialsTemplate && <p role="alert" className="text-sm font-semibold text-amber-800">No garment template has been saved for this colour. The product needs an admin template before initials can be previewed.</p>}
               <label className="block text-xs font-bold uppercase tracking-wide text-navy-800">
                 {product.personalizationType==='initials'?'Your initials':product.personalizationType==='name'?'Your name':'Your text'}
                 {product.personalizationType==='free' ?
@@ -489,8 +493,8 @@ export default function ProductPage({
               <p className="text-right text-xs text-gray-500">{personalizationDraft.length}/{personalizationLimit}</p>
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
-              <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationConfirmed(false);setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Preview on product</button>
+              <button type="button" onClick={()=>{setPersonalization('');setPersonalizationDraft('');setPersonalizationConfirmed(false);setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
+              <button type="button" disabled={!validInitialsTemplate || !personalizationDraft.trim()} onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationConfirmed(false);setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Preview on product</button>
             </footer>
           </section>
         </div>
