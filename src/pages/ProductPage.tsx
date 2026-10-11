@@ -62,8 +62,10 @@ export default function ProductPage({
   const [quantity,      setQuantity]      = useState(1);
   const [personalization, setPersonalization] = useState('');
   const [personalizationDraft,setPersonalizationDraft]=useState('');
+  const [personalizationConfirmed,setPersonalizationConfirmed]=useState(false);
   const [personalizationModalOpen,setPersonalizationModalOpen]=useState(false);
   const [previewActivation,setPreviewActivation]=useState(0);
+  const gallerySectionRef = useRef<HTMLDivElement | null>(null);
   const [basketMessage, setBasketMessage] = useState<string | null>(null);
   const [basketOptionsOpen, setBasketOptionsOpen] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
@@ -163,13 +165,15 @@ export default function ProductPage({
 
   const configuredInitialsArea = product?.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1] : undefined;
   const configuredInitialsImage = configuredInitialsArea?.imageSrc ?? '';
+  const validInitialsTemplate = product?.personalizationType !== 'initials' || Boolean(configuredInitialsArea?.imageSrc);
   function openBasketOptions() {
+    if (product?.personalizationType === 'initials' && personalization.trim() && !personalizationConfirmed) { setBasketMessage('Confirm the personalisation shown in the gallery first.'); setPreviewActivation(v=>v+1); return; }
     setBasketMessage(null);
     setBasketOptionsOpen(true);
   }
 
   function handleAddToBasket() {
-    if (!product || !selectedVariant) return;
+    if (!product || !selectedVariant || (product.personalizationType === 'initials' && personalization.trim() && !personalizationConfirmed)) return;
     setBasketMessage(null);
     addToBasket({
       printifyId: product.printifyId,
@@ -266,7 +270,7 @@ export default function ProductPage({
         <div className="lg:grid lg:grid-cols-[minmax(0,1.1fr)_440px] xl:grid-cols-[minmax(0,1.15fr)_480px] lg:gap-12 xl:gap-16">
 
           {/* gallery — sticky on desktop */}
-          <div className="mb-3 lg:mb-0">
+          <div ref={gallerySectionRef} className="mb-3 scroll-mt-20 lg:mb-0">
             <div className="lg:sticky lg:top-24">
               <ImageGallery
                 images={product.images}
@@ -277,6 +281,8 @@ export default function ProductPage({
                 initialsPlacement={configuredInitialsArea?.imageSrc ? configuredInitialsArea : undefined}
                 personalizationText={personalization}
                 previewActivation={previewActivation}
+                personalisationConfirmed={personalizationConfirmed}
+                onConfirmPersonalisation={()=>{setPersonalizationConfirmed(true);setBasketOptionsOpen(true);}}
                 title={product.title}
                 priceLabel={!selectedVariant && product.minPrice !== product.maxPrice ? `From ${displayPrice}` : displayPrice}
               />
@@ -301,16 +307,24 @@ export default function ProductPage({
               onSelect={(color) => {
                 setSelectedColor(color);
                 setSelectedSize(null);
+                setPersonalization('');
+                setPersonalizationDraft('');
+                setPersonalizationConfirmed(false);
               }}
             />
             </div>
 
             {product.personalizationEnabled && (
               <div className="space-y-2">
-                <button type="button" onClick={()=>{setPersonalizationDraft(personalization);setPersonalizationModalOpen(true);}} className="w-full rounded-xl border-2 border-navy-800 px-4 py-3 text-sm font-bold text-navy-800">
+                <button type="button" onClick={()=>{setPersonalizationDraft(personalization);setPersonalizationConfirmed(false);setPersonalizationModalOpen(true);}} className="w-full rounded-xl border-2 border-navy-800 px-4 py-3 text-sm font-bold text-navy-800">
                   {personalization ? 'Edit personalisation' : 'Personalise This'} {!isHook && <span className="font-normal">· +£5</span>}
                 </button>
-                {personalization && <p className="truncate text-xs font-semibold text-gray-600">Your personalisation: {personalization}</p>}
+                {personalization && <div className="space-y-2">
+                  <p className="truncate text-xs font-semibold text-gray-600">Your personalisation: {personalization}</p>
+                  {product.personalizationType === 'initials' && (!personalizationConfirmed ? (
+                    <button type="button" onClick={()=>{setPersonalizationConfirmed(true);setBasketOptionsOpen(true);}} className="w-full rounded-xl bg-navy-800 px-4 py-3 text-sm font-bold text-white">Confirm personalisation &amp; choose size</button>
+                  ) : <p className="text-xs font-semibold text-emerald-700">Personalisation confirmed</p>)}
+                </div>}
               </div>
             )}
 
@@ -470,20 +484,8 @@ export default function ProductPage({
               <button type="button" aria-label="Close personalisation" onClick={()=>setPersonalizationModalOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xl text-navy-800">×</button>
             </header>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
-              {(() => {
-                const normalizedColor=(selectedColor??'').trim().toLowerCase();
-                const previewImage=product.images.find(i=>i.src===configuredInitialsImage) ?? product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor && i.isDefault) ?? product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor) ?? product.images.find(i=>i.isDefault) ?? product.images[0];
-                const area=product.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===normalizedColor)?.[1] : undefined;
-                return (
-                  <div className="space-y-2">
-                    {(area?.imageSrc || previewImage?.src) ? (
-                      <div className="mx-auto w-full max-w-[290px]"><PersonalisationCanvas src={area?.imageSrc || previewImage!.src} text={personalizationDraft} placement={area} title={product.title+' personalisation preview'}/></div>
-                    ) : <p className="text-center text-sm text-gray-500">Product image unavailable</p>}
-                    {product.personalizationType==='initials' && !area && <p className="text-center text-xs text-amber-800">Preview placement hasn't been configured for this colour yet.</p>}
-                    <p className="text-center text-[11px] text-gray-500">Illustrative preview · Final print may vary</p>
-                  </div>
-                );
-              })()}
+              <p className="text-sm text-gray-600">{product.personalizationType === 'initials' ? 'Enter your initials below, then check them on the product image carousel before confirming.' : 'Enter your personalisation below.'}</p>
+              {!validInitialsTemplate && <p role="alert" className="text-sm font-semibold text-amber-800">No garment template has been saved for this colour. The product needs an admin template before initials can be previewed.</p>}
               <label className="block text-xs font-bold uppercase tracking-wide text-navy-800">
                 {product.personalizationType==='initials'?'Your initials':product.personalizationType==='name'?'Your name':'Your text'}
                 {product.personalizationType==='free' ?
@@ -494,8 +496,8 @@ export default function ProductPage({
               <p className="text-right text-xs text-gray-500">{personalizationDraft.length}/{personalizationLimit}</p>
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
-              <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setBasketOptionsOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Apply personalisation</button>
+              <button type="button" onClick={()=>{setPersonalization('');setPersonalizationDraft('');setPersonalizationConfirmed(false);setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
+              <button type="button" disabled={!validInitialsTemplate || !personalizationDraft.trim()} onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationConfirmed(false);setPersonalizationModalOpen(false);if(product.personalizationType==='initials'){setPreviewActivation(v=>v+1);window.setTimeout(()=>gallerySectionRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),60);}else{setPersonalizationConfirmed(true);setBasketOptionsOpen(true);}}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Preview on product</button>
             </footer>
           </section>
         </div>

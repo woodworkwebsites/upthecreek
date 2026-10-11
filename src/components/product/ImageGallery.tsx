@@ -9,7 +9,7 @@ export interface PersonalisationPlacement {x:number;y:number;width?:number;heigh
 // Reuse this canvas on the product page, gallery slide and review sheet.
 export function PersonalisationCanvas({src, text, placement, title}: {src:string; text:string; placement?:PersonalisationPlacement; title:string}) {
   return (
-    <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full overflow-hidden bg-white" style={{containerType:'inline-size'}}>
+    <div className="relative mx-auto aspect-square max-h-full w-full max-w-full overflow-hidden bg-white" style={{containerType:'inline-size'}}>
       <img src={src} alt={title} className="absolute inset-0 h-full w-full object-contain" />
       {placement && <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={{left:placement.x+'%',top:placement.y+'%',width:(placement.width??30)+'%',height:(placement.height??12)+'%'}}>
         <span className="max-w-full whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(placement.fontSize*.27)+'cqw',color:placement.color}}>{text || 'ABC'}</span>
@@ -26,6 +26,8 @@ interface ImageGalleryProps {
   personalizationEnabled?: boolean;
   personalizationText?: string;
   previewActivation?: number;
+  personalisationConfirmed?: boolean;
+  onConfirmPersonalisation?: () => void;
   initialsPlacement?: {x:number;y:number;width?:number;height?:number;fontSize:number;color:string;imageSrc?:string};
   title: string;
   priceLabel: string;
@@ -39,6 +41,8 @@ export function ImageGallery({
   personalizationEnabled = false,
   personalizationText = '',
   previewActivation = 0,
+  personalisationConfirmed = false,
+  onConfirmPersonalisation,
   initialsPlacement,
   title,
   priceLabel,
@@ -138,6 +142,12 @@ export function ImageGallery({
             <PersonalisationCanvas src={configuredImageSrc} text={personalizationText} placement={initialsPlacement} title={title+' personalised preview'} />
           ) : (
             <img src={current!.src} alt={title} className="h-full w-full object-contain object-center transition-opacity duration-200" loading="eager" />
+          )}
+          {showingPreview && personalizationText.trim() && !personalisationConfirmed && onConfirmPersonalisation && (
+            <button type="button" onClick={onConfirmPersonalisation} className="absolute bottom-16 left-3 right-3 z-20 rounded-xl bg-navy-800 px-4 py-3 text-sm font-bold text-white shadow-lg sm:bottom-20">Confirm this personalisation</button>
+          )}
+          {showingPreview && personalizationText.trim() && personalisationConfirmed && (
+            <span className="absolute bottom-16 left-3 right-3 z-20 rounded-xl bg-white/95 px-4 py-2 text-center text-sm font-bold text-emerald-700 sm:bottom-20">Personalisation confirmed</span>
           )}
           {personalizationEnabled && (
             <span className="absolute left-3 top-3 z-10 rounded-full bg-navy-800 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-md sm:left-4 sm:top-4 sm:px-3.5 sm:text-xs">
