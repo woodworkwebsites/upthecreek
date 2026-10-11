@@ -918,6 +918,20 @@ function ProductRow({
               <button type="button" onClick={()=>setProductEditorOpen(false)} aria-label="Close product editor" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-800 dark:border-gray-600 dark:text-white">Close</button>
             </header>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <div className="border-b border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:hidden">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Product images</h3>
+                  <button type="button" onClick={()=>setImageModalOpen(true)} className="rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white">Manage Images</button>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {images.length ? images.map((image,index)=>(
+                    <button type="button" key={image.src+'-'+index} onClick={()=>setImageModalOpen(true)} className="relative h-24 w-20 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700">
+                      <img src={image.src} alt={image.color || 'Product image'} className="h-full w-full object-contain" loading="lazy"/>
+                      {image.isDefault && <span className="absolute bottom-0 inset-x-0 bg-navy-800/85 px-1 py-0.5 text-center text-[9px] font-semibold text-white">Default</span>}
+                    </button>
+                  )) : <p className="py-5 text-xs text-gray-500">No images yet — tap Manage Images to upload.</p>}
+                </div>
+              </div>
         <div className="grid gap-0 min-w-0 lg:grid-cols-[160px_minmax(0,1fr)]">
           <div className="hidden flex-col border-b border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:flex lg:border-b-0 lg:border-r">
             <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950">
