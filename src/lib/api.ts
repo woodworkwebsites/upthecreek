@@ -278,6 +278,7 @@ export async function adminUpdateProduct(
     pricingMatrix?: PricingMatrixRow | null;
     isEnabled?: boolean;
     personalizationEnabled?: boolean;
+    checkSizing?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: string[];
     sizes?: string[];
