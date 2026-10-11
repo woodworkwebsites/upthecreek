@@ -1114,6 +1114,7 @@ export async function handleUpdateProduct(
     } | null;
     isEnabled?: boolean;
     personalizationEnabled?: boolean;
+    checkSizing?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: unknown;
     colors?: Array<{ name?: string; hex?: string; orderUrl?: string | null }>;
@@ -1235,6 +1236,7 @@ export async function handleUpdateProduct(
     colors,
     isEnabled: body.isEnabled,
     personalizationEnabled: body.personalizationEnabled,
+    checkSizing: body.checkSizing,
     sizeGuideImage,
     hiddenColors: body.hiddenColors !== undefined ? normalizeHiddenColors(body.hiddenColors) : undefined,
   });
