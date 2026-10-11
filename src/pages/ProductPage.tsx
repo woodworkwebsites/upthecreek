@@ -173,7 +173,7 @@ export default function ProductPage({
       title: product.title,
       color: selectedVariant.color,
       size: selectedVariant.size,
-      unitPrice: selectedVariant.price,
+      unitPrice: selectedVariant.price + (personalization.trim() && !isHook ? 500 : 0),
       imageSrc: miniPreviewSrc,
       personalization: product.personalizationEnabled ? personalization.trim() : '',
     });
@@ -186,6 +186,8 @@ export default function ProductPage({
     return <ErrorMessage message={error ?? 'Product not found'} />;
   }
 
+  const isHook = /hook/i.test([product.productType,product.garment].join(' '));
+  const personalizationLimit = product.personalizationType==='initials'?3:product.personalizationType==='name'?20:56;
   const displayPrice = selectedVariant
     ? formatPrice(selectedVariant.price)
     : formatPrice(product.minPrice);
@@ -295,16 +297,16 @@ export default function ProductPage({
 
             {product.personalizationEnabled && (
               <label className="block space-y-2">
-                <span className="block text-xs font-bold uppercase tracking-widest text-gray-400">Personalisation (optional)</span>
+                <span className="block text-xs font-bold uppercase tracking-widest text-gray-400">{product.personalizationType==='initials'?'Initials':product.personalizationType==='name'?'Name':'Free text'} (optional) {!isHook && <span className="text-navy-800">+£5.00</span>}</span>
                 <textarea
                   value={personalization}
-                  onChange={(event) => setPersonalization(event.target.value.slice(0, 300))}
-                  maxLength={300}
-                  rows={3}
-                  placeholder="Add a name, message or other details"
+                  onChange={(event) => setPersonalization(event.target.value.slice(0, personalizationLimit))}
+                  maxLength={personalizationLimit}
+                  rows={product.personalizationType==='free'?3:1}
+                  placeholder={product.personalizationType==='initials'?'Up to 3 initials':product.personalizationType==='name'?'Enter a name (20 characters max)':'Enter free text (56 characters max)'}
                   className="w-full resize-y rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-navy-800 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none"
                 />
-                <span className="block text-right text-[10px] text-gray-400">{personalization.length}/300</span>
+                <span className="block text-right text-[10px] text-gray-400">{personalization.length}/{personalizationLimit}</span>
               </label>
             )}
 
