@@ -62,6 +62,7 @@ export default function ProductPage({
   const [quantity,      setQuantity]      = useState(1);
   const [personalization, setPersonalization] = useState('');
   const [personalizationDraft,setPersonalizationDraft]=useState('');
+  const [personalizationConfirmed,setPersonalizationConfirmed]=useState(false);
   const [personalizationModalOpen,setPersonalizationModalOpen]=useState(false);
   const [previewActivation,setPreviewActivation]=useState(0);
   const [basketMessage, setBasketMessage] = useState<string | null>(null);
@@ -164,12 +165,13 @@ export default function ProductPage({
   const configuredInitialsArea = product?.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1] : undefined;
   const configuredInitialsImage = configuredInitialsArea?.imageSrc ?? '';
   function openBasketOptions() {
+    if (personalization.trim() && !personalizationConfirmed) { setPreviewActivation(v=>v+1); return; }
     setBasketMessage(null);
     setBasketOptionsOpen(true);
   }
 
   function handleAddToBasket() {
-    if (!product || !selectedVariant) return;
+    if (!product || !selectedVariant || (personalization.trim() && !personalizationConfirmed)) return;
     setBasketMessage(null);
     addToBasket({
       printifyId: product.printifyId,
@@ -301,16 +303,22 @@ export default function ProductPage({
               onSelect={(color) => {
                 setSelectedColor(color);
                 setSelectedSize(null);
+                setPersonalizationConfirmed(false);
               }}
             />
             </div>
 
             {product.personalizationEnabled && (
               <div className="space-y-2">
-                <button type="button" onClick={()=>{setPersonalizationDraft(personalization);setPersonalizationModalOpen(true);}} className="w-full rounded-xl border-2 border-navy-800 px-4 py-3 text-sm font-bold text-navy-800">
+                <button type="button" onClick={()=>{setPersonalizationDraft(personalization);setPersonalizationConfirmed(false);setPersonalizationModalOpen(true);}} className="w-full rounded-xl border-2 border-navy-800 px-4 py-3 text-sm font-bold text-navy-800">
                   {personalization ? 'Edit personalisation' : 'Personalise This'} {!isHook && <span className="font-normal">· +£5</span>}
                 </button>
-                {personalization && <p className="truncate text-xs font-semibold text-gray-600">Your personalisation: {personalization}</p>}
+                {personalization && <div className="space-y-2">
+                  <p className="truncate text-xs font-semibold text-gray-600">Your personalisation: {personalization}</p>
+                  {!personalizationConfirmed ? (
+                    <button type="button" onClick={()=>{setPersonalizationConfirmed(true);setBasketOptionsOpen(true);}} className="w-full rounded-xl bg-navy-800 px-4 py-3 text-sm font-bold text-white">Confirm personalisation &amp; choose size</button>
+                  ) : <p className="text-xs font-semibold text-emerald-700">Personalisation confirmed</p>}
+                </div>}
               </div>
             )}
 
@@ -470,20 +478,7 @@ export default function ProductPage({
               <button type="button" aria-label="Close personalisation" onClick={()=>setPersonalizationModalOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xl text-navy-800">×</button>
             </header>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
-              {(() => {
-                const normalizedColor=(selectedColor??'').trim().toLowerCase();
-                const previewImage=product.images.find(i=>i.src===configuredInitialsImage) ?? product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor && i.isDefault) ?? product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor) ?? product.images.find(i=>i.isDefault) ?? product.images[0];
-                const area=product.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===normalizedColor)?.[1] : undefined;
-                return (
-                  <div className="space-y-2">
-                    {(area?.imageSrc || previewImage?.src) ? (
-                      <div className="mx-auto w-full max-w-[290px]"><PersonalisationCanvas src={area?.imageSrc || previewImage!.src} text={personalizationDraft} placement={area} title={product.title+' personalisation preview'}/></div>
-                    ) : <p className="text-center text-sm text-gray-500">Product image unavailable</p>}
-                    {product.personalizationType==='initials' && !area && <p className="text-center text-xs text-amber-800">Preview placement hasn't been configured for this colour yet.</p>}
-                    <p className="text-center text-[11px] text-gray-500">Illustrative preview · Final print may vary</p>
-                  </div>
-                );
-              })()}
+              <p className="text-sm text-gray-600">Enter your initials below. Your chosen garment template will appear in the product image carousel for confirmation.</p>
               <label className="block text-xs font-bold uppercase tracking-wide text-navy-800">
                 {product.personalizationType==='initials'?'Your initials':product.personalizationType==='name'?'Your name':'Your text'}
                 {product.personalizationType==='free' ?
@@ -495,7 +490,7 @@ export default function ProductPage({
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
               <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setBasketOptionsOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Apply personalisation</button>
+              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationConfirmed(false);setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Preview on product</button>
             </footer>
           </section>
         </div>
