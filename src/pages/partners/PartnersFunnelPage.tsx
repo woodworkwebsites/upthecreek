@@ -76,7 +76,7 @@ export default function PartnersFunnelPage() {
               Partner login
             </NavLink>
             <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl lg:text-7xl">
-              Offer unique Padel apparel for your club with flexible stock ordering and tracked commission.
+              Offer Up The Creek Padel apparel to your club’s players and members, with flexible wholesale ordering and commission on online sales.
             </h1>
             <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-white/78 sm:text-lg">
               UTC offers clubs a selection for the clubhouse alongside an club specific online discount code for your members with a portal showing
