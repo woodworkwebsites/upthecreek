@@ -10,7 +10,7 @@ interface ImageGalleryProps {
   previewTriggerRef?: RefObject<HTMLDivElement | null>;
   personalizationEnabled?: boolean;
   personalizationText?: string;
-  initialsPlacement?: {x:number;y:number;width?:number;height?:number;fontSize:number;color:string};
+  initialsPlacement?: {x:number;y:number;width?:number;height?:number;fontSize:number;color:string;imageSrc?:string};
   title: string;
   priceLabel: string;
 }
