@@ -380,6 +380,8 @@ export default function ProductPage({
 
             <div className="mt-6 flex items-center justify-between gap-3">
               <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Size</span>
+              <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                {product.checkSizing && <span className="text-xs font-semibold text-navy-800">These garments come up large - check your size →</span>}
               {product.sizeGuideImage && (
                 <button
                   type="button"
@@ -389,14 +391,10 @@ export default function ProductPage({
                   Size guide
                 </button>
               )}
+              </div>
             </div>
             <div className="mt-3">
               <SizeSelector sizes={product.sizes} selected={selectedSize} onSelect={setSelectedSize} hideLabel />
-              {product.checkSizing && (
-                <button type="button" onClick={() => setSizeGuideOpen(true)} disabled={!product.sizeGuideImage} className="mt-3 block text-left text-sm font-semibold text-navy-800 underline underline-offset-2 disabled:cursor-default disabled:no-underline">
-                  These garments come up large - check your size →
-                </button>
-              )}
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-4">
