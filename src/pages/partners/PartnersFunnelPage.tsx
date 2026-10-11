@@ -61,20 +61,29 @@ export default function PartnersFunnelPage() {
         <div className="relative mx-auto max-w-7xl px-4 pb-8 pt-8 sm:px-6 lg:px-8">
           <NavLink
             to="/partners/login"
-            className="absolute right-4 top-8 inline-flex items-center rounded-full border border-white/20 bg-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-white backdrop-blur-md transition-colors hover:bg-white/20 sm:right-6 lg:right-8"
+            className="absolute right-4 top-8 hidden items-center rounded-full border border-white/20 bg-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-white backdrop-blur-md transition-colors hover:bg-white/20 sm:right-6 sm:inline-flex lg:right-8"
           >
             Partner login
           </NavLink>
 
-          <div className="flex justify-center">
-            <img
-              src="/Wordmark_White.png?v=dfc90b8"
-              alt="Up the Creek Padel"
-              className="h-[72px] w-auto sm:h-[84px] lg:h-[96px]"
-            />
+          <div className="flex flex-col items-center">
+            <div className="flex h-[60px] justify-center overflow-hidden sm:h-auto">
+              <img
+                src="/Wordmark_White.png?v=dfc90b8"
+                alt="Up the Creek Padel"
+                className="h-[72px] w-auto max-w-none sm:h-[84px] lg:h-[96px]"
+              />
+            </div>
+            <NavLink
+              to="/partners/login"
+              className="mt-3 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-5 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md sm:hidden"
+            >
+              Partner login
+            </NavLink>
+            <p className="mt-2 text-center text-[11px] font-medium tracking-[0.21em] text-white sm:hidden">padel apparel</p>
           </div>
 
-          <div className="mx-auto max-w-4xl pt-14 text-center animate-fade-up">
+          <div className="mx-auto max-w-4xl pt-10 text-center animate-fade-up sm:pt-14">
             <p className="label text-white/60">Partner programme</p>
             <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl lg:text-7xl">
               Offer unique Padel apparel for your club with flexible stock ordering and tracked commission.
