@@ -13,6 +13,8 @@ interface AddToBasketInput {
   unitPrice: number;
   imageSrc: string;
   personalization?: string;
+  personalizationFee?: number;
+  initialsPlacement?: {x:number;y:number;width?:number;height?:number;fontSize:number;color:string};
 }
 
 interface BasketContextValue {
@@ -90,6 +92,8 @@ export function BasketProvider({ children }: { children: ReactNode }) {
             unitPrice: input.unitPrice,
             imageSrc: input.imageSrc,
             personalization,
+            personalizationFee: input.personalizationFee,
+            initialsPlacement: input.initialsPlacement,
           },
         ];
       });
