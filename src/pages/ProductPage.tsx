@@ -178,7 +178,7 @@ export default function ProductPage({
       unitPrice: selectedVariant.price + (personalization.trim() && !isHook ? 500 : 0),
       imageSrc: miniPreviewSrc,
       personalizationFee: personalization.trim() && !isHook ? 500 : 0,
-      initialsPlacement: product.personalizationType === 'initials' ? product.initialsPlacements?.[selectedColor ?? ''] : undefined,
+      initialsPlacement: product.personalizationType === 'initials' ? Object.entries(product.initialsPlacements ?? {}).find(([color]) => color.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase())?.[1] : undefined,
       personalization: product.personalizationEnabled ? personalization.trim() : '',
     });
     setBasketMessage(`Added ${quantity} to basket.`);
