@@ -42,7 +42,7 @@ function PartnerRangeCarousel({ products }: { products: Product[] }) {
 
   const pauseForInteraction = () => { pauseUntil.current = performance.now() + 4500; };
   const tiles = (duplicate: boolean) => products.map(product => (
-    <div key={`${duplicate ? 'copy' : 'original'}-${product.id}`} className="w-[48vw] min-w-[150px] max-w-[220px] shrink-0 sm:w-[24vw] sm:max-w-[260px]">
+    <div key={`${duplicate ? 'copy' : 'original'}-${product.id}`} className="w-[43vw] min-w-[135px] max-w-[195px] shrink-0 sm:w-[21vw] sm:max-w-[230px]">
       <ProductCard product={product} priceLabel="RRP" showPartnerMargins />
     </div>
   ));
