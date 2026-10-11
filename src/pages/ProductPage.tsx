@@ -165,6 +165,7 @@ export default function ProductPage({
 
   const configuredInitialsArea = product?.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1] : undefined;
   const configuredInitialsImage = configuredInitialsArea?.imageSrc && product?.images.some(i=>i.src===configuredInitialsArea.imageSrc) ? configuredInitialsArea.imageSrc : '';
+  const missingInitialsTemplate = product?.personalizationType === 'initials' && (!configuredInitialsArea?.imageSrc || !configuredInitialsImage);
   function openBasketOptions() {
     setBasketMessage(null);
     setBasketOptionsOpen(true);
@@ -390,7 +391,7 @@ export default function ProductPage({
               <div className="mt-4 flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-3">
                 <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-white" style={{containerType:"inline-size"}}>
                   {(configuredInitialsImage || miniPreviewSrc) && <img src={configuredInitialsImage || miniPreviewSrc} alt="Personalised garment" className="absolute inset-0 h-full w-full object-contain" />}
-                  {product.personalizationType==='initials' && (() => {
+                  {product.personalizationType==='initials' && !missingInitialsTemplate && (() => {
                     const area=Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1];
                     return area?.imageSrc ? <div className="absolute flex items-center justify-center overflow-hidden" style={{left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}}>
                       <span className="whitespace-nowrap leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(area.fontSize*0.27)+'cqw',color:area.color}}>{personalization}</span>
@@ -480,7 +481,7 @@ export default function ProductPage({
                   <div className="space-y-2">
                     <div className="relative mx-auto aspect-square w-full max-w-[290px] overflow-hidden rounded-xl bg-gray-50" style={{containerType:"inline-size"}}>
                       {previewImage?.src ? <img src={previewImage.src} alt={product.title+' in '+(selectedColor??'selected colour')} className="absolute inset-0 h-full w-full object-contain"/> : <div className="flex h-full items-center justify-center text-sm text-gray-500">Product image unavailable</div>}
-                      {previewImage?.src && (
+                      {previewImage?.src && !missingInitialsTemplate && (
                         <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={area?.imageSrc
                           ? {left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}
                           : {left:'27%',top:'40%',width:'46%',height:'18%'}}>
@@ -493,7 +494,7 @@ export default function ProductPage({
                         </div>
                       )}
                     </div>
-                    {product.personalizationType==='initials' && !area && <p className="text-center text-xs text-amber-800">Preview placement hasn't been configured for this colour yet.</p>}
+                    {missingInitialsTemplate && <p className="text-center text-xs font-semibold text-amber-800">Personalisation template unavailable for this colour. Please choose another colour.</p>}
                     <p className="text-center text-[11px] text-gray-500">Illustrative preview · Final print may vary</p>
                   </div>
                 );
@@ -509,7 +510,7 @@ export default function ProductPage({
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
               <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);setPersonalizationReviewOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setPersonalizationReviewOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Apply personalisation</button>
+              <button type="button" disabled={Boolean(missingInitialsTemplate) || !personalizationDraft.trim()} onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setPersonalizationReviewOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">Apply personalisation</button>
             </footer>
           </section>
         </div>
@@ -529,11 +530,11 @@ export default function ProductPage({
                 {(configuredInitialsImage || product.images.find(image => image.color?.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase() && image.isDefault)?.src || miniPreviewSrc) && (
                   <img src={configuredInitialsImage || product.images.find(image => image.color?.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase() && image.isDefault)?.src || miniPreviewSrc} alt="Personalised garment preview" className="absolute inset-0 h-full w-full object-contain" />
                 )}
-                <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={configuredInitialsArea?.imageSrc
+                {!missingInitialsTemplate && <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={configuredInitialsArea?.imageSrc
                   ? {left:configuredInitialsArea.x+'%',top:configuredInitialsArea.y+'%',width:(configuredInitialsArea.width??30)+'%',height:(configuredInitialsArea.height??12)+'%'}
                   : {left:'27%',top:'40%',width:'46%',height:'18%'}}>
                   <span className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:configuredInitialsArea?.imageSrc ? (configuredInitialsArea.fontSize*0.27)+'cqw':'9cqw',color:configuredInitialsArea?.color ?? '#16223a'}}>{personalization}</span>
-                </div>
+                </div>}
               </div>
               <p className="mt-3 text-center text-xs text-gray-500">Illustrative preview · Final print may vary</p>
               <p className="mt-3 break-words text-center text-lg font-black">{personalization}</p>
