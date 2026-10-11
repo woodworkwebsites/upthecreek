@@ -87,8 +87,9 @@ export async function resolveLineItems(
     }
 
     const personalization = item.personalization?.trim() ?? '';
-    if (personalization.length > 300) {
-      throw Object.assign(new Error('Personalisation must be 300 characters or fewer'), { status: 400 });
+    const limit=product.personalizationType==='initials'?3:product.personalizationType==='name'?20:56;
+    if (personalization.length > limit) {
+      throw Object.assign(new Error('Personalisation must be '+limit+' characters or fewer'), { status: 400 });
     }
     if (personalization && !product.personalizationEnabled) {
       throw Object.assign(new Error('This product does not accept personalisation'), { status: 400 });
@@ -102,7 +103,7 @@ export async function resolveLineItems(
       title:      product.title,
       color:      variant.color,
       size:       variant.size,
-      unitPrice:  variant.price,
+      unitPrice:  variant.price + (personalization && !/hook/i.test([product.productType,product.garment].join(' ')) ? 500 : 0),
       personalization,
       images:     product.images
         .filter((i) => i.isDefault && typeof i.src === 'string' && i.src.startsWith('https://'))
