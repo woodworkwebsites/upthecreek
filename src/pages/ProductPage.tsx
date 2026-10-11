@@ -181,7 +181,7 @@ export default function ProductPage({
       unitPrice: selectedVariant.price + (personalization.trim() && !isHook ? 500 : 0),
       imageSrc: configuredInitialsImage && personalization.trim() ? configuredInitialsImage : miniPreviewSrc,
       personalizationFee: personalization.trim() && !isHook ? 500 : 0,
-      initialsPlacement: product.personalizationType === 'initials' ? configuredInitialsArea?.imageSrc ? configuredInitialsArea : undefined,
+      initialsPlacement: product.personalizationType === 'initials' && configuredInitialsArea?.imageSrc ? configuredInitialsArea : undefined,
       personalization: product.personalizationEnabled ? personalization.trim() : '',
     });
     setBasketMessage(`Added ${quantity} to basket.`);
