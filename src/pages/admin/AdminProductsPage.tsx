@@ -492,6 +492,7 @@ function ProductRow({
   const [draggingImageKey, setDraggingImageKey] = useState<string | null>(null);
   const [dropTargetImageKey, setDropTargetImageKey] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [productEditorOpen,setProductEditorOpen]=useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -898,50 +899,25 @@ function ProductRow({
           <div className="border-t p-4"><button type="button" onClick={()=>setPlacementOpen(false)} className="w-full rounded-xl bg-gray-900 px-4 py-3 font-bold text-white">Done — save product to apply</button></div>
         </div>
       </div>}
-      <article
-        onDragOver={(event) => {
-          if (Array.from(event.dataTransfer.types).includes('Files')) {
-            event.preventDefault();
-            setProductCardFileDrag(true);
-          }
-        }}
-        onDragLeave={(event) => {
-          const nextTarget = event.relatedTarget;
-          if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) setProductCardFileDrag(false);
-        }}
-        onDrop={handleProductCardFileDrop}
-        className={`relative h-full min-w-0 overflow-hidden rounded-[1.5rem] border bg-white shadow-[0_14px_34px_rgba(5,13,31,0.05)] transition-colors dark:bg-gray-900 ${productCardFileDrag ? 'border-navy-500 ring-4 ring-navy-500/20' : 'border-gray-200 hover:border-gray-300 dark:border-gray-800 dark:hover:border-gray-700'}`}
-      >
-        {productCardFileDrag && (
-          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-white/85 text-center dark:bg-gray-950/85">
-            <div className="rounded-2xl border border-dashed border-navy-400 bg-white px-6 py-5 shadow-lg dark:bg-gray-900">
-              <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Drop images for {title}</p>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">A folder uploads as a batch. Loose images open colour and default controls.</p>
-            </div>
+      <article className="group min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
+        <button type="button" onClick={() => setProductEditorOpen(true)} className="block w-full text-left" aria-label={`Edit ${product.title}`}>
+          <div className="aspect-[4/5] w-full overflow-hidden bg-gray-100 dark:bg-gray-950">
+            {img ? <img src={img.src} alt={product.title} loading="lazy" className="h-full w-full object-contain transition-transform group-hover:scale-[1.02]"/> : <div className="flex h-full items-center justify-center text-sm text-gray-400">No image</div>}
           </div>
-        )}
-        <div className="border-b border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:hidden">
-          <div className="flex items-start gap-3">
-            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950">
-              {img ? (
-                <img src={img.src} alt={product.title} className="h-full w-full object-cover object-center" loading="lazy" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">No image</div>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{product.title}</p>
-              <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">{formatDate(product.syncedAt)}</p>
-              <button
-                type="button"
-                onClick={() => setImageModalOpen(true)}
-                className="mt-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                Images
-              </button>
-            </div>
+          <div className="space-y-1 p-3">
+            <p className="line-clamp-2 text-sm font-bold text-gray-900 dark:text-gray-100">{title}</p>
+            <p className="truncate text-xs text-gray-500 dark:text-gray-400">{ranges.find(range => range.id===rangeId)?.name ?? 'Unassigned range'}</p>
           </div>
-        </div>
+        </button>
+      </article>
+      {productEditorOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-2 sm:p-5" onMouseDown={(e)=>{if(e.target===e.currentTarget)setProductEditorOpen(false);}}>
+          <section role="dialog" aria-modal="true" aria-label={`Edit ${product.title}`} className="flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-900 sm:h-auto sm:max-h-[calc(100dvh-2.5rem)]">
+            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 p-3 dark:border-gray-700 sm:p-4">
+              <div className="min-w-0"><h2 className="truncate text-base font-bold text-gray-900 dark:text-white">{product.title}</h2><p className="text-xs text-gray-500 dark:text-gray-400">{ranges.find(range => range.id===rangeId)?.name ?? 'Unassigned range'}</p></div>
+              <button type="button" onClick={()=>setProductEditorOpen(false)} aria-label="Close product editor" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-800 dark:border-gray-600 dark:text-white">Close</button>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="grid gap-0 min-w-0 lg:grid-cols-[160px_minmax(0,1fr)]">
           <div className="hidden flex-col border-b border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:flex lg:border-b-0 lg:border-r">
             <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950">
@@ -1157,7 +1133,11 @@ function ProductRow({
             </div>
           </div>
         </div>
-      </article>
+
+            </div>
+          </section>
+        </div>
+      )}
 
       {detailOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
@@ -1634,7 +1614,7 @@ export default function AdminProductsPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-1 xl:[grid-template-columns:repeat(auto-fit,minmax(38rem,1fr))]">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
           {products.map((product) => (
             <ProductRow
               key={product.id}
