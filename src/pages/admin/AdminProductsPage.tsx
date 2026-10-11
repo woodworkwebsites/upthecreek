@@ -793,9 +793,9 @@ function ProductRow({
     || currentColorSignature !== originalColorSignature
     || hiddenColors.length !== 0;
 
-  async function handleSaveRow(closeDetails = false, placementOverride?: typeof initialsPlacements) {
+  async function handleSaveRow(closeDetails = false) {
     if (saving) return false;
-    if (!hasChanges && !placementOverride) return true;
+    if (!hasChanges) return true;
 
     if (title.trim().length === 0) {
       setError('Title cannot be empty');
@@ -830,7 +830,7 @@ function ProductRow({
         isEnabled,
         personalizationEnabled,
         personalizationType,
-        initialsPlacements: placementOverride ?? initialsPlacements,
+        initialsPlacements,
       });
       setSaved(true);
       if (closeDetails) {
@@ -914,13 +914,7 @@ function ProductRow({
               <input type="color" value={activePlacement.color} onChange={e=>updatePlacement({color:e.target.value})}/>
             </label>
           </div>
-          <div className="border-t p-4"><button type="button" disabled={saving} onClick={async()=>{
-                const placement = {...activePlacement, imageSrc: activePlacement.imageSrc || placementImage?.src || ''};
-                if (!placement.imageSrc) { setError('Select a garment image before saving the placement'); return; }
-                const nextPlacements = {...initialsPlacements, [placementColor]: placement};
-                const saved = await handleSaveRow(false, nextPlacements);
-                if (saved) { setInitialsPlacements(nextPlacements); setPlacementOpen(false); }
-              }} className="w-full rounded-xl bg-gray-900 px-4 py-3 font-bold text-white disabled:opacity-50">{saving ? "Saving template…" : "Save placement"}</button></div>
+          <div className="border-t p-4"><button type="button" onClick={()=>setPlacementOpen(false)} className="w-full rounded-xl bg-gray-900 px-4 py-3 font-bold text-white">Done — save product to apply</button></div>
         </div>
       </div>}
       <article className="group min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
@@ -1060,7 +1054,7 @@ function ProductRow({
                       </select>
                     </label>}
                     {personalizationEnabled && personalizationType==='initials' && (
-                      <button type="button" onClick={()=>{if(!initialsPlacements[placementColor]) updatePlacement({imageSrc:placementImage?.src ?? ''});setPlacementOpen(true);}} className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-bold text-gray-900">Configure initials placement</button>
+                      <button type="button" onClick={()=>setPlacementOpen(true)} className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-bold text-gray-900">Configure initials placement</button>
                     )}
                   </div>
                 </div>
