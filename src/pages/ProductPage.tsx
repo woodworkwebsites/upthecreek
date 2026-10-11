@@ -478,9 +478,16 @@ export default function ProductPage({
                   <div className="space-y-2">
                     <div className="relative mx-auto aspect-square w-full max-w-[290px] overflow-hidden rounded-xl bg-gray-50" style={{containerType:"inline-size"}}>
                       {previewImage?.src ? <img src={previewImage.src} alt={product.title+' in '+(selectedColor??'selected colour')} className="absolute inset-0 h-full w-full object-contain"/> : <div className="flex h-full items-center justify-center text-sm text-gray-500">Product image unavailable</div>}
-                      {area?.imageSrc && previewImage?.src && (
-                        <div className="absolute flex items-center justify-center overflow-hidden" style={{left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}}>
-                          <span className="max-w-full whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(area.fontSize*0.27)+'cqw',color:area.color}}>{personalizationDraft||'ABC'}</span>
+                      {previewImage?.src && (
+                        <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={area?.imageSrc
+                          ? {left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}
+                          : {left:'27%',top:'40%',width:'46%',height:'18%'}}>
+                          <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-center leading-none" style={{
+                            fontFamily:"'Bebas Neue', Impact, sans-serif",
+                            fontSize:area?.imageSrc ? (area.fontSize*0.27)+'cqw' : '9cqw',
+                            color:area?.color ?? '#16223a',
+                            textShadow:'0 1px 2px rgba(255,255,255,.45)'
+                          }}>{personalizationDraft.trim() || (product.personalizationType==='initials'?'ABC':product.personalizationType==='name'?'YOUR NAME':'YOUR TEXT')}</span>
                         </div>
                       )}
                     </div>
