@@ -61,6 +61,8 @@ export default function ProductPage({
   const [selectedSize,  setSelectedSize]  = useState<string | null>(null);
   const [quantity,      setQuantity]      = useState(1);
   const [personalization, setPersonalization] = useState('');
+  const [personalizationDraft,setPersonalizationDraft]=useState('');
+  const [personalizationModalOpen,setPersonalizationModalOpen]=useState(false);
   const [basketMessage, setBasketMessage] = useState<string | null>(null);
   const [basketOptionsOpen, setBasketOptionsOpen] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
@@ -296,18 +298,12 @@ export default function ProductPage({
             </div>
 
             {product.personalizationEnabled && (
-              <label className="block space-y-2">
-                <span className="block text-xs font-bold uppercase tracking-widest text-gray-400">{product.personalizationType==='initials'?'Initials':product.personalizationType==='name'?'Name':'Free text'} (optional) {!isHook && <span className="text-navy-800">+£5.00</span>}</span>
-                <textarea
-                  value={personalization}
-                  onChange={(event) => setPersonalization(event.target.value.slice(0, personalizationLimit))}
-                  maxLength={personalizationLimit}
-                  rows={product.personalizationType==='free'?3:1}
-                  placeholder={product.personalizationType==='initials'?'Up to 3 initials':product.personalizationType==='name'?'Enter a name (20 characters max)':'Enter free text (56 characters max)'}
-                  className="w-full resize-y rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-navy-800 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none"
-                />
-                <span className="block text-right text-[10px] text-gray-400">{personalization.length}/{personalizationLimit}</span>
-              </label>
+              <div className="space-y-2">
+                <button type="button" onClick={()=>{setPersonalizationDraft(personalization);setPersonalizationModalOpen(true);}} className="w-full rounded-xl border-2 border-navy-800 px-4 py-3 text-sm font-bold text-navy-800">
+                  {personalization ? 'Edit personalisation' : 'Personalise This'} {!isHook && <span className="font-normal">· +£5</span>}
+                </button>
+                {personalization && <p className="truncate text-xs font-semibold text-gray-600">Your personalisation: {personalization}</p>}
+              </div>
             )}
 
             {basketMessage && (
@@ -435,6 +431,35 @@ export default function ProductPage({
         </div>
       )}
 
+      {personalizationModalOpen && product.personalizationEnabled && (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center bg-navy-900/70 p-3 sm:p-6" onClick={()=>setPersonalizationModalOpen(false)}>
+          <div role="dialog" aria-modal="true" aria-label="Personalise this product" className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white text-navy-800 shadow-2xl" onClick={e=>e.stopPropagation()}>
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-4">
+              <h2 className="text-lg font-black">Personalise This</h2>
+              <button type="button" aria-label="Close personalisation" onClick={()=>setPersonalizationModalOpen(false)} className="text-2xl text-navy-800">×</button>
+            </div>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+              <p className="text-sm text-gray-600">{product.personalizationType==='initials'?'Initials · 3 characters max':product.personalizationType==='name'?'Name · 20 characters max':'Free text · 56 characters max'}{!isHook?' · £5 additional charge':''}</p>
+              <label className="block text-sm font-bold">
+                Your {product.personalizationType==='initials'?'initials':product.personalizationType==='name'?'name':'text'}
+                <textarea value={personalizationDraft} onChange={e=>setPersonalizationDraft(e.target.value.slice(0,personalizationLimit))} maxLength={personalizationLimit} rows={product.personalizationType==='free'?3:1} placeholder={product.personalizationType==='initials'?'Enter up to 3 initials':product.personalizationType==='name'?'Enter a name':'Enter your text'} className="mt-2 block w-full resize-none rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-navy-800 focus:border-navy-800 focus:outline-none"/>
+              </label>
+              <p className="text-right text-xs text-gray-500">{personalizationDraft.length}/{personalizationLimit}</p>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-center">
+                <p className="mb-4 text-xs font-bold uppercase tracking-widest text-gray-500">Personalisation preview</p>
+                <div className="flex min-h-20 items-center justify-center overflow-hidden rounded-lg border border-dashed border-gray-300 bg-white px-4 py-3">
+                  <span className="max-w-full whitespace-pre-wrap break-words text-center font-bold text-navy-800" style={{fontSize:personalizationDraft.length>25?'18px':personalizationDraft.length>12?'24px':'34px'}}>{personalizationDraft || 'Your text here'}</span>
+                </div>
+                <p className="mt-3 text-xs text-gray-500">Text preview only. Final positioning and appearance may vary.</p>
+              </div>
+            </div>
+            <div className="flex shrink-0 gap-2 border-t border-gray-200 bg-white p-4">
+              <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);}} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-navy-800">Clear</button>
+              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationModalOpen(false);}} className="flex-1 rounded-lg bg-navy-800 px-4 py-2 text-sm font-bold text-white">Apply personalisation</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ── Size guide modal ────────────────────────────────────── */}
       {sizeGuideOpen && product.sizeGuideImage && (
         <div
