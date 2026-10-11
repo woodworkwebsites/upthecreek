@@ -473,6 +473,7 @@ function ProductRow({
   );
   const [colorOrderUrls, setColorOrderUrls] = useState<Record<string, string>>(() => buildColorOrderUrlMap(product.colors));
   const [selectedSizes, setSelectedSizes] = useState<string[]>(product.sizes.length > 0 ? product.sizes : DEFAULT_SIZE_OPTIONS);
+  const [checkSizing,setCheckSizing]=useState(product.checkSizing === true);
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
   const [personalizationEnabled, setPersonalizationEnabled] = useState(product.personalizationEnabled);
   const [sizeGuideUploadFile, setSizeGuideUploadFile] = useState<File | null>(null);
@@ -515,6 +516,7 @@ function ProductRow({
     );
     setColorOrderUrls(buildColorOrderUrlMap(product.colors));
     setSelectedSizes(product.sizes.length > 0 ? product.sizes : DEFAULT_SIZE_OPTIONS);
+    setCheckSizing(product.checkSizing === true);
     setIsEnabled(product.isEnabled);
     setPersonalizationEnabled(product.personalizationEnabled);
     setImages(product.images);
@@ -771,6 +773,7 @@ function ProductRow({
     || garmentType.trim() !== (product.garment || '').trim()
     || rangeId.trim() !== (product.rangeId ?? '').trim()
     || isEnabled !== product.isEnabled
+    || checkSizing !== (product.checkSizing === true)
     || personalizationEnabled !== product.personalizationEnabled
     || currentPricingSignature !== originalPricingSignature
     || currentSizeSignature !== originalSizeSignature
@@ -804,6 +807,7 @@ function ProductRow({
         rangeId: rangeId.trim() || null,
         pricingMatrix: normalizePricingMatrix(pricingMatrix),
         sizes: selectedSizes,
+        checkSizing,
         colors: visibleColors.map((color) => ({
           name: color.name,
           hex: color.hex,
@@ -1061,6 +1065,11 @@ function ProductRow({
                     })}
                   </div>
                 </div>
+
+                <label className="flex items-center gap-2 px-2 text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  <input type="checkbox" checked={checkSizing} onChange={e=>setCheckSizing(e.target.checked)} className="h-4 w-4 accent-navy-800"/>
+                  Check the sizing
+                </label>
 
                 <div className="w-full max-w-[28rem] rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900/40 dark:bg-amber-900/10">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">Pricing</p>
