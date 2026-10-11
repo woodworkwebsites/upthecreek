@@ -167,13 +167,13 @@ export default function ProductPage({
   const configuredInitialsImage = configuredInitialsArea?.imageSrc ?? '';
   const validInitialsTemplate = product?.personalizationType !== 'initials' || Boolean(configuredInitialsArea?.imageSrc);
   function openBasketOptions() {
-    if (personalization.trim() && !personalizationConfirmed) { setBasketMessage('Confirm the personalisation shown in the gallery first.'); setPreviewActivation(v=>v+1); return; }
+    if (product?.personalizationType === 'initials' && personalization.trim() && !personalizationConfirmed) { setBasketMessage('Confirm the personalisation shown in the gallery first.'); setPreviewActivation(v=>v+1); return; }
     setBasketMessage(null);
     setBasketOptionsOpen(true);
   }
 
   function handleAddToBasket() {
-    if (!product || !selectedVariant || (personalization.trim() && !personalizationConfirmed)) return;
+    if (!product || !selectedVariant || (product.personalizationType === 'initials' && personalization.trim() && !personalizationConfirmed)) return;
     setBasketMessage(null);
     addToBasket({
       printifyId: product.printifyId,
@@ -321,10 +321,10 @@ export default function ProductPage({
                 </button>
                 {personalization && <div className="space-y-2">
                   <p className="truncate text-xs font-semibold text-gray-600">Your personalisation: {personalization}</p>
-                  {!personalizationConfirmed ? (
+                  {product.personalizationType === 'initials' && (!personalizationConfirmed ? (
                     <button type="button" onClick={()=>{setPersonalizationConfirmed(true);setBasketOptionsOpen(true);}} className="w-full rounded-xl bg-navy-800 px-4 py-3 text-sm font-bold text-white">Confirm personalisation &amp; choose size</button>
-                  ) : <p className="text-xs font-semibold text-emerald-700">Personalisation confirmed</p>}
-                </div>}
+                  ) : <p className="text-xs font-semibold text-emerald-700">Personalisation confirmed</p>)}
+                </div>
               </div>
             )}
 
@@ -484,7 +484,7 @@ export default function ProductPage({
               <button type="button" aria-label="Close personalisation" onClick={()=>setPersonalizationModalOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xl text-navy-800">×</button>
             </header>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
-              <p className="text-sm text-gray-600">Enter your personalisation below. Check its appearance on the product image carousel before confirming.</p>
+              <p className="text-sm text-gray-600">{product.personalizationType === 'initials' ? 'Enter your initials below, then check them on the product image carousel before confirming.' : 'Enter your personalisation below.'}</p>
               {!validInitialsTemplate && <p role="alert" className="text-sm font-semibold text-amber-800">No garment template has been saved for this colour. The product needs an admin template before initials can be previewed.</p>}
               <label className="block text-xs font-bold uppercase tracking-wide text-navy-800">
                 {product.personalizationType==='initials'?'Your initials':product.personalizationType==='name'?'Your name':'Your text'}
@@ -497,7 +497,7 @@ export default function ProductPage({
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
               <button type="button" onClick={()=>{setPersonalization('');setPersonalizationDraft('');setPersonalizationConfirmed(false);setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" disabled={!validInitialsTemplate || !personalizationDraft.trim()} onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationConfirmed(false);setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);window.setTimeout(()=>gallerySectionRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),60);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Preview on product</button>
+              <button type="button" disabled={!validInitialsTemplate || !personalizationDraft.trim()} onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationConfirmed(false);setPersonalizationModalOpen(false);if(product.personalizationType==='initials'){setPreviewActivation(v=>v+1);window.setTimeout(()=>gallerySectionRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),60);}else{setPersonalizationConfirmed(true);setBasketOptionsOpen(true);}}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Preview on product</button>
             </footer>
           </section>
         </div>
