@@ -27,6 +27,7 @@ export interface ResolvedLineItem {
   unitPrice: number;
   images: string[];
   personalization: string;
+  personalizationType: string;
 }
 
 interface ResolvedUnitItem {
@@ -39,6 +40,7 @@ interface ResolvedUnitItem {
   unitPrice: number;
   images: string[];
   personalization: string;
+  personalizationType: string;
 }
 
 export interface AppliedDiscount {
@@ -105,6 +107,7 @@ export async function resolveLineItems(
       size:       variant.size,
       unitPrice:  variant.price + (personalization && !/hook/i.test([product.productType,product.garment].join(' ')) ? 500 : 0),
       personalization,
+      personalizationType: personalization ? (product.personalizationType ?? 'free') : '',
       images:     product.images
         .filter((i) => i.isDefault && typeof i.src === 'string' && i.src.startsWith('https://'))
         .map((i) => i.src)
@@ -129,6 +132,7 @@ function expandUnits(items: ResolvedLineItem[]): ResolvedUnitItem[] {
         size: item.size,
         unitPrice: item.unitPrice,
         personalization: item.personalization,
+        personalizationType: item.personalizationType,
         images: item.images,
       });
     }
@@ -276,7 +280,7 @@ export async function createCheckoutSession(
       phone_number_collection: { enabled: true },
     });
 
-    await saveCheckoutPersonalizations(db, session.id, items.map((item) => item.personalization));
+    await saveCheckoutPersonalizations(db, session.id, items.map(item => ({text:item.personalization,type:item.personalizationType})));
 
     if (discount) {
       await incrementDiscountCodeUsage(db, discount.id);
