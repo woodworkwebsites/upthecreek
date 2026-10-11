@@ -55,7 +55,8 @@ export function ImageGallery({
     ? [defaultImage, ...imageSource.filter((image) => image !== defaultImage)]
     : imageSource;
 
-  const hasPreview=Boolean(personalizationEnabled && initialsPlacement && displayImages.length);
+  const configuredImage=initialsPlacement?.imageSrc ? images.find(image=>image.src===initialsPlacement.imageSrc) : undefined;
+  const hasPreview=Boolean(personalizationEnabled && configuredImage && initialsPlacement);
   const previewIndex=displayImages.length;
   const totalImages=displayImages.length+(hasPreview?1:0);
   const showingPreview=hasPreview && activeIndex===previewIndex;
@@ -91,7 +92,7 @@ export function ImageGallery({
     else        setActiveIndex((i) => Math.max(i - 1, 0));
   }
 
-  const current = displayImages[showingPreview?0:activeIndex] ?? displayImages[0];
+  const current = (showingPreview ? configuredImage : displayImages[activeIndex]) ?? displayImages[0];
   if (!current) {
     return (
       <div className="aspect-[3/4] w-full rounded-2xl bg-gray-100 flex items-center justify-center">
@@ -187,7 +188,7 @@ export function ImageGallery({
               />
             </button>
           ))}
-          {hasPreview && <button type="button" onClick={()=>setActiveIndex(previewIndex)} className={cn('relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-xl border-2',showingPreview?'border-navy-800':'border-transparent opacity-70')} aria-label="View initials preview"><img src={displayImages[0].src} alt="Initials preview" className="h-full w-full object-contain bg-white"/><span className="absolute bottom-0 inset-x-0 bg-navy-800 px-1 text-center text-[9px] font-bold text-white">ABC</span></button>}
+          {hasPreview && <button type="button" onClick={()=>setActiveIndex(previewIndex)} className={cn('relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-xl border-2',showingPreview?'border-navy-800':'border-transparent opacity-70')} aria-label="View initials preview"><img src={configuredImage!.src} alt="Initials preview" className="h-full w-full object-contain bg-white"/><span className="absolute bottom-0 inset-x-0 bg-navy-800 px-1 text-center text-[9px] font-bold text-white">ABC</span></button>}
         </div>
       )}
     </div>
