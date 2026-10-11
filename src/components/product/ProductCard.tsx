@@ -1,15 +1,23 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Product } from '../../../types/index.js';
-import { formatPriceRange, cn } from '../../lib/utils.js';
+import { formatPriceRange, formatPrice, cn } from '../../lib/utils.js';
+import { calculateCommissionFromGross } from '../../lib/pricing.js';
 
 interface ProductCardProps {
   product: Product;
   priceLabel?: string;
   toPrefix?: string;
+  showPartnerMargins?: boolean;
 }
 
-export function ProductCard({ product, priceLabel, toPrefix = '/product' }: ProductCardProps) {
+export function ProductCard({ product, priceLabel, toPrefix = '/product', showPartnerMargins = false }: ProductCardProps) {
+  const rrp = product.minPrice > 0 ? product.minPrice : product.maxPrice > 0 ? product.maxPrice : 0;
+  const rawPartnerPrice = product.pricingMatrix?.partnerPrice?.trim();
+  const parsedPartnerPrice = rawPartnerPrice ? parseFloat(rawPartnerPrice) : NaN;
+  const partnerPrice = Number.isFinite(parsedPartnerPrice) && parsedPartnerPrice >= 0 ? Math.round(parsedPartnerPrice * 100) : rrp;
+  const margin = Math.max(0, rrp - partnerPrice);
+  const referral = Math.max(0, Math.round(calculateCommissionFromGross(rrp, product.referralCommissionRate ?? 0.1)));
   const defaultImage = product.images.find((i) => i.isDefault) ?? product.images[0];
   const altImage     = product.images.find((i) => !i.isDefault && i !== defaultImage) ?? null;
   const [isHovered, setIsHovered] = useState(false);
@@ -94,9 +102,23 @@ export function ProductCard({ product, priceLabel, toPrefix = '/product' }: Prod
         )}>
           {product.title}
         </h3>
-        <p className="text-sm font-semibold text-gray-400">
-          {priceLabel ? `${priceLabel} ` : ''}{formatPriceRange(product.minPrice, product.maxPrice)}
-        </p>
+        {showPartnerMargins ? (
+          <div className="space-y-1.5 pt-1">
+            <div className="flex flex-wrap gap-1.5">
+              <span className="inline-flex items-center rounded-full bg-emerald-700 px-2.5 py-1 text-xs font-bold text-white">{formatPrice(partnerPrice)} partner</span>
+              <span className="inline-flex items-center rounded-full bg-gray-700 px-2.5 py-1 text-xs font-bold text-white">{formatPrice(rrp)} RRP</span>
+              <span className="inline-flex items-center rounded-full bg-sky-700 px-2.5 py-1 text-xs font-bold text-white">{formatPrice(margin)} Margin</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Online Referral</span>
+              <span className="inline-flex items-center rounded-full bg-amber-700 px-2.5 py-1 text-xs font-bold text-white">{formatPrice(referral)} referral</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm font-semibold text-gray-400">
+            {priceLabel ? `${priceLabel} ` : ''}{formatPriceRange(product.minPrice, product.maxPrice)}
+          </p>
+        )}
         {displayColors.length > 0 && (
           <div className="flex items-center gap-1.5 pt-1.5">
             {displayColors.slice(0, 7).map((c) => (
