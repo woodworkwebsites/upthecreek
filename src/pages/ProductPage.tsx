@@ -167,13 +167,11 @@ export default function ProductPage({
   const selectedGarmentImage = product?.images.find(i => i.color?.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase() && i.isDefault)?.src
     ?? product?.images.find(i => i.color?.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase())?.src
     ?? miniPreviewSrc;
-  // Match the default placement shown by admin when an older product has no saved placement yet.
-  const configuredInitialsArea = product?.personalizationType === 'initials'
-    ? (savedInitialsArea ?? {x:35,y:35,width:30,height:12,fontSize:38,color:'#ffffff',imageSrc:selectedGarmentImage})
-    : undefined;
-  const configuredInitialsImage = configuredInitialsArea?.imageSrc && product?.images.some(i => i.src === configuredInitialsArea.imageSrc)
-    ? configuredInitialsArea.imageSrc : selectedGarmentImage;
-  const missingInitialsTemplate = false;
+  // Only saved admin coordinates are valid; never invent a centred print position.
+  const configuredInitialsArea = savedInitialsArea;
+  const configuredInitialsImage = savedInitialsArea?.imageSrc && product?.images.some(i => i.src === savedInitialsArea.imageSrc)
+    ? savedInitialsArea.imageSrc : '';
+  const missingInitialsTemplate = product?.personalizationType === 'initials' && !configuredInitialsImage;
   function openBasketOptions() {
     setBasketMessage(null);
     setBasketOptionsOpen(true);
@@ -502,7 +500,7 @@ export default function ProductPage({
                         </div>
                       )}
                     </div>
-                    {!savedInitialsArea && product.personalizationType === 'initials' && <p className="text-center text-xs text-gray-500">Using the standard print placement. Final print may vary.</p>}
+                    {missingInitialsTemplate && <p className="text-center text-xs font-semibold text-amber-800">This colour needs a saved print-placement template before personalisation can be ordered.</p>}
                     <p className="text-center text-[11px] text-gray-500">Illustrative preview · Final print may vary</p>
                   </div>
                 );
@@ -518,7 +516,7 @@ export default function ProductPage({
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
               <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);setPersonalizationReviewOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" disabled={!personalizationDraft.trim()} onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setPersonalizationReviewOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">Apply personalisation</button>
+              <button type="button" disabled={!personalizationDraft.trim() || Boolean(missingInitialsTemplate)} onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setPersonalizationReviewOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">Apply personalisation</button>
             </footer>
           </section>
         </div>
