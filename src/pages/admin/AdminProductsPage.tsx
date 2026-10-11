@@ -914,7 +914,7 @@ function ProductRow({
               <input type="color" value={activePlacement.color} onChange={e=>updatePlacement({color:e.target.value})}/>
             </label>
           </div>
-          <div className="border-t p-4"><button type="button" onClick={()=>setPlacementOpen(false)} className="w-full rounded-xl bg-gray-900 px-4 py-3 font-bold text-white">Done — save product to apply</button></div>
+          <div className="border-t p-4"><button type="button" disabled={saving} onClick={async()=>{const saved=await handleSaveRow();if(saved)setPlacementOpen(false);}} className="w-full rounded-xl bg-gray-900 px-4 py-3 font-bold text-white disabled:opacity-50">{saving ? "Saving template…" : "Save placement"}</button></div>
         </div>
       </div>}
       <article className="group min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
