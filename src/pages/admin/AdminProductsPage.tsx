@@ -1054,7 +1054,7 @@ function ProductRow({
                       </select>
                     </label>}
                     {personalizationEnabled && personalizationType==='initials' && (
-                      <button type="button" onClick={()=>setPlacementOpen(true)} className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-bold text-gray-900">Configure initials placement</button>
+                      <button type="button" onClick={()=>{if(!initialsPlacements[placementColor]) updatePlacement({imageSrc:placementImage?.src ?? ''});setPlacementOpen(true);}} className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-bold text-gray-900">Configure initials placement</button>
                     )}
                   </div>
                 </div>
