@@ -332,6 +332,7 @@ function InlineDraftProductRow({
         </div>
       </div>
     </div>
+    </div>
   );
 }
 
