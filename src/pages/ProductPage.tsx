@@ -280,6 +280,8 @@ export default function ProductPage({
                 initialsPlacement={configuredInitialsArea?.imageSrc ? configuredInitialsArea : undefined}
                 personalizationText={personalization}
                 previewActivation={previewActivation}
+                personalisationConfirmed={personalizationConfirmed}
+                onConfirmPersonalisation={()=>{setPersonalizationConfirmed(true);setBasketOptionsOpen(true);}}
                 title={product.title}
                 priceLabel={!selectedVariant && product.minPrice !== product.maxPrice ? `From ${displayPrice}` : displayPrice}
               />
