@@ -161,11 +161,11 @@ export default function BasketPage() {
               {items.map((item) => (
                 <div key={item.id} className="flex gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
                   {item.imageSrc && (
-                    <div className="relative h-24 w-[66px] flex-shrink-0 overflow-hidden rounded-xl bg-white">
-                      <img src={item.imageSrc} alt={item.title} className="h-full w-full object-contain"/>
+                    <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-white">
+                      <img src={item.imageSrc} alt={item.title} className="absolute inset-0 h-full w-full object-contain"/>
                       {item.personalization && item.initialsPlacement && (
-                        <div className="absolute flex items-center justify-center overflow-hidden" style={{left:item.initialsPlacement.x+'%',top:item.initialsPlacement.y+'%',width:(item.initialsPlacement.width??30)+'%',height:(item.initialsPlacement.height??12)+'%'}}>
-                          <span className="whitespace-nowrap leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:'min('+item.initialsPlacement.fontSize+'px, 4vw)',color:item.initialsPlacement.color}}>{item.personalization}</span>
+                        <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={{left:item.initialsPlacement.x+'%',top:item.initialsPlacement.y+'%',width:(item.initialsPlacement.width??30)+'%',height:(item.initialsPlacement.height??12)+'%'}}>
+                          <span className="block max-w-full whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:Math.max(5,Math.min(item.initialsPlacement.fontSize*.24,15))+'px',color:item.initialsPlacement.color}}>{item.personalization}</span>
                         </div>
                       )}
                     </div>
