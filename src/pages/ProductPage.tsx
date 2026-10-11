@@ -64,6 +64,7 @@ export default function ProductPage({
   const [personalizationDraft,setPersonalizationDraft]=useState('');
   const [personalizationConfirmed,setPersonalizationConfirmed]=useState(false);
   const [personalizationModalOpen,setPersonalizationModalOpen]=useState(false);
+  const [personalizationReviewOpen,setPersonalizationReviewOpen]=useState(false);
   const [previewActivation,setPreviewActivation]=useState(0);
   const gallerySectionRef = useRef<HTMLDivElement | null>(null);
   const [basketMessage, setBasketMessage] = useState<string | null>(null);
@@ -167,7 +168,7 @@ export default function ProductPage({
   const configuredInitialsImage = configuredInitialsArea?.imageSrc ?? '';
   const validInitialsTemplate = product?.personalizationType !== 'initials' || Boolean(configuredInitialsArea?.imageSrc);
   function openBasketOptions() {
-    if (product?.personalizationType === 'initials' && personalization.trim() && !personalizationConfirmed) { setBasketMessage('Confirm the personalisation shown in the gallery first.'); setPreviewActivation(v=>v+1); return; }
+    if (product?.personalizationType === 'initials' && personalization.trim() && !personalizationConfirmed) { setPersonalizationReviewOpen(true); return; }
     setBasketMessage(null);
     setBasketOptionsOpen(true);
   }
@@ -282,7 +283,7 @@ export default function ProductPage({
                 personalizationText={personalization}
                 previewActivation={previewActivation}
                 personalisationConfirmed={personalizationConfirmed}
-                onConfirmPersonalisation={()=>{setPersonalizationConfirmed(true);setBasketOptionsOpen(true);}}
+                onConfirmPersonalisation={()=>{setPersonalizationReviewOpen(true);}}
                 title={product.title}
                 priceLabel={!selectedVariant && product.minPrice !== product.maxPrice ? `From ${displayPrice}` : displayPrice}
               />
@@ -322,7 +323,7 @@ export default function ProductPage({
                 {personalization && <div className="space-y-2">
                   <p className="truncate text-xs font-semibold text-gray-600">Your personalisation: {personalization}</p>
                   {product.personalizationType === 'initials' && (!personalizationConfirmed ? (
-                    <button type="button" onClick={()=>{setPersonalizationConfirmed(true);setBasketOptionsOpen(true);}} className="w-full rounded-xl bg-navy-800 px-4 py-3 text-sm font-bold text-white">Confirm personalisation &amp; choose size</button>
+                    <button type="button" onClick={()=>setPersonalizationReviewOpen(true)} className="w-full rounded-xl bg-navy-800 px-4 py-3 text-sm font-bold text-white">Review personalisation</button>
                   ) : <p className="text-xs font-semibold text-emerald-700">Personalisation confirmed</p>)}
                 </div>}
               </div>
@@ -484,7 +485,10 @@ export default function ProductPage({
               <button type="button" aria-label="Close personalisation" onClick={()=>setPersonalizationModalOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xl text-navy-800">×</button>
             </header>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
-              <p className="text-sm text-gray-600">{product.personalizationType === 'initials' ? 'Enter your initials below, then check them on the product image carousel before confirming.' : 'Enter your personalisation below.'}</p>
+              <p className="text-sm text-gray-600">{product.personalizationType === 'initials' ? 'Enter your initials below and check the preview before confirming.' : 'Enter your personalisation below.'}</p>
+              {product.personalizationType==='initials' && configuredInitialsImage && (
+                <div className="mx-auto w-full max-w-[290px]"><PersonalisationCanvas src={configuredInitialsImage} text={personalizationDraft} placement={configuredInitialsArea} title="Your personalisation preview"/></div>
+              )}
               {!validInitialsTemplate && <p role="alert" className="text-sm font-semibold text-amber-800">No garment template has been saved for this colour. The product needs an admin template before initials can be previewed.</p>}
               <label className="block text-xs font-bold uppercase tracking-wide text-navy-800">
                 {product.personalizationType==='initials'?'Your initials':product.personalizationType==='name'?'Your name':'Your text'}
@@ -497,7 +501,25 @@ export default function ProductPage({
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
               <button type="button" onClick={()=>{setPersonalization('');setPersonalizationDraft('');setPersonalizationConfirmed(false);setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" disabled={!validInitialsTemplate || !personalizationDraft.trim()} onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationConfirmed(false);setPersonalizationModalOpen(false);if(product.personalizationType==='initials'){setPreviewActivation(v=>v+1);window.setTimeout(()=>gallerySectionRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),60);}else{setPersonalizationConfirmed(true);setBasketOptionsOpen(true);}}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Preview on product</button>
+              <button type="button" disabled={!validInitialsTemplate || !personalizationDraft.trim()} onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationConfirmed(false);setPersonalizationModalOpen(false);if(product.personalizationType==='initials'){setPersonalizationReviewOpen(true);}else{setPersonalizationConfirmed(true);setBasketOptionsOpen(true);}}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Review personalisation</button>
+            </footer>
+          </section>
+        </div>
+      )}
+      {personalizationReviewOpen && product.personalizationEnabled && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-navy-900/75 sm:items-center sm:p-5" onClick={()=>setPersonalizationReviewOpen(false)}>
+          <section role="dialog" aria-modal="true" aria-label="Review personalisation" className="flex max-h-[96dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white text-navy-800 sm:rounded-3xl" onClick={e=>e.stopPropagation()}>
+            <header className="flex shrink-0 items-center justify-between border-b p-5">
+              <h2 className="text-xl font-black">Review personalisation</h2>
+              <button type="button" aria-label="Close review" onClick={()=>setPersonalizationReviewOpen(false)}>✕</button>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+              {configuredInitialsImage && <div className="mx-auto w-full max-w-[320px]"><PersonalisationCanvas src={configuredInitialsImage} text={personalization} placement={configuredInitialsArea} title="Your selected print preview"/></div>}
+              <p className="mt-3 text-center text-sm font-semibold">{personalization}</p>
+            </div>
+            <footer className="flex shrink-0 gap-3 border-t p-5">
+              <button type="button" onClick={()=>{setPersonalizationReviewOpen(false);setPersonalizationDraft(personalization);setPersonalizationModalOpen(true);}} className="rounded-xl border px-5 py-3 font-bold">Edit</button>
+              <button type="button" onClick={()=>{setPersonalizationConfirmed(true);setPersonalizationReviewOpen(false);setBasketOptionsOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 font-bold text-white">Confirm &amp; choose size</button>
             </footer>
           </section>
         </div>
