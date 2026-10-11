@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, type ReactNode, type Ref } from 'react';
+import { useState, useEffect, useCallback, useRef, type ReactNode, type Ref, type PointerEvent } from 'react';
 import type { Product, PricingMatrixRow, CatalogRange } from '../../../types/index.js';
 import { adminCreateProduct, adminDeleteProduct, adminDeleteProductImage, adminFetchProducts, adminFetchRanges, adminGetSettings, adminReorderProductImages, adminUpdateProduct, adminUpdateProductImage, adminUpdateSettings, adminUploadProductImage, adminUploadProductImageFolder, adminUploadSizeGuideImage } from '../../lib/api.js';
 import { useAdminToken } from '../../hooks/useAdmin.js';
@@ -477,6 +477,9 @@ function ProductRow({
   const [isEnabled, setIsEnabled] = useState(product.isEnabled);
   const [personalizationEnabled, setPersonalizationEnabled] = useState(product.personalizationEnabled);
   const [personalizationType,setPersonalizationType]=useState<'initials'|'name'|'free'>(product.personalizationType ?? 'free');
+  const [initialsPlacements,setInitialsPlacements]=useState(product.initialsPlacements ?? {});
+  const [placementColor,setPlacementColor]=useState(product.colors[0]?.name ?? '');
+  const [placementOpen,setPlacementOpen]=useState(false);
   const [sizeGuideUploadFile, setSizeGuideUploadFile] = useState<File | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [imageUploadFiles, setImageUploadFiles] = useState<File[]>([]);
@@ -521,6 +524,7 @@ function ProductRow({
     setIsEnabled(product.isEnabled);
     setPersonalizationEnabled(product.personalizationEnabled);
     setPersonalizationType(product.personalizationType ?? 'free');
+    setInitialsPlacements(product.initialsPlacements ?? {});
     setImages(product.images);
   }, [product, ranges]);
 
@@ -778,6 +782,7 @@ function ProductRow({
     || checkSizing !== (product.checkSizing === true)
     || personalizationEnabled !== product.personalizationEnabled
     || personalizationType !== (product.personalizationType ?? 'free')
+    || JSON.stringify(initialsPlacements) !== JSON.stringify(product.initialsPlacements ?? {})
     || currentPricingSignature !== originalPricingSignature
     || currentSizeSignature !== originalSizeSignature
     || currentColorSignature !== originalColorSignature
@@ -820,6 +825,7 @@ function ProductRow({
         isEnabled,
         personalizationEnabled,
         personalizationType,
+        initialsPlacements,
       });
       setSaved(true);
       if (closeDetails) {
@@ -856,8 +862,42 @@ function ProductRow({
     }
   }
 
+  const activePlacement = initialsPlacements[placementColor] ?? {x:50,y:48,fontSize:38,color:'#ffffff'};
+  const placementImage = images.find(i=>i.color===placementColor && i.isDefault) ?? images.find(i=>i.color===placementColor) ?? img;
+  function updatePlacement(partial: Partial<{x:number;y:number;fontSize:number;color:string}>) {
+    setInitialsPlacements(previous=>({...previous,[placementColor]:{...(previous[placementColor] ?? {x:50,y:48,fontSize:38,color:'#ffffff'}),...partial}}));
+  }
+  function positionInitials(event: PointerEvent<HTMLDivElement>) {
+    const bounds=event.currentTarget.getBoundingClientRect();
+    updatePlacement({x:Math.round(Math.max(0,Math.min(100,(event.clientX-bounds.left)/bounds.width*100))),y:Math.round(Math.max(0,Math.min(100,(event.clientY-bounds.top)/bounds.height*100)))});
+  }
+
   return (
     <>
+      {placementOpen && <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-3" onClick={()=>setPlacementOpen(false)}>
+        <div role="dialog" aria-modal="true" aria-label="Configure initials placement" className="flex max-h-[95dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white text-gray-900" onClick={e=>e.stopPropagation()}>
+          <div className="flex items-center justify-between border-b p-4"><h3 className="text-lg font-bold">Initials placement</h3><button type="button" onClick={()=>setPlacementOpen(false)} aria-label="Close">✕</button></div>
+          <div className="space-y-4 overflow-y-auto p-4">
+            <label className="block text-sm font-semibold">Garment colour
+              <select value={placementColor} onChange={e=>setPlacementColor(e.target.value)} className="mt-1 w-full rounded-lg border p-2">
+                {product.colors.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
+              </select>
+            </label>
+            <div onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);positionInitials(e);}} onPointerMove={e=>{if(e.buttons===1)positionInitials(e);}} className="relative mx-auto w-full max-w-sm touch-none overflow-hidden rounded-xl border bg-gray-100" style={{aspectRatio:'1'}}>
+              {placementImage && <img src={placementImage.src} alt="Garment placement" className="h-full w-full object-contain" draggable={false}/>}
+              <span className="pointer-events-none absolute whitespace-nowrap leading-none" style={{left:activePlacement.x+'%',top:activePlacement.y+'%',transform:'translate(-50%,-50%)',fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:activePlacement.fontSize+'px',color:activePlacement.color}}>ABC</span>
+            </div>
+            <p className="text-xs text-gray-500">Drag or tap on the garment to position the sample initials.</p>
+            <label className="block text-sm font-semibold">Font size: {activePlacement.fontSize}px
+              <input type="range" min="12" max="90" value={activePlacement.fontSize} onChange={e=>updatePlacement({fontSize:Number(e.target.value)})} className="mt-2 w-full"/>
+            </label>
+            <label className="flex items-center gap-3 text-sm font-semibold">Initials colour
+              <input type="color" value={activePlacement.color} onChange={e=>updatePlacement({color:e.target.value})}/>
+            </label>
+          </div>
+          <div className="border-t p-4"><button type="button" onClick={()=>setPlacementOpen(false)} className="w-full rounded-xl bg-gray-900 px-4 py-3 font-bold text-white">Done — save product to apply</button></div>
+        </div>
+      </div>}
       <article
         onDragOver={(event) => {
           if (Array.from(event.dataTransfer.types).includes('Files')) {
@@ -1005,6 +1045,9 @@ function ProductRow({
                         <option value="free">Free Text — 56 characters</option>
                       </select>
                     </label>}
+                    {personalizationEnabled && personalizationType==='initials' && (
+                      <button type="button" onClick={()=>setPlacementOpen(true)} className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-bold text-gray-900">Configure initials placement</button>
+                    )}
                   </div>
                 </div>
 
