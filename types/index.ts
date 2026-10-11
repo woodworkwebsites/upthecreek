@@ -180,6 +180,7 @@ export interface Product {
   maxPrice: number;
   isEnabled: boolean;
   personalizationEnabled?: boolean;
+  personalizationType?: 'initials' | 'name' | 'free';
   checkSizing?: boolean;
   sizeGuideImage: string | null;
   /** Normalized decimal override for collaboration products only. */
