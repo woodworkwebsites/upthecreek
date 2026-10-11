@@ -476,8 +476,8 @@ export default function ProductPage({
                 const area=product.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===normalizedColor)?.[1] : undefined;
                 return (
                   <div className="space-y-2">
-                    {previewImage?.src ? (
-                      <div className="mx-auto w-full max-w-[290px]"><PersonalisationCanvas src={area?.imageSrc || previewImage.src} text={personalizationDraft} placement={area} title={product.title+' personalisation preview'}/></div>
+                    {(area?.imageSrc || previewImage?.src) ? (
+                      <div className="mx-auto w-full max-w-[290px]"><PersonalisationCanvas src={area?.imageSrc || previewImage!.src} text={personalizationDraft} placement={area} title={product.title+' personalisation preview'}/></div>
                     ) : <p className="text-center text-sm text-gray-500">Product image unavailable</p>}
                     {product.personalizationType==='initials' && !area && <p className="text-center text-xs text-amber-800">Preview placement hasn't been configured for this colour yet.</p>}
                     <p className="text-center text-[11px] text-gray-500">Illustrative preview · Final print may vary</p>
