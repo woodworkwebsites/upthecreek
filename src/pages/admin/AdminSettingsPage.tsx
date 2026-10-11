@@ -78,6 +78,13 @@ export default function AdminSettingsPage() {
     catch(e) { setGoogleError(e instanceof Error ? e.message : 'Unable to connect Google'); setGoogleConnecting(false); }
   }
 
+  function restoreDispatchDefault() {
+    if (!window.confirm('Replace the dispatch email editor with the current default? Save to apply it.')) return;
+    setDispatchSubject('Your order is on its way | Up The Creek Padel');
+    setDispatchBody("Hi {{first_name}},\n\nGood news — your Up The Creek Padel order has been dispatched.\n\nOrder reference: {{order_reference}}\n\nYour order:\n{{items}}\n\nRoyal Mail tracking: {{royal_mail_tracking}}\n\nTrack your parcel:\nhttps://www.royalmail.com/track-your-item\n\nThanks again for choosing UTC.\n\nUp The Creek Padel\npadel apparel\nupthecreekpadel.club");
+    setEmailMessage('');
+  }
+
   async function saveEmailTemplate(){
     if(!token)return;setEmailSaving(true);setEmailMessage('');
     try {
@@ -224,6 +231,7 @@ export default function AdminSettingsPage() {
               <label className="block text-sm font-semibold" style={{color:'#202527'}}>Message
                 <textarea value={emailKind==='dispatch'?dispatchBody:emailBody} onChange={e=>emailKind==='dispatch'?setDispatchBody(e.target.value):setEmailBody(e.target.value)} rows={13} maxLength={10000} style={{backgroundColor:'#fff',color:'#202527',WebkitTextFillColor:'#202527'}} className="mt-1 block min-h-[260px] w-full resize-y rounded-lg border border-gray-300 px-3 py-3 text-sm leading-relaxed"/>
               </label>
+              {emailKind==='dispatch' && <button type="button" onClick={restoreDispatchDefault} className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold" style={{backgroundColor:'#fff',color:'#202527'}}>Restore default dispatch template</button>}
               <p className="text-xs" style={{color:'#56606a'}}>Available fields: {'{{first_name}}'}, {'{{order_reference}}'}, {'{{items}}'}, {'{{royal_mail_tracking}}'}, {'{{tracking_url}}'}. UTC branding is applied automatically.</p>
               {emailMessage && <p className="text-sm text-red-600">{emailMessage}</p>}
             </div>
