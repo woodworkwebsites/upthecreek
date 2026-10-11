@@ -65,6 +65,7 @@ export default function ProductPage({
   const [personalizationConfirmed,setPersonalizationConfirmed]=useState(false);
   const [personalizationModalOpen,setPersonalizationModalOpen]=useState(false);
   const [previewActivation,setPreviewActivation]=useState(0);
+  const gallerySectionRef = useRef<HTMLDivElement | null>(null);
   const [basketMessage, setBasketMessage] = useState<string | null>(null);
   const [basketOptionsOpen, setBasketOptionsOpen] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
@@ -269,7 +270,7 @@ export default function ProductPage({
         <div className="lg:grid lg:grid-cols-[minmax(0,1.1fr)_440px] xl:grid-cols-[minmax(0,1.15fr)_480px] lg:gap-12 xl:gap-16">
 
           {/* gallery — sticky on desktop */}
-          <div className="mb-3 lg:mb-0">
+          <div ref={gallerySectionRef} className="mb-3 scroll-mt-20 lg:mb-0">
             <div className="lg:sticky lg:top-24">
               <ImageGallery
                 images={product.images}
@@ -496,7 +497,7 @@ export default function ProductPage({
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
               <button type="button" onClick={()=>{setPersonalization('');setPersonalizationDraft('');setPersonalizationConfirmed(false);setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" disabled={!validInitialsTemplate || !personalizationDraft.trim()} onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationConfirmed(false);setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Preview on product</button>
+              <button type="button" disabled={!validInitialsTemplate || !personalizationDraft.trim()} onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationConfirmed(false);setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);window.setTimeout(()=>gallerySectionRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),60);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Preview on product</button>
             </footer>
           </section>
         </div>
