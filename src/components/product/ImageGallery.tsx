@@ -10,6 +10,7 @@ interface ImageGalleryProps {
   previewTriggerRef?: RefObject<HTMLDivElement | null>;
   personalizationEnabled?: boolean;
   personalizationText?: string;
+  previewActivation?: number;
   initialsPlacement?: {x:number;y:number;width?:number;height?:number;fontSize:number;color:string;imageSrc?:string};
   title: string;
   priceLabel: string;
@@ -22,6 +23,7 @@ export function ImageGallery({
   previewTriggerRef,
   personalizationEnabled = false,
   personalizationText = '',
+  previewActivation = 0,
   initialsPlacement,
   title,
   priceLabel,
@@ -64,6 +66,13 @@ export function ImageGallery({
   useEffect(() => {
     setActiveIndex(0);
   }, [activeVariantIds, selectedColor]);
+
+  const activationRef = useRef(previewActivation);
+  useEffect(() => {
+    if (activationRef.current === previewActivation) return;
+    activationRef.current = previewActivation;
+    if (hasPreview) setActiveIndex(previewIndex);
+  }, [previewActivation, hasPreview, previewIndex]);
 
   useEffect(() => {
     if (activeIndex >= displayImages.length + (hasPreview ? 1 : 0)) {
@@ -188,7 +197,7 @@ export function ImageGallery({
               />
             </button>
           ))}
-          {hasPreview && <button type="button" onClick={()=>setActiveIndex(previewIndex)} className={cn('relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-xl border-2',showingPreview?'border-navy-800':'border-transparent opacity-70')} aria-label="View initials preview"><img src={configuredImage!.src} alt="Initials preview" className="h-full w-full object-contain bg-white"/><span className="absolute bottom-0 inset-x-0 bg-navy-800 px-1 text-center text-[9px] font-bold text-white">ABC</span></button>}
+          {hasPreview && <button type="button" onClick={()=>setActiveIndex(previewIndex)} className={cn('relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-xl border-2',showingPreview?'border-navy-800':'border-transparent opacity-70')} aria-label="View initials preview"><img src={configuredImage!.src} alt="Initials preview" className="h-full w-full object-contain bg-white"/><div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={{left:initialsPlacement!.x+'%',top:initialsPlacement!.y+'%',width:(initialsPlacement!.width??30)+'%',height:(initialsPlacement!.height??12)+'%',containerType:'inline-size'}}><span className="whitespace-nowrap leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(initialsPlacement!.fontSize*.27)+'cqw',color:initialsPlacement!.color}}>{personalizationText||'ABC'}</span></div></button>}
         </div>
       )}
     </div>
