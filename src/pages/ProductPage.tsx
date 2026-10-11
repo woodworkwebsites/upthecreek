@@ -166,9 +166,9 @@ export default function ProductPage({
   const savedInitialsArea = product?.personalizationType === 'initials' ? Object.entries(product.initialsPlacements ?? {}).find(([key]) => key.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase())?.[1] : undefined;
   // Only saved admin coordinates are valid; never invent a centred print position.
   const configuredInitialsArea = savedInitialsArea;
-  const configuredInitialsImage = savedInitialsArea?.imageSrc && product?.images.some(i => i.src === savedInitialsArea.imageSrc)
-    ? savedInitialsArea.imageSrc : '';
-  const missingInitialsTemplate = product?.personalizationType === 'initials' && !configuredInitialsImage;
+  const configuredInitialsImage = savedInitialsArea?.imageSrc || '';
+  // The placement is authoritative. Don't reject it if an image URL was updated or reordered.
+  const missingInitialsTemplate = product?.personalizationType === 'initials' && !savedInitialsArea;
   function openBasketOptions() {
     setBasketMessage(null);
     setBasketOptionsOpen(true);
@@ -497,7 +497,7 @@ export default function ProductPage({
                         </div>
                       )}
                     </div>
-                    {missingInitialsTemplate && <p className="text-center text-xs font-semibold text-amber-800">This colour needs a saved print-placement template before personalisation can be ordered.</p>}
+                    {missingInitialsTemplate && <p className="text-center text-xs font-semibold text-amber-800">The print position has not been saved for this colour. Please contact the club shop.</p>}
                     <p className="text-center text-[11px] text-gray-500">Illustrative preview · Final print may vary</p>
                   </div>
                 );
