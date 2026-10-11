@@ -108,14 +108,14 @@ export function ImageGallery({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div className="relative min-h-0 flex-1 overflow-hidden" style={{containerType:"inline-size"}}>
           <img
             src={current.src}
             alt={title}
             className="h-full w-full object-contain object-center transition-opacity duration-200"
             loading="eager"
           />
-          {showingPreview && initialsPlacement && <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={{left:initialsPlacement.x+'%',top:initialsPlacement.y+'%',width:(initialsPlacement.width??30)+'%',height:(initialsPlacement.height??12)+'%'}}><span className="whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:'min('+initialsPlacement.fontSize+'px, 8vw)',color:initialsPlacement.color}}>{personalizationText || 'ABC'}</span></div>}
+          {showingPreview && initialsPlacement && <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={{left:initialsPlacement.x+'%',top:initialsPlacement.y+'%',width:(initialsPlacement.width??30)+'%',height:(initialsPlacement.height??12)+'%'}}><span className="whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(initialsPlacement.fontSize*0.27)+'cqw',color:initialsPlacement.color}}>{personalizationText || 'ABC'}</span></div>}
           {personalizationEnabled && (
             <span className="absolute left-3 top-3 z-10 rounded-full bg-navy-800 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-md sm:left-4 sm:top-4 sm:px-3.5 sm:text-xs">
               Personalise This
