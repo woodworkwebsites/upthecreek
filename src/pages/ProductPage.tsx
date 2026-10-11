@@ -160,6 +160,8 @@ export default function ProductPage({
     return product.images.find((img) => img.isDefault)?.src ?? product.images[0]?.src ?? '';
   }, [product, activeVariantIds, selectedColor]);
 
+  const configuredInitialsArea = product?.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1] : undefined;
+  const configuredInitialsImage = configuredInitialsArea?.imageSrc && product?.images.some(i=>i.src===configuredInitialsArea.imageSrc) ? configuredInitialsArea.imageSrc : '';
   function openBasketOptions() {
     setBasketMessage(null);
     setBasketOptionsOpen(true);
@@ -176,9 +178,9 @@ export default function ProductPage({
       color: selectedVariant.color,
       size: selectedVariant.size,
       unitPrice: selectedVariant.price + (personalization.trim() && !isHook ? 500 : 0),
-      imageSrc: miniPreviewSrc,
+      imageSrc: configuredInitialsImage && personalization.trim() ? configuredInitialsImage : miniPreviewSrc,
       personalizationFee: personalization.trim() && !isHook ? 500 : 0,
-      initialsPlacement: product.personalizationType === 'initials' ? Object.entries(product.initialsPlacements ?? {}).find(([color]) => color.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase())?.[1] : undefined,
+      initialsPlacement: product.personalizationType === 'initials' ? configuredInitialsArea?.imageSrc ? configuredInitialsArea : undefined,
       personalization: product.personalizationEnabled ? personalization.trim() : '',
     });
     setBasketMessage(`Added ${quantity} to basket.`);
@@ -271,7 +273,7 @@ export default function ProductPage({
                 selectedColor={selectedColor}
                 previewTriggerRef={previewTriggerRef}
                 personalizationEnabled={product.personalizationEnabled}
-                initialsPlacement={product.personalizationType==='initials'?product.initialsPlacements?.[selectedColor ?? '']:undefined}
+                initialsPlacement={configuredInitialsArea?.imageSrc ? configuredInitialsArea : undefined}
                 personalizationText={personalization}
                 title={product.title}
                 priceLabel={!selectedVariant && product.minPrice !== product.maxPrice ? `From ${displayPrice}` : displayPrice}
@@ -383,10 +385,10 @@ export default function ProductPage({
             {product.personalizationEnabled && personalization.trim() && (
               <div className="mt-4 flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-3">
                 <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-white" style={{containerType:"inline-size"}}>
-                  {miniPreviewSrc && <img src={miniPreviewSrc} alt="Personalised garment" className="absolute inset-0 h-full w-full object-contain" />}
+                  {(configuredInitialsImage || miniPreviewSrc) && <img src={configuredInitialsImage || miniPreviewSrc} alt="Personalised garment" className="absolute inset-0 h-full w-full object-contain" />}
                   {product.personalizationType==='initials' && (() => {
                     const area=Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1];
-                    return area ? <div className="absolute flex items-center justify-center overflow-hidden" style={{left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}}>
+                    return area?.imageSrc ? <div className="absolute flex items-center justify-center overflow-hidden" style={{left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}}>
                       <span className="whitespace-nowrap leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(area.fontSize*0.27)+'cqw',color:area.color}}>{personalization}</span>
                     </div> : null;
                   })()}
@@ -468,13 +470,13 @@ export default function ProductPage({
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
               {(() => {
                 const normalizedColor=(selectedColor??'').trim().toLowerCase();
-                const previewImage=product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor && i.isDefault) ?? product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor) ?? product.images.find(i=>i.isDefault) ?? product.images[0];
+                const previewImage=product.images.find(i=>i.src===configuredInitialsImage) ?? product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor && i.isDefault) ?? product.images.find(i=>i.color?.trim().toLowerCase()===normalizedColor) ?? product.images.find(i=>i.isDefault) ?? product.images[0];
                 const area=product.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===normalizedColor)?.[1] : undefined;
                 return (
                   <div className="space-y-2">
                     <div className="relative mx-auto aspect-square w-full max-w-[290px] overflow-hidden rounded-xl bg-gray-50" style={{containerType:"inline-size"}}>
                       {previewImage?.src ? <img src={previewImage.src} alt={product.title+' in '+(selectedColor??'selected colour')} className="absolute inset-0 h-full w-full object-contain"/> : <div className="flex h-full items-center justify-center text-sm text-gray-500">Product image unavailable</div>}
-                      {area && previewImage?.src && (
+                      {area?.imageSrc && previewImage?.src && (
                         <div className="absolute flex items-center justify-center overflow-hidden" style={{left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}}>
                           <span className="max-w-full whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(area.fontSize*0.27)+'cqw',color:area.color}}>{personalizationDraft||'ABC'}</span>
                         </div>
