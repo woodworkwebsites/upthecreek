@@ -181,6 +181,7 @@ export interface Product {
   isEnabled: boolean;
   personalizationEnabled?: boolean;
   personalizationType?: 'initials' | 'name' | 'free';
+  initialsPlacements?: Record<string, {x:number;y:number;fontSize:number;color:string}>;
   checkSizing?: boolean;
   sizeGuideImage: string | null;
   /** Normalized decimal override for collaboration products only. */
