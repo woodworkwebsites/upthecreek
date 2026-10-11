@@ -392,6 +392,11 @@ export default function ProductPage({
             </div>
             <div className="mt-3">
               <SizeSelector sizes={product.sizes} selected={selectedSize} onSelect={setSelectedSize} hideLabel />
+              {product.checkSizing && (
+                <button type="button" onClick={() => setSizeGuideOpen(true)} disabled={!product.sizeGuideImage} className="mt-3 block text-left text-sm font-semibold text-navy-800 underline underline-offset-2 disabled:cursor-default disabled:no-underline">
+                  These garments come up large - check your size →
+                </button>
+              )}
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-4">
