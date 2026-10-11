@@ -14,11 +14,6 @@ const facts = [
     detail: 'On all online orders that use your club’s referral code',
   },
   {
-    label: 'Online sales',
-    value: 'Player orders',
-    detail: 'Club code sales tracked separately in the portal.',
-  },
-  {
     label: 'Delivery',
     value: 'Free',
     detail: 'Display kit and setup included.',
