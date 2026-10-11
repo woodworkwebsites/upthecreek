@@ -1,7 +1,7 @@
 import { useState, useMemo, memo, useRef, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useProduct } from '../hooks/useProduct.js';
-import { ImageGallery } from '../components/product/ImageGallery.js';
+import { ImageGallery, PersonalisationCanvas } from '../components/product/ImageGallery.js';
 import { ColorSwatch } from '../components/product/ColorSwatch.js';
 import { SizeSelector } from '../components/product/SizeSelector.js';
 import { Button } from '../components/ui/Button.js';
@@ -476,14 +476,9 @@ export default function ProductPage({
                 const area=product.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===normalizedColor)?.[1] : undefined;
                 return (
                   <div className="space-y-2">
-                    <div className="relative mx-auto aspect-square w-full max-w-[290px] overflow-hidden rounded-xl bg-gray-50" style={{containerType:"inline-size"}}>
-                      {previewImage?.src ? <img src={previewImage.src} alt={product.title+' in '+(selectedColor??'selected colour')} className="absolute inset-0 h-full w-full object-contain"/> : <div className="flex h-full items-center justify-center text-sm text-gray-500">Product image unavailable</div>}
-                      {area?.imageSrc && previewImage?.src && (
-                        <div className="absolute flex items-center justify-center overflow-hidden" style={{left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}}>
-                          <span className="max-w-full whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(area.fontSize*0.27)+'cqw',color:area.color}}>{personalizationDraft||'ABC'}</span>
-                        </div>
-                      )}
-                    </div>
+                    {previewImage?.src ? (
+                      <div className="mx-auto w-full max-w-[290px]"><PersonalisationCanvas src={area?.imageSrc || previewImage.src} text={personalizationDraft} placement={area} title={product.title+' personalisation preview'}/></div>
+                    ) : <p className="text-center text-sm text-gray-500">Product image unavailable</p>}
                     {product.personalizationType==='initials' && !area && <p className="text-center text-xs text-amber-800">Preview placement hasn't been configured for this colour yet.</p>}
                     <p className="text-center text-[11px] text-gray-500">Illustrative preview · Final print may vary</p>
                   </div>
