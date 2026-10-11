@@ -6,6 +6,7 @@ on:
       - 'src/components/product/ImageGallery.tsx'
       - 'src/pages/admin/AdminProductsPage.tsx'
       - '.github/workflows/personalisation-check.yml'
+      - 'scripts/test-personalisation.mjs'
   workflow_dispatch:
 jobs:
   build:
@@ -21,3 +22,12 @@ jobs:
       - run: npm ci
       - run: npm run type-check
       - run: npm run build
+      - name: Install browser test runner
+        run: npm install --no-save playwright
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Test garment template and confirmation in Chromium
+        run: |
+          npx vite --host 127.0.0.1 > /tmp/utc-vite.log 2>&1 &
+          sleep 6
+          node scripts/test-personalisation.mjs
