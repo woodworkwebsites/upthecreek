@@ -5,9 +5,10 @@ interface ProductGridProps {
   products: Product[];
   priceLabel?: string;
   toPrefix?: string;
+  showPartnerMargins?: boolean;
 }
 
-export function ProductGrid({ products, priceLabel, toPrefix }: ProductGridProps) {
+export function ProductGrid({ products, priceLabel, toPrefix, showPartnerMargins = false }: ProductGridProps) {
   if (products.length === 0) {
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center text-center gap-3">
@@ -26,7 +27,7 @@ export function ProductGrid({ products, priceLabel, toPrefix }: ProductGridProps
   return (
     <div className="mx-auto grid max-w-7xl grid-cols-2 justify-items-center gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-14">
       {products.map((product) => (
-        <ProductCard key={product.id} product={product} priceLabel={priceLabel} toPrefix={toPrefix} />
+        <ProductCard key={product.id} product={product} priceLabel={priceLabel} toPrefix={toPrefix} showPartnerMargins={showPartnerMargins} />
       ))}
     </div>
   );
