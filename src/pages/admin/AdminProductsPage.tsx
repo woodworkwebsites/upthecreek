@@ -889,10 +889,10 @@ function ProductRow({
                 {product.colors.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
               </select>
             </label>
-            <div onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);positionArea(e);}} onPointerMove={e=>{if(e.buttons===1)positionArea(e);}} className="relative mx-auto w-full max-w-sm touch-none overflow-hidden rounded-xl border bg-gray-100" style={{aspectRatio:'1'}}>
+            <div onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);positionArea(e);}} onPointerMove={e=>{if(e.buttons===1)positionArea(e);}} className="relative mx-auto w-full max-w-sm touch-none overflow-hidden rounded-xl border bg-gray-100" style={{aspectRatio:'1',containerType:"inline-size"}}>
               {placementImage && <img src={placementImage.src} alt="Garment placement" className="h-full w-full object-contain" draggable={false}/>}
               <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden border-2 border-dashed border-lime-400 bg-lime-300/10" style={{left:activePlacement.x+'%',top:activePlacement.y+'%',width:(activePlacement.width??30)+'%',height:(activePlacement.height??12)+'%'}}>
-                <span className="max-w-full whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:'min('+activePlacement.fontSize+'px, 9vw)',color:activePlacement.color}}>ABC</span>
+                <span className="max-w-full whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(activePlacement.fontSize*0.27)+'cqw',color:activePlacement.color}}>ABC</span>
               </div>
             </div>
             <p className="text-xs text-gray-500">Drag to position the print area. Adjust its width and height below.</p>
