@@ -447,10 +447,17 @@ export default function ProductPage({
               <p className="text-right text-xs text-gray-500">{personalizationDraft.length}/{personalizationLimit}</p>
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-center">
                 <p className="mb-4 text-xs font-bold uppercase tracking-widest text-gray-500">Personalisation preview</p>
-                <div className="flex min-h-20 items-center justify-center overflow-hidden rounded-lg border border-dashed border-gray-300 bg-white px-4 py-3">
-                  <span className="max-w-full whitespace-pre-wrap break-words text-center font-bold text-navy-800" style={{fontSize:personalizationDraft.length>25?'18px':personalizationDraft.length>12?'24px':'34px'}}>{personalizationDraft || 'Your text here'}</span>
-                </div>
-                <p className="mt-3 text-xs text-gray-500">Text preview only. Final positioning and appearance may vary.</p>
+                {product.personalizationType==='initials' && product.initialsPlacements?.[selectedColor ?? ''] ? (
+                  <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-lg bg-white" style={{aspectRatio:'1'}}>
+                    {miniPreviewSrc && <img src={miniPreviewSrc} alt="Garment initials preview" className="h-full w-full object-contain"/>}
+                    <span className="pointer-events-none absolute whitespace-nowrap leading-none" style={{left:product.initialsPlacements[selectedColor ?? ''].x+'%',top:product.initialsPlacements[selectedColor ?? ''].y+'%',transform:'translate(-50%,-50%)',fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:product.initialsPlacements[selectedColor ?? ''].fontSize+'px',color:product.initialsPlacements[selectedColor ?? ''].color}}>{personalizationDraft || 'ABC'}</span>
+                  </div>
+                ) : (
+                  <div className="flex min-h-20 items-center justify-center overflow-hidden rounded-lg border border-dashed border-gray-300 bg-white px-4 py-3">
+                    <span className="max-w-full whitespace-pre-wrap break-words text-center font-bold text-navy-800" style={{fontSize:personalizationDraft.length>25?'18px':personalizationDraft.length>12?'24px':'34px'}}>{personalizationDraft || 'Your text here'}</span>
+                  </div>
+                )}
+                <p className="mt-3 text-xs text-gray-500">Preview is illustrative; final print may vary.</p>
               </div>
             </div>
             <div className="flex shrink-0 gap-2 border-t border-gray-200 bg-white p-4">
