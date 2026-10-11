@@ -164,9 +164,6 @@ export default function ProductPage({
   }, [product, activeVariantIds, selectedColor]);
 
   const savedInitialsArea = product?.personalizationType === 'initials' ? Object.entries(product.initialsPlacements ?? {}).find(([key]) => key.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase())?.[1] : undefined;
-  const selectedGarmentImage = product?.images.find(i => i.color?.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase() && i.isDefault)?.src
-    ?? product?.images.find(i => i.color?.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase())?.src
-    ?? miniPreviewSrc;
   // Only saved admin coordinates are valid; never invent a centred print position.
   const configuredInitialsArea = savedInitialsArea;
   const configuredInitialsImage = savedInitialsArea?.imageSrc && product?.images.some(i => i.src === savedInitialsArea.imageSrc)
