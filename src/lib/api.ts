@@ -279,7 +279,7 @@ export async function adminUpdateProduct(
     isEnabled?: boolean;
     personalizationEnabled?: boolean;
     personalizationType?: 'initials' | 'name' | 'free';
-  initialsPlacements?: Record<string, {x:number;y:number;fontSize:number;color:string}>;
+  initialsPlacements?: Record<string, {x:number;y:number;width?:number;height?:number;fontSize:number;color:string}>;
     checkSizing?: boolean;
     sizeGuideImage?: string | null;
     hiddenColors?: string[];
