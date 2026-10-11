@@ -63,6 +63,7 @@ export default function ProductPage({
   const [personalization, setPersonalization] = useState('');
   const [personalizationDraft,setPersonalizationDraft]=useState('');
   const [personalizationModalOpen,setPersonalizationModalOpen]=useState(false);
+  const [personalizationReviewOpen,setPersonalizationReviewOpen]=useState(false);
   const [previewActivation,setPreviewActivation]=useState(0);
   const [basketMessage, setBasketMessage] = useState<string | null>(null);
   const [basketOptionsOpen, setBasketOptionsOpen] = useState(false);
@@ -107,6 +108,7 @@ export default function ProductPage({
 
   useEffect(() => {
     setPersonalization('');
+    setPersonalizationReviewOpen(false);
   }, [product?.id]);
 
   useEffect(() => {
@@ -506,8 +508,39 @@ export default function ProductPage({
               <p className="text-right text-xs text-gray-500">{personalizationDraft.length}/{personalizationLimit}</p>
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
-              <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setBasketOptionsOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Apply personalisation</button>
+              <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);setPersonalizationReviewOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
+              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPreviewActivation(v=>v+1);setPersonalizationModalOpen(false);setPersonalizationReviewOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Apply personalisation</button>
+            </footer>
+          </section>
+        </div>
+      )}
+      {personalizationReviewOpen && product.personalizationEnabled && (
+        <div className="fixed inset-0 z-[65] flex items-end justify-center bg-navy-900/75 sm:items-center sm:p-5" onClick={() => setPersonalizationReviewOpen(false)}>
+          <section role="dialog" aria-modal="true" aria-label="Review your personalisation" className="flex max-h-[96dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white text-navy-800 shadow-2xl sm:rounded-3xl" onClick={event => event.stopPropagation()}>
+            <header className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4">
+              <div>
+                <h2 className="text-xl font-black">Review your personalisation</h2>
+                <p className="mt-1 text-xs text-gray-500">Check the garment and text before continuing.</p>
+              </div>
+              <button type="button" aria-label="Close review" onClick={() => setPersonalizationReviewOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xl">×</button>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+              <div className="relative mx-auto aspect-square w-full max-w-[300px] overflow-hidden rounded-xl bg-gray-50" style={{containerType:'inline-size'}}>
+                {(configuredInitialsImage || product.images.find(image => image.color?.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase() && image.isDefault)?.src || miniPreviewSrc) && (
+                  <img src={configuredInitialsImage || product.images.find(image => image.color?.trim().toLowerCase() === (selectedColor ?? '').trim().toLowerCase() && image.isDefault)?.src || miniPreviewSrc} alt="Personalised garment preview" className="absolute inset-0 h-full w-full object-contain" />
+                )}
+                <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={configuredInitialsArea?.imageSrc
+                  ? {left:configuredInitialsArea.x+'%',top:configuredInitialsArea.y+'%',width:(configuredInitialsArea.width??30)+'%',height:(configuredInitialsArea.height??12)+'%'}
+                  : {left:'27%',top:'40%',width:'46%',height:'18%'}}>
+                  <span className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:configuredInitialsArea?.imageSrc ? (configuredInitialsArea.fontSize*0.27)+'cqw':'9cqw',color:configuredInitialsArea?.color ?? '#16223a'}}>{personalization}</span>
+                </div>
+              </div>
+              <p className="mt-3 text-center text-xs text-gray-500">Illustrative preview · Final print may vary</p>
+              <p className="mt-3 break-words text-center text-lg font-black">{personalization}</p>
+            </div>
+            <footer className="flex shrink-0 gap-3 border-t border-gray-100 bg-white px-5 py-4">
+              <button type="button" className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-bold" onClick={() => {setPersonalizationDraft(personalization);setPersonalizationReviewOpen(false);setPersonalizationModalOpen(true);}}>Edit</button>
+              <button type="button" className="min-w-0 flex-1 rounded-xl bg-navy-800 px-4 py-3 text-sm font-bold text-white" onClick={() => {setPersonalizationReviewOpen(false);setBasketOptionsOpen(true);}}>Confirm &amp; choose size</button>
             </footer>
           </section>
         </div>
