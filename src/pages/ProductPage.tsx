@@ -380,6 +380,26 @@ export default function ProductPage({
               </button>
             </div>
 
+            {product.personalizationEnabled && personalization.trim() && (
+              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-white">
+                  {miniPreviewSrc && <img src={miniPreviewSrc} alt="Personalised garment" className="absolute inset-0 h-full w-full object-contain" />}
+                  {product.personalizationType==='initials' && (() => {
+                    const area=Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1];
+                    return area ? <div className="absolute flex items-center justify-center overflow-hidden" style={{left:area.x+'%',top:area.y+'%',width:(area.width??30)+'%',height:(area.height??12)+'%'}}>
+                      <span className="whitespace-nowrap leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:'min('+area.fontSize+'px, 5vw)',color:area.color}}>{personalization}</span>
+                    </div> : null;
+                  })()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Personalisation applied</p>
+                  <p className="mt-1 break-words text-lg font-black text-navy-800">{personalization}</p>
+                  <p className="mt-1 text-xs text-gray-500">{!isHook ? '+£5.00 personalisation' : 'Included'}</p>
+                  <button type="button" onClick={()=>{setPersonalizationDraft(personalization);setBasketOptionsOpen(false);setPersonalizationModalOpen(true);}} className="mt-2 text-xs font-bold text-navy-800 underline underline-offset-2">Edit personalisation</button>
+                </div>
+              </div>
+            )}
+
             <div className="mt-6 flex items-center justify-between gap-3">
               <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Size</span>
               <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
@@ -476,7 +496,7 @@ export default function ProductPage({
             </div>
             <footer className="flex shrink-0 items-center gap-3 border-t border-gray-100 bg-white px-5 py-4">
               <button type="button" onClick={()=>{setPersonalization('');setPersonalizationModalOpen(false);}} className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-navy-800">Clear</button>
-              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationModalOpen(false);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Apply personalisation</button>
+              <button type="button" onClick={()=>{setPersonalization(personalizationDraft.trim());setPersonalizationModalOpen(false);setBasketOptionsOpen(true);}} className="min-w-0 flex-1 rounded-xl bg-navy-800 px-3 py-3 text-sm font-bold text-white">Apply personalisation</button>
             </footer>
           </section>
         </div>
