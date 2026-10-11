@@ -58,7 +58,6 @@ export function ImageGallery({
     : imageSource;
 
   const configuredImage=initialsPlacement?.imageSrc ? images.find(image=>image.src===initialsPlacement.imageSrc) : undefined;
-  const previewImage = configuredImage ?? displayImages[0];
   const hasPreview=Boolean(personalizationEnabled && configuredImage && initialsPlacement);
   const previewIndex=displayImages.length;
   const totalImages=displayImages.length+(hasPreview?1:0);
@@ -102,7 +101,7 @@ export function ImageGallery({
     else        setActiveIndex((i) => Math.max(i - 1, 0));
   }
 
-  const current = (showingPreview ? previewImage : displayImages[activeIndex]) ?? displayImages[0];
+  const current = (showingPreview ? configuredImage : displayImages[activeIndex]) ?? displayImages[0];
   if (!current) {
     return (
       <div className="aspect-[3/4] w-full rounded-2xl bg-gray-100 flex items-center justify-center">
@@ -126,7 +125,7 @@ export function ImageGallery({
             className="h-full w-full object-contain object-center transition-opacity duration-200"
             loading="eager"
           />
-          {showingPreview && personalizationText.trim() && <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={initialsPlacement ? {left:initialsPlacement.x+'%',top:initialsPlacement.y+'%',width:(initialsPlacement.width??30)+'%',height:(initialsPlacement.height??12)+'%'} : {left:'27%',top:'40%',width:'46%',height:'18%'}}><span className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:initialsPlacement ? (initialsPlacement.fontSize*0.27)+'cqw' : '9cqw',color:initialsPlacement?.color ?? '#16223a'}}>{personalizationText}</span></div>}
+          {showingPreview && initialsPlacement && <div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={{left:initialsPlacement.x+'%',top:initialsPlacement.y+'%',width:(initialsPlacement.width??30)+'%',height:(initialsPlacement.height??12)+'%'}}><span className="whitespace-nowrap text-center leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(initialsPlacement.fontSize*0.27)+'cqw',color:initialsPlacement.color}}>{personalizationText || 'ABC'}</span></div>}
           {personalizationEnabled && (
             <span className="absolute left-3 top-3 z-10 rounded-full bg-navy-800 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-md sm:left-4 sm:top-4 sm:px-3.5 sm:text-xs">
               Personalise This
@@ -198,7 +197,7 @@ export function ImageGallery({
               />
             </button>
           ))}
-          {hasPreview && <button type="button" onClick={()=>setActiveIndex(previewIndex)} className={cn('relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-xl border-2',showingPreview?'border-navy-800':'border-transparent opacity-70')} aria-label="View personalisation template"><img src={previewImage!.src} alt="Personalisation preview" className="h-full w-full object-contain bg-white"/><div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={{...(initialsPlacement ? {left:initialsPlacement.x+'%',top:initialsPlacement.y+'%',width:(initialsPlacement.width??30)+'%',height:(initialsPlacement.height??12)+'%'} : {left:'27%',top:'40%',width:'46%',height:'18%'}),containerType:'inline-size'}}><span className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:initialsPlacement ? (initialsPlacement.fontSize*.27)+'cqw' : '9cqw',color:initialsPlacement?.color ?? '#16223a'}}>{personalizationText}</span></div></button>}
+          {hasPreview && <button type="button" onClick={()=>setActiveIndex(previewIndex)} className={cn('relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-xl border-2',showingPreview?'border-navy-800':'border-transparent opacity-70')} aria-label="View initials preview"><img src={configuredImage!.src} alt="Initials preview" className="h-full w-full object-contain bg-white"/><div className="pointer-events-none absolute flex items-center justify-center overflow-hidden" style={{left:initialsPlacement!.x+'%',top:initialsPlacement!.y+'%',width:(initialsPlacement!.width??30)+'%',height:(initialsPlacement!.height??12)+'%',containerType:'inline-size'}}><span className="whitespace-nowrap leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:(initialsPlacement!.fontSize*.27)+'cqw',color:initialsPlacement!.color}}>{personalizationText||'ABC'}</span></div></button>}
         </div>
       )}
     </div>
