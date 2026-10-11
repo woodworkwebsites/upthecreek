@@ -793,9 +793,9 @@ function ProductRow({
     || currentColorSignature !== originalColorSignature
     || hiddenColors.length !== 0;
 
-  async function handleSaveRow(closeDetails = false) {
+  async function handleSaveRow(closeDetails = false, placementOverride?: typeof initialsPlacements) {
     if (saving) return false;
-    if (!hasChanges) return true;
+    if (!hasChanges && !placementOverride) return true;
 
     if (title.trim().length === 0) {
       setError('Title cannot be empty');
@@ -830,7 +830,7 @@ function ProductRow({
         isEnabled,
         personalizationEnabled,
         personalizationType,
-        initialsPlacements,
+        initialsPlacements: placementOverride ?? initialsPlacements,
       });
       setSaved(true);
       if (closeDetails) {
@@ -914,7 +914,12 @@ function ProductRow({
               <input type="color" value={activePlacement.color} onChange={e=>updatePlacement({color:e.target.value})}/>
             </label>
           </div>
-          <div className="border-t p-4"><button type="button" onClick={()=>setPlacementOpen(false)} className="w-full rounded-xl bg-gray-900 px-4 py-3 font-bold text-white">Done — save product to apply</button></div>
+          <div className="border-t p-4"><button type="button" disabled={saving} onClick={async()=>{
+                const placement = {...activePlacement, imageSrc: activePlacement.imageSrc || placementImage?.src || ''};
+                if (!placement.imageSrc) { setError('Select a preview garment image'); return; }
+                const next = {...initialsPlacements,[placementColor]:placement};
+                if (await handleSaveRow(false,next)) { setInitialsPlacements(next); setPlacementOpen(false); }
+              }} className="w-full rounded-xl bg-gray-900 px-4 py-3 font-bold text-white disabled:opacity-50">{saving ? 'Saving…' : 'Save placement'}</button></div>
         </div>
       </div>}
       <article className="group min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
