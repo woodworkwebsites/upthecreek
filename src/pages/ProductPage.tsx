@@ -162,7 +162,7 @@ export default function ProductPage({
   }, [product, activeVariantIds, selectedColor]);
 
   const configuredInitialsArea = product?.personalizationType==='initials' ? Object.entries(product.initialsPlacements??{}).find(([key])=>key.trim().toLowerCase()===(selectedColor??'').trim().toLowerCase())?.[1] : undefined;
-  const configuredInitialsImage = configuredInitialsArea?.imageSrc && product?.images.some(i=>i.src===configuredInitialsArea.imageSrc) ? configuredInitialsArea.imageSrc : '';
+  const configuredInitialsImage = configuredInitialsArea?.imageSrc ?? '';
   function openBasketOptions() {
     setBasketMessage(null);
     setBasketOptionsOpen(true);
