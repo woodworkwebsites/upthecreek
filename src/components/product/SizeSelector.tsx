@@ -6,6 +6,7 @@ interface SizeSelectorProps {
   onSelect: (size: string) => void;
   unavailable?: string[];
   hideLabel?: boolean;
+  warning?: string;
 }
 
 export function SizeSelector({
@@ -14,6 +15,7 @@ export function SizeSelector({
   onSelect,
   unavailable = [],
   hideLabel = false,
+  warning,
 }: SizeSelectorProps) {
   if (sizes.length === 0) return null;
 
@@ -65,6 +67,7 @@ export function SizeSelector({
             </button>
           );
         })}
+        {warning && <div className="flex min-w-[10rem] flex-1 items-center gap-2 self-center text-xs font-semibold leading-snug text-navy-800"><span aria-hidden="true" className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-current text-[11px] font-black">!</span><span>{warning}</span></div>}
       </div>
     </div>
   );
