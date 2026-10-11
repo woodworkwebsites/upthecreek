@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { ProductGrid } from '../../components/product/ProductGrid.js';
+import { ProductCard } from '../../components/product/ProductCard.js';
 import { useProducts } from '../../hooks/useProducts.js';
 
 const facts = [
@@ -53,7 +53,7 @@ export default function PartnersFunnelPage() {
           <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
         </div>
 
-        <div className="relative mx-auto max-w-7xl px-4 pb-8 pt-8 sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-7xl px-4 pb-6 pt-3 sm:px-6 lg:px-8">
           <NavLink
             to="/partners/login"
             className="absolute right-4 top-8 hidden items-center rounded-full border border-white/20 bg-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-white backdrop-blur-md transition-colors hover:bg-white/20 sm:right-6 sm:inline-flex lg:right-8"
@@ -62,22 +62,50 @@ export default function PartnersFunnelPage() {
           </NavLink>
 
           <div className="flex justify-center">
-            <img src="/Wordmark_White.png?v=dfc90b8" alt="Up the Creek Padel — padel apparel" className="h-[84px] w-auto max-w-full object-contain sm:h-[84px] lg:h-[96px]" />
+            <img src="/Wordmark_White.png?v=dfc90b8" alt="Up the Creek Padel — padel apparel" className="h-[58px] w-auto max-w-full object-contain sm:h-[64px] lg:h-[72px]" />
           </div>
 
-          <div className="mx-auto max-w-4xl pt-2 text-center animate-fade-up sm:pt-14">
+          <div className="mx-auto max-w-5xl pt-1 text-center animate-fade-up sm:pt-3">
             <p className="label text-white/60">Partner programme</p>
-            <NavLink to="/partners/login" className="mx-auto mt-4 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-5 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md sm:hidden">
+            <NavLink to="/partners/login" className="mx-auto mt-2 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-5 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md sm:hidden">
               Partner login
             </NavLink>
-            <h1 className="mt-4 text-[1.6875rem] font-black tracking-tight sm:text-[2.25rem] lg:text-[3.375rem]">
+            <h1 className="mt-2 text-[1.25rem] font-black leading-tight tracking-tight sm:text-[1.75rem] lg:text-[2.5rem]">
               Offer Up The Creek Padel apparel to your club’s players and members, with flexible wholesale ordering and commission on online sales.
             </h1>
-            <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-white/78 sm:text-lg">
-              UTC offers clubs a selection for the clubhouse alongside a club specific online discount code for your members with a portal showing
-              orders, sales and commission clearly.
-            </p>
+
           </div>
+
+        <div className="mx-auto mt-5 max-w-7xl rounded-[1.25rem] border border-white/10 bg-navy-950/50 p-3 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-4">
+            <p className="px-1 pb-2 text-xs font-bold uppercase tracking-[0.28em] text-white/50">Featured products</p>
+
+            <div className="rounded-xl border border-gray-200 bg-[linear-gradient(180deg,_#f7f3eb_0%,_#efe7db_100%)] p-3 sm:p-4">
+              {loading ? (
+                <div className="flex gap-3 overflow-x-auto">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <div key={index} className="aspect-[3/4] w-48 shrink-0 animate-pulse rounded-2xl bg-gray-100" />
+                  ))}
+                </div>
+              ) : error ? (
+                <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-sm text-gray-500">
+                  {error}
+                </div>
+              ) : featuredProducts.length > 0 ? (
+                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:gap-4" aria-label="Featured products carousel">
+                  {featuredProducts.map((product) => (
+                    <div key={product.id} className="w-[48%] min-w-[150px] max-w-[220px] shrink-0 snap-start sm:w-[24%] sm:max-w-none">
+                      <ProductCard product={product} priceLabel="RRP" showPartnerMargins />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-sm text-gray-500">
+                  No products are available right now.
+                </div>
+              )}
+            </div>
+        </div>
+
 
         <div className="mx-auto mt-8 max-w-2xl">
           <article className="rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
@@ -113,30 +141,6 @@ export default function PartnersFunnelPage() {
         <h2 className="mx-auto mb-8 max-w-3xl text-center text-2xl font-black tracking-tight text-navy-900 sm:text-3xl">
           Partners earn a margin on wholesale orders and commission on referrals.
         </h2>
-        <div className="mx-auto max-w-6xl rounded-[2rem] border border-white/10 bg-navy-950/50 p-5 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-6">
-            <p className="px-1 pb-4 text-xs font-bold uppercase tracking-[0.28em] text-white/50">Featured products</p>
-
-            <div className="rounded-[1.5rem] border border-gray-200 bg-[linear-gradient(180deg,_#f7f3eb_0%,_#efe7db_100%)] p-4 sm:p-6">
-              {loading ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <div key={index} className="aspect-[3/4] animate-pulse rounded-2xl bg-gray-100" />
-                  ))}
-                </div>
-              ) : error ? (
-                <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-sm text-gray-500">
-                  {error}
-                </div>
-              ) : featuredProducts.length > 0 ? (
-                <ProductGrid products={featuredProducts} priceLabel="RRP" showPartnerMargins />
-              ) : (
-                <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-sm text-gray-500">
-                  No products are available right now.
-                </div>
-              )}
-            </div>
-        </div>
-
         <div className="mt-10 rounded-[2rem] border border-gray-200 bg-white p-8 shadow-[0_25px_80px_rgba(5,13,31,0.08)]">
           <p className="label">Collaboration opportunity</p>
           <img
