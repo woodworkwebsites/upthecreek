@@ -76,7 +76,7 @@ export default function PartnersFunnelPage() {
 
           </div>
 
-        <div className="mx-auto mt-5 max-w-7xl rounded-[1.25rem] border border-white/10 bg-navy-950/50 p-3 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-4">
+        <div className="relative left-1/2 mt-5 w-screen -translate-x-1/2 rounded-[1.25rem] border border-white/10 bg-navy-950/50 p-3 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-4">
             <p className="px-1 pb-2 text-xs font-bold uppercase tracking-[0.28em] text-white/50">Featured products</p>
 
             <div className="rounded-xl border border-gray-200 bg-[linear-gradient(180deg,_#f7f3eb_0%,_#efe7db_100%)] p-3 sm:p-4">
