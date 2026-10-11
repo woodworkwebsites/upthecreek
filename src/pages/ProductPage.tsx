@@ -177,6 +177,8 @@ export default function ProductPage({
       size: selectedVariant.size,
       unitPrice: selectedVariant.price + (personalization.trim() && !isHook ? 500 : 0),
       imageSrc: miniPreviewSrc,
+      personalizationFee: personalization.trim() && !isHook ? 500 : 0,
+      initialsPlacement: product.personalizationType === 'initials' ? product.initialsPlacements?.[selectedColor ?? ''] : undefined,
       personalization: product.personalizationEnabled ? personalization.trim() : '',
     });
     setBasketMessage(`Added ${quantity} to basket.`);
@@ -269,6 +271,8 @@ export default function ProductPage({
                 selectedColor={selectedColor}
                 previewTriggerRef={previewTriggerRef}
                 personalizationEnabled={product.personalizationEnabled}
+                initialsPlacement={product.personalizationType==='initials'?product.initialsPlacements?.[selectedColor ?? '']:undefined}
+                personalizationText={personalization}
                 title={product.title}
                 priceLabel={!selectedVariant && product.minPrice !== product.maxPrice ? `From ${displayPrice}` : displayPrice}
               />
