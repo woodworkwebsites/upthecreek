@@ -108,6 +108,7 @@ export interface OrderItemRow {
   quantity: number;
   unit_price: number;
   personalization?: string;
+  personalization_type?: string;
   created_at: string;
 }
 
@@ -230,6 +231,7 @@ export interface OrderItem {
   quantity: number;
   unitPrice: number;
   personalization?: string;
+  personalizationType?: string;
   orderUrl?: string | null;
   imageSrc?: string;
   createdAt: string;
