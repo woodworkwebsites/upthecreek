@@ -1,6 +1,69 @@
+import { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ProductCard } from '../../components/product/ProductCard.js';
 import { useProducts } from '../../hooks/useProducts.js';
+import type { Product } from '../../../types/index.js';
+
+function PartnerRangeCarousel({ products }: { products: Product[] }) {
+  const scroller = useRef<HTMLDivElement>(null);
+  const firstSet = useRef<HTMLDivElement>(null);
+  const paused = useRef(false);
+  const pauseUntil = useRef(0);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    if (reducedMotion || products.length < 2) return;
+    let frame = 0;
+    let previous = 0;
+    const animate = (time: number) => {
+      const container = scroller.current;
+      const set = firstSet.current;
+      if (container && set && !paused.current && time >= pauseUntil.current) {
+        const width = set.getBoundingClientRect().width;
+        if (width > 0) {
+          container.scrollLeft += Math.min(time - (previous || time), 50) * 0.018;
+          if (container.scrollLeft >= width) container.scrollLeft -= width;
+        }
+      }
+      previous = time;
+      frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [products, reducedMotion]);
+
+  const pauseForInteraction = () => { pauseUntil.current = performance.now() + 4500; };
+  const tiles = (duplicate: boolean) => products.map(product => (
+    <div key={`${duplicate ? 'copy' : 'original'}-${product.id}`} className="w-[48vw] min-w-[150px] max-w-[220px] shrink-0 sm:w-[24vw] sm:max-w-[260px]">
+      <ProductCard product={product} priceLabel="RRP" showPartnerMargins />
+    </div>
+  ));
+
+  return (
+    <div ref={scroller} className="flex overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Partner range carousel"
+      onMouseEnter={() => { paused.current = true; }}
+      onMouseLeave={() => { paused.current = false; pauseForInteraction(); }}
+      onFocusCapture={() => { paused.current = true; }}
+      onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) { paused.current = false; pauseForInteraction(); } }}
+      onPointerDown={() => { paused.current = true; }}
+      onPointerUp={() => { paused.current = false; pauseForInteraction(); }}
+      onTouchEnd={pauseForInteraction}
+      onWheel={pauseForInteraction}
+    >
+      <div ref={firstSet} className="flex shrink-0 gap-3 pr-3 sm:gap-4 sm:pr-4">{tiles(false)}</div>
+      {!reducedMotion && products.length > 1 && <div aria-hidden="true" className="flex shrink-0 gap-3 pr-3 sm:gap-4 sm:pr-4">{tiles(true)}</div>}
+    </div>
+  );
+}
+
 
 const facts = [
   {
@@ -43,7 +106,7 @@ const faqs = [
 
 export default function PartnersFunnelPage() {
   const { products, loading, error } = useProducts('partner');
-  const featuredProducts = products.slice(0, 4);
+  const featuredProducts = products;
 
   return (
     <div className="min-h-screen bg-cream text-navy-900">
@@ -88,13 +151,7 @@ export default function PartnersFunnelPage() {
                   {error}
                 </div>
               ) : featuredProducts.length > 0 ? (
-                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:gap-4" aria-label="Featured products carousel">
-                  {featuredProducts.map((product) => (
-                    <div key={product.id} className="w-[48%] min-w-[150px] max-w-[220px] shrink-0 snap-start sm:w-[24%] sm:max-w-none">
-                      <ProductCard product={product} priceLabel="RRP" showPartnerMargins />
-                    </div>
-                  ))}
-                </div>
+                <PartnerRangeCarousel products={featuredProducts} />
               ) : (
                 <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-sm text-gray-500">
                   No products are available right now.
