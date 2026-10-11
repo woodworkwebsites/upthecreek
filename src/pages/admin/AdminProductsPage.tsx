@@ -203,7 +203,9 @@ function InlineDraftProductRow({
   }
 
   return (
-    <div ref={rowRef} className="overflow-hidden rounded-[1.75rem] border border-dashed border-gray-200 bg-cream/20 shadow-[0_18px_50px_rgba(5,13,31,0.04)] dark:border-gray-700 dark:bg-gray-950/40">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-2 sm:p-5">
+      <div ref={rowRef} role="dialog" aria-modal="true" aria-label="New product" className="flex h-[calc(100dvh-1rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900 sm:h-auto sm:max-h-[calc(100dvh-2.5rem)]">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-4 dark:border-gray-800 sm:px-6">
         <div>
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">New product</p>
@@ -326,6 +328,7 @@ function InlineDraftProductRow({
               {submitting ? 'Creating…' : 'Create product'}
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -1581,11 +1584,6 @@ export default function AdminProductsPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  useEffect(() => {
-    if (!draftOpen) return;
-    draftRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [draftOpen]);
-
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1641,20 +1639,20 @@ export default function AdminProductsPage() {
               onRegisterSave={registerRowSave}
             />
           ))}
-          {draftOpen && (
-            <InlineDraftProductRow
-              token={token!}
-              catalog={catalog}
-              ranges={ranges}
-              rowRef={draftRowRef}
-              onCancel={() => setDraftOpen(false)}
-              onCreated={async () => {
-                setDraftOpen(false);
-                await load();
-              }}
-            />
-          )}
         </div>
+      )}
+      {draftOpen && (
+        <InlineDraftProductRow
+          token={token!}
+          catalog={catalog}
+          ranges={ranges}
+          rowRef={draftRowRef}
+          onCancel={() => setDraftOpen(false)}
+          onCreated={async () => {
+            setDraftOpen(false);
+            await load();
+          }}
+        />
       )}
     </div>
   );
