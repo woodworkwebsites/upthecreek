@@ -66,25 +66,15 @@ export default function PartnersFunnelPage() {
             Partner login
           </NavLink>
 
-          <div className="flex flex-col items-center">
-            <div className="flex h-[60px] justify-center overflow-hidden sm:h-auto">
-              <img
-                src="/Wordmark_White.png?v=dfc90b8"
-                alt="Up the Creek Padel"
-                className="h-[72px] w-auto max-w-none sm:h-[84px] lg:h-[96px]"
-              />
-            </div>
-            <NavLink
-              to="/partners/login"
-              className="mt-3 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-5 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md sm:hidden"
-            >
-              Partner login
-            </NavLink>
-            <p className="mt-2 text-center text-[11px] font-medium tracking-[0.21em] text-white sm:hidden">padel apparel</p>
+          <div className="flex justify-center">
+            <img src="/Wordmark_White.png?v=dfc90b8" alt="Up the Creek Padel — padel apparel" className="h-[84px] w-auto max-w-full object-contain sm:h-[84px] lg:h-[96px]" />
           </div>
 
           <div className="mx-auto max-w-4xl pt-10 text-center animate-fade-up sm:pt-14">
             <p className="label text-white/60">Partner programme</p>
+            <NavLink to="/partners/login" className="mx-auto mt-4 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-5 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md sm:hidden">
+              Partner login
+            </NavLink>
             <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl lg:text-7xl">
               Offer unique Padel apparel for your club with flexible stock ordering and tracked commission.
             </h1>
