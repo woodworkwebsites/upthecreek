@@ -161,11 +161,14 @@ export default function BasketPage() {
               {items.map((item) => (
                 <div key={item.id} className="flex gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
                   {item.imageSrc && (
-                    <img
-                      src={item.imageSrc}
-                      alt={item.title}
-                      className="h-24 w-[66px] flex-shrink-0 rounded-xl object-cover object-top"
-                    />
+                    <div className="relative h-24 w-[66px] flex-shrink-0 overflow-hidden rounded-xl bg-white">
+                      <img src={item.imageSrc} alt={item.title} className="h-full w-full object-contain"/>
+                      {item.personalization && item.initialsPlacement && (
+                        <div className="absolute flex items-center justify-center overflow-hidden" style={{left:item.initialsPlacement.x+'%',top:item.initialsPlacement.y+'%',width:(item.initialsPlacement.width??30)+'%',height:(item.initialsPlacement.height??12)+'%'}}>
+                          <span className="whitespace-nowrap leading-none" style={{fontFamily:"'Bebas Neue', Impact, sans-serif",fontSize:'min('+item.initialsPlacement.fontSize+'px, 4vw)',color:item.initialsPlacement.color}}>{item.personalization}</span>
+                        </div>
+                      )}
+                    </div>
                   )}
                   <div className="min-w-0 flex-1">
 
@@ -202,7 +205,11 @@ export default function BasketPage() {
                           aria-label="Increase quantity"
                         >+</button>
                       </div>
-                      <p className="font-black text-navy-800">{formatPrice(item.unitPrice * item.quantity)}</p>
+                      <div className="text-right text-xs text-gray-600">
+                        <div>Garment · {formatPrice((item.unitPrice-(item.personalizationFee??0))*item.quantity)}</div>
+                        {!!item.personalizationFee && <div>Personalisation · {formatPrice(item.personalizationFee*item.quantity)}</div>}
+                        <p className="mt-1 font-black text-navy-800">{formatPrice(item.unitPrice*item.quantity)}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
