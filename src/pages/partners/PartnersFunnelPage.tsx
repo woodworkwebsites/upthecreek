@@ -9,14 +9,14 @@ const facts = [
     detail: 'Stock for the clubhouse, receptions and events.',
   },
   {
-    label: 'Online sales',
-    value: 'Player orders',
-    detail: 'Club code sales tracked separately in the portal.',
-  },
-  {
     label: 'Commission',
     value: '10%',
     detail: 'Earn on attributed online orders.',
+  },
+  {
+    label: 'Online sales',
+    value: 'Player orders',
+    detail: 'Club code sales tracked separately in the portal.',
   },
   {
     label: 'Delivery',
@@ -75,7 +75,7 @@ export default function PartnersFunnelPage() {
             <NavLink to="/partners/login" className="mx-auto mt-4 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-5 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md sm:hidden">
               Partner login
             </NavLink>
-            <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl lg:text-7xl">
+            <h1 className="mt-4 text-[1.6875rem] font-black tracking-tight sm:text-[2.25rem] lg:text-[3.375rem]">
               Offer Up The Creek Padel apparel to your club’s players and members, with flexible wholesale ordering and commission on online sales.
             </h1>
             <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-white/78 sm:text-lg">
