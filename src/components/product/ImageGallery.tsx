@@ -55,6 +55,11 @@ export function ImageGallery({
     ? [defaultImage, ...imageSource.filter((image) => image !== defaultImage)]
     : imageSource;
 
+  const hasPreview=Boolean(personalizationEnabled && initialsPlacement && displayImages.length);
+  const previewIndex=displayImages.length;
+  const totalImages=displayImages.length+(hasPreview?1:0);
+  const showingPreview=hasPreview && activeIndex===previewIndex;
+
   useEffect(() => {
     setActiveIndex(0);
   }, [activeVariantIds, selectedColor]);
@@ -86,10 +91,6 @@ export function ImageGallery({
     else        setActiveIndex((i) => Math.max(i - 1, 0));
   }
 
-  const hasPreview=Boolean(personalizationEnabled && initialsPlacement && displayImages.length);
-  const previewIndex=displayImages.length;
-  const totalImages=displayImages.length+(hasPreview?1:0);
-  const showingPreview=hasPreview && activeIndex===previewIndex;
   const current = displayImages[showingPreview?0:activeIndex] ?? displayImages[0];
   if (!current) {
     return (
