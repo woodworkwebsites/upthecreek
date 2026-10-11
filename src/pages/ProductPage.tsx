@@ -324,7 +324,7 @@ export default function ProductPage({
                   {product.personalizationType === 'initials' && (!personalizationConfirmed ? (
                     <button type="button" onClick={()=>{setPersonalizationConfirmed(true);setBasketOptionsOpen(true);}} className="w-full rounded-xl bg-navy-800 px-4 py-3 text-sm font-bold text-white">Confirm personalisation &amp; choose size</button>
                   ) : <p className="text-xs font-semibold text-emerald-700">Personalisation confirmed</p>)}
-                </div>
+                </div>}
               </div>
             )}
 
