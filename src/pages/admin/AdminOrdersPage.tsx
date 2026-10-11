@@ -311,7 +311,7 @@ function OrderRow({
                           </span>
                           <span className="text-gray-400 dark:text-gray-500">{formatPrice(item.unitPrice * item.quantity)}</span>
                           </div>
-                          {item.personalization && <p className="whitespace-pre-wrap break-words rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-900 dark:bg-amber-900/20 dark:text-amber-200"><span className="font-semibold">Personalisation:</span> {item.personalization}</p>}
+                          {item.personalization && <p className="whitespace-pre-wrap break-words rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-900 dark:bg-amber-900/20 dark:text-amber-200"><span className="font-semibold">{item.personalizationType === 'initials' ? 'Initials' : item.personalizationType === 'name' ? 'Name' : item.personalizationType === 'free' ? 'Free Text' : 'Personalisation'}:</span> {item.personalization}</p>}
                         </div>
                       )) : (
                         <p className="text-gray-400 dark:text-gray-500">No items loaded</p>
