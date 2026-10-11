@@ -1,4 +1,4 @@
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 import assert from 'node:assert/strict';
 
 const svg = (label, fill) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
@@ -23,7 +23,8 @@ const fixture = {
   syncedAt:'2026-10-11',createdAt:'2026-10-11',updatedAt:'2026-10-11'
 };
 
-const browser = await chromium.launch({headless:true});
+for (const engine of [chromium, webkit]) {
+const browser = await engine.launch({headless:true});
 try {
   for (const viewport of [{width:390,height:844},{width:1365,height:900}]) {
     const page = await browser.newPage({viewport});
@@ -50,8 +51,9 @@ try {
     await page.getByRole('button',{name:'Confirm this personalisation'}).click();
     await page.getByText('Choose size and quantity').waitFor();
     await page.close();
-    console.log('PASS personalisation at '+viewport.width+'x'+viewport.height);
+    console.log('PASS '+engine.name()+' personalisation at '+viewport.width+'x'+viewport.height);
   }
 } finally {
   await browser.close();
+}
 }
