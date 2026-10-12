@@ -29,7 +29,7 @@ const providerVariant: Record<string, 'default' | 'info'> = {
 
 const labels: Record<string,string> = { order_received:'Order received',ordered_sellshirts:'Ordered from SellShirts',dispatched:'Dispatched',delivered:'Delivered',cancelled:'Cancelled',failed:'Failed' };
 
-function OrderRow({
+function OrderCard({
   order,
   token,
   onFulfilled,
@@ -197,75 +197,43 @@ function OrderRow({
 
   return (
     <>
-      <tr
-        className="cursor-pointer align-middle hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-        onClick={() => void toggleExpanded()}
-      >
-        <td className="py-2 pr-4 pl-4 sm:pl-6 align-middle">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSessionModalOpen(true);
-            }}
-            className="text-xs font-semibold text-navy-700 underline decoration-gray-300 underline-offset-2 hover:text-navy-900 dark:text-blue-300 dark:decoration-gray-600"
-          >
-            Session
-          </button>
-        </td>
-        <td className="px-3 py-2 align-middle">
-          <span className="text-sm text-gray-900 dark:text-gray-100">
-            {order.customerEmail}
-          </span>
-        </td>
-        <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100 align-middle">
-          {formatPrice(order.amountTotal)}
-        </td>
-        <td className="px-3 py-2 align-middle">
-          <div className="flex flex-wrap items-start gap-2 md:flex-nowrap md:items-center md:whitespace-nowrap md:overflow-x-auto" onClick={(e) => e.stopPropagation()}>
-            <Badge variant={statusVariant[shown.status] ?? 'default'} className="shrink-0">
-              {labels[shown.status] ?? shown.status.replace(/_/g, ' ')}
-            </Badge>
-            <select value={status} onChange={e=>setStatus(e.target.value as Order['status'])} className="h-8 rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
-              {(['order_received','ordered_sellshirts','dispatched','delivered','cancelled'] as Order['status'][]).map(value=><option key={value} value={value}>{labels[value]}</option>)}
-            </select>
-            <button type="button" onClick={()=>void handleUpdateStatus()} disabled={statusSaving || status===shown.status} className="h-8 rounded-lg bg-navy-800 px-3 text-xs font-semibold text-white disabled:opacity-50">{statusSaving?'Saving…':'Move status'}</button>
-            {statusError && <div className="text-xs text-red-600 dark:text-red-400">{statusError}</div>}
+      <button type="button" onClick={() => void toggleExpanded()} className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-gray-400 dark:border-gray-800 dark:bg-gray-950 dark:hover:border-gray-600" aria-label={`Open order for ${order.customerEmail}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{order.customerEmail}</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{formatDate(order.createdAt)}</p>
           </div>
-        </td>
-        <td className="px-3 py-2 align-middle">
-          <Badge variant={providerVariant[order.fulfillmentProvider] ?? 'default'} className="shrink-0">
-            {order.fulfillmentProvider}
-          </Badge>
-        </td>
-        <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 align-middle">
-          {shown.externalOrderRef ?? '—'}
-        </td>
-        <td className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 align-middle">
-          {formatDate(order.createdAt)}
-        </td>
-        <td className="px-3 py-2 text-right align-middle sm:pr-6">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteConfirmOpen(true);
-            }}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-sm font-semibold text-red-600 hover:bg-red-50 hover:border-red-200 dark:border-gray-700 dark:text-red-400 dark:hover:bg-red-900/20"
-            aria-label={`Delete order ${order.id}`}
-          >
-            X
-          </button>
-        </td>
-      </tr>
-      {expanded && (
-        <tr className="bg-gray-50 dark:bg-gray-900/50">
-          <td colSpan={8} className="px-4 py-4 sm:px-6">
-            {loadingDetail ? (
-              <p className="text-xs text-gray-500 dark:text-gray-400">Loading order details…</p>
-            ) : (
-              <div className="space-y-4">
-                {shown.error && (
+          <span className="shrink-0 text-base font-bold text-gray-900 dark:text-gray-100">{formatPrice(order.amountTotal)}</span>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          <Badge variant={statusVariant[shown.status] ?? 'default'}>{labels[shown.status] ?? shown.status.replace(/_/g, ' ')}</Badge>
+          <span className="text-xs font-semibold text-navy-700 dark:text-blue-300">View order →</span>
+        </div>
+      </button>
+      {expanded && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[55] flex items-end justify-center bg-black/60 sm:items-center sm:p-5" onClick={() => setExpanded(false)}>
+          <div role="dialog" aria-modal="true" aria-label={`Order details for ${order.customerEmail}`} className="flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden bg-gray-50 shadow-2xl dark:bg-gray-900 sm:h-auto sm:max-h-[calc(100dvh-2.5rem)] sm:rounded-2xl" onClick={e=>e.stopPropagation()}>
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-200 bg-white px-4 py-4 dark:border-gray-700 dark:bg-gray-950">
+              <div className="min-w-0">
+                <p className="break-all text-sm font-semibold text-gray-900 dark:text-white">{shown.customerEmail}</p>
+                <p className="mt-1 text-xs text-gray-500">{formatDate(shown.createdAt)} · {formatPrice(shown.amountTotal)}</p>
+              </div>
+              <button type="button" onClick={()=>setExpanded(false)} className="shrink-0 rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:text-white">Close</button>
+            </div>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4">
+              {loadingDetail ? <p className="text-sm text-gray-500">Loading order details…</p> : (
+                <>
+                  <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-950">
+  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Order status</p>
+  <div className="flex flex-wrap items-center gap-2">
+    <select value={status} onChange={e=>setStatus(e.target.value as Order['status'])} className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
+      {(['order_received','ordered_sellshirts','dispatched','delivered','cancelled'] as Order['status'][]).map(value=><option key={value} value={value}>{labels[value]}</option>)}
+    </select>
+    <button type="button" onClick={()=>void handleUpdateStatus()} disabled={statusSaving || status===shown.status} className="rounded-lg bg-navy-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{statusSaving?'Saving…':'Update status'}</button>
+  </div>
+  {statusError && <p className="mt-2 text-xs text-red-600">{statusError}</p>}
+</div>
+                                  {shown.error && (
                   <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-3">
                     <p className="text-xs font-medium text-red-700 dark:text-red-400">Error</p>
                     <p className="mt-1 text-xs text-red-600 dark:text-red-300 font-mono">{shown.error}</p>
@@ -351,10 +319,15 @@ function OrderRow({
                     {submitError && <p className="text-xs text-red-600">{submitError}</p>}
                   </div>
                 )}
-              </div>
-            )}
-          </td>
-        </tr>
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
+                    <button type="button" onClick={()=>setSessionModalOpen(true)} className="text-xs font-semibold text-navy-700 underline dark:text-blue-300">View Stripe session</button>
+                    <button type="button" onClick={()=>setDeleteConfirmOpen(true)} className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 dark:text-red-400">Delete order</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>, document.body
       )}
       {typeof document !== 'undefined' && createPortal(
         <>
@@ -467,6 +440,7 @@ function OrderRow({
 export default function AdminOrdersPage() {
   const { token } = useAdminToken();
   const [orders,  setOrders]  = useState<Order[]>([]);
+  const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
   const [toasts, setToasts] = useState<Array<{ id: string; title: string; message: string }>>([]);
@@ -573,43 +547,21 @@ export default function AdminOrdersPage() {
         </button>
       </div>
 
-      {loading ? (
-        <PageLoader />
-      ) : error ? (
-        <ErrorMessage message={error} onRetry={load} />
-      ) : orders.length === 0 ? (
-        <div className="rounded-2xl border border-gray-100 dark:border-gray-800 py-16 text-center">
-          <p className="text-gray-500 dark:text-gray-400">No orders yet.</p>
-        </div>
+      <div className="flex flex-wrap items-center gap-2" aria-label="Filter orders by status">
+        {['all', ...Array.from(new Set(orders.map(order => order.status)))].map(value => (
+          <button key={value} type="button" onClick={()=>setStatusFilter(value)} aria-pressed={statusFilter===value} className={`rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${statusFilter===value ? 'border-navy-800 bg-navy-800 text-white' : 'border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200'}`}>
+            {value==='all'?'All':labels[value]??value.replace(/_/g,' ')} <span className="opacity-70">({value==='all'?orders.length:orders.filter(o=>o.status===value).length})</span>
+          </button>
+        ))}
+      </div>
+      {loading ? <PageLoader /> : error ? <ErrorMessage message={error} onRetry={load} /> : orders.length === 0 ? (
+        <div className="rounded-2xl border border-gray-200 py-16 text-center text-sm text-gray-500 dark:border-gray-800">No orders yet.</div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-gray-900/50">
-                  {['Session', 'Customer', 'Amount', 'Status', 'Provider', 'Ref', 'Created', ''].map((h, index) => (
-                    <th
-                      key={h || `col-${index}`}
-                      className={`px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${index === 0 ? 'pl-6' : ''} ${index === 7 ? 'text-right sm:pr-6' : ''}`}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-950">
-                {orders.map((order) => (
-                  <OrderRow
-                    key={order.id}
-                    order={order}
-                    token={token!}
-                    onFulfilled={handleFulfilled}
-                    onDeleted={handleDeleted}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {orders.filter(order=>statusFilter==='all'||order.status===statusFilter).map(order=>(
+            <OrderCard key={order.id} order={order} token={token!} onFulfilled={handleFulfilled} onDeleted={handleDeleted}/>
+          ))}
+          {orders.every(order=>statusFilter!=='all'&&order.status!==statusFilter) && <p className="col-span-full py-12 text-center text-sm text-gray-500">No orders with this status.</p>}
         </div>
       )}
     </div>
