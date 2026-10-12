@@ -110,7 +110,7 @@ export function ProductCard({ product, priceLabel, toPrefix = '/product', showPa
               <span className="inline-flex items-center rounded-full bg-sky-700 px-2.5 py-1 text-xs font-bold text-white">{formatPrice(margin)} Margin</span>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Online Referral</span>
+              
               <span className="inline-flex items-center rounded-full bg-amber-700 px-2.5 py-1 text-xs font-bold text-white">{formatPrice(referral)} referral</span>
             </div>
           </div>
