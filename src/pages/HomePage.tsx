@@ -23,7 +23,8 @@ function ReviewCarousel({ reviews }: { reviews: HomepageReview[] }) {
 
   return (
     <section aria-label="Customer reviews" className="mt-12">
-      <div className="relative mx-auto flex min-h-64 max-w-4xl items-center justify-center overflow-hidden rounded-[1.75rem] border border-navy-800/10 bg-white p-3 shadow-[0_18px_55px_rgba(5,13,31,0.12)] sm:p-6">
+      <div className="relative mx-auto flex min-h-64 max-w-4xl flex-col items-center justify-center overflow-hidden rounded-[1.75rem] border border-navy-800/10 bg-white p-3 shadow-[0_18px_55px_rgba(5,13,31,0.12)] sm:p-6">
+        <h2 className="mb-3 text-center text-xl font-black tracking-tight text-navy-800 sm:text-2xl">Customer Reviews</h2>
         <img
           src={active.src}
           alt={active.alt || 'Customer review'}
