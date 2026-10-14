@@ -5,7 +5,8 @@ export type AssetKind =
   | 'size-guide'
   | 'partner-collab-image'
   | 'partner-onboarding-literature'
-  | 'partner-onboarding-signage';
+  | 'partner-onboarding-signage'
+  | 'review-image';
 
 export interface StoredAsset {
   key: string;

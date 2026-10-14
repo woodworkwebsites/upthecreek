@@ -1,19 +1,66 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useProducts } from '../hooks/useProducts.js';
 import { ProductGrid } from '../components/product/ProductGrid.js';
 import { PageLoader } from '../components/ui/LoadingSpinner.js';
 import { ErrorMessage } from '../components/ui/ErrorMessage.js';
-import { subscribeNewsletter } from '../lib/api.js';
+import { fetchHomepageReviews } from '../lib/api.js';
+
+interface HomepageReview {
+  id: string;
+  src: string;
+  alt: string;
+}
+
+function ReviewCarousel({ reviews }: { reviews: HomepageReview[] }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  if (reviews.length === 0) return null;
+  const active = reviews[activeIndex];
+
+  function move(offset: number) {
+    setActiveIndex((index) => (index + offset + reviews.length) % reviews.length);
+  }
+
+  return (
+    <section aria-label="Customer reviews" className="mt-12">
+      <div className="relative mx-auto flex min-h-64 max-w-4xl items-center justify-center overflow-hidden rounded-[1.75rem] border border-navy-800/10 bg-white p-3 shadow-[0_18px_55px_rgba(5,13,31,0.12)] sm:p-6">
+        <img
+          src={active.src}
+          alt={active.alt || 'Customer review'}
+          className="max-h-[min(72vh,760px)] w-auto max-w-full object-contain"
+        />
+        {reviews.length > 1 && (
+          <>
+            <button type="button" onClick={() => move(-1)} aria-label="Previous review"
+              className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-navy-900/80 px-3 py-2 text-xl text-white shadow-lg hover:bg-navy-900">‹</button>
+            <button type="button" onClick={() => move(1)} aria-label="Next review"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-navy-900/80 px-3 py-2 text-xl text-white shadow-lg hover:bg-navy-900">›</button>
+          </>
+        )}
+      </div>
+      {reviews.length > 1 && (
+        <div className="mt-4 flex justify-center gap-2" aria-label="Choose a review">
+          {reviews.map((review, index) => (
+            <button key={review.id} type="button" onClick={() => setActiveIndex(index)}
+              aria-label={`Show review ${index + 1}`} aria-current={index === activeIndex}
+              className={`h-2.5 rounded-full transition-all ${index === activeIndex ? 'w-8 bg-navy-800' : 'w-2.5 bg-navy-800/25 hover:bg-navy-800/50'}`} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
 
 export default function HomePage() {
   const { products, loading, error } = useProducts('storefront');
   const { hash } = useLocation();
-  const [newsletterOpen, setNewsletterOpen] = useState(false);
-  const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
-  const [newsletterError, setNewsletterError] = useState<string | null>(null);
-  const [newsletterSuccess, setNewsletterSuccess] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<HomepageReview[]>([]);
+
+  useEffect(() => {
+    let current = true;
+    void fetchHomepageReviews().then((items) => { if (current) setReviews(items); }).catch(() => {});
+    return () => { current = false; };
+  }, []);
 
   useEffect(() => {
     if (hash === '#collection') {
@@ -22,43 +69,6 @@ export default function HomePage() {
     }
   }, [hash]);
 
-  useEffect(() => {
-    if (!newsletterOpen) return;
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setNewsletterOpen(false);
-    }
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [newsletterOpen]);
-
-  async function handleNewsletterSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const email = newsletterEmail.trim();
-    if (!email) {
-      setNewsletterError('Enter your email address');
-      return;
-    }
-
-    setNewsletterSubmitting(true);
-    setNewsletterError(null);
-    setNewsletterSuccess(null);
-
-    try {
-      const result = await subscribeNewsletter({ email, source: 'homepage-modal' });
-      setNewsletterSuccess(
-        result.alreadySubscribed
-          ? 'You’re already on the list.'
-          : 'You’re on the list. We’ll send offers and new drop updates.',
-      );
-      setNewsletterEmail('');
-    } catch (err) {
-      setNewsletterError(err instanceof Error ? err.message : 'Could not save your signup');
-    } finally {
-      setNewsletterSubmitting(false);
-    }
-  }
 
   return (
     <div className="min-h-screen bg-cream">
@@ -146,29 +156,7 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="mt-12 rounded-[2rem] border border-navy-800/10 bg-[linear-gradient(135deg,_#0b1437_0%,_#132552_52%,_#1e3a8a_100%)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(5,13,31,0.22)] sm:px-8">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div className="max-w-2xl">
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/45">Drop list</p>
-                <h2 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
-                  Get offers and first access to new drops.
-                </h2>
-                <p className="mt-3 max-w-xl text-sm leading-7 text-white/75">
-                  Join the email list for launch notices, limited releases, and occasional offers from Up the Creek.
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
-                <button
-                  type="button"
-                  onClick={() => setNewsletterOpen(true)}
-                  className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-navy-900 transition-transform hover:scale-[1.02]"
-                >
-                  Sign up for emails
-                </button>
-              </div>
-            </div>
-          </div>
+          <ReviewCarousel reviews={reviews} />
 
           <div className="mt-4 flex justify-center">
             <Link
@@ -250,68 +238,7 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {newsletterOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-navy-950/70 p-4 backdrop-blur-sm sm:items-center"
-          onClick={() => setNewsletterOpen(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Email signup"
-            onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:p-8"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">Drop list</p>
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-navy-900">
-                  Sign up for offers and updates
-                </h2>
-                <p className="mt-2 text-sm leading-7 text-gray-500">
-                  We’ll only use this for UTC drops, offers, and club updates.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setNewsletterOpen(false)}
-                className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-50"
-              >
-                Close
-              </button>
-            </div>
 
-            <form onSubmit={handleNewsletterSubmit} className="mt-6 space-y-4">
-              <label className="block space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">Email address</span>
-                <input
-                  type="email"
-                  value={newsletterEmail}
-                  onChange={(e) => setNewsletterEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-navy-900 outline-none transition-colors placeholder:text-gray-400 focus:border-navy-800"
-                />
-              </label>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <button
-                  type="submit"
-                  disabled={newsletterSubmitting}
-                  className="inline-flex items-center justify-center rounded-full bg-navy-900 px-6 py-3 text-xs font-bold uppercase tracking-[0.24em] text-white transition-colors hover:bg-navy-800 disabled:opacity-50"
-                >
-                  {newsletterSubmitting ? 'Signing up…' : 'Join the list'}
-                </button>
-                <p className="text-xs leading-6 text-gray-400">
-                  Unsubscribe anytime by replying to any email.
-                </p>
-              </div>
-
-              {newsletterError && <p className="text-sm text-red-600">{newsletterError}</p>}
-              {newsletterSuccess && <p className="text-sm text-emerald-600">{newsletterSuccess}</p>}
-            </form>
-          </div>
-        </div>
-      )}
 
     </div>
   );

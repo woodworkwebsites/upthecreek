@@ -69,6 +69,18 @@ function adminFetch<T>(path: string, token: string, options?: RequestInit): Prom
   });
 }
 
+export interface ReviewImage {
+  id: string;
+  src: string;
+  storageKey: string;
+  alt: string;
+}
+
+export async function fetchHomepageReviews(): Promise<ReviewImage[]> {
+  const data = await apiFetch<{ reviews: ReviewImage[] }>('/api/reviews', { cache: 'no-store' });
+  return data.reviews;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function fetchProducts(channel: 'storefront' | 'partner' | 'collabs' = 'storefront'): Promise<Product[]> {
@@ -143,6 +155,41 @@ export async function subscribeNewsletter(data: NewsletterSubscriptionInput): Pr
       source: data.source?.trim() || 'homepage',
     }),
   });
+}
+
+export async function adminFetchReviews(token: string): Promise<ReviewImage[]> {
+  const data = await adminFetch<{ reviews: ReviewImage[] }>('/api/admin/reviews', token);
+  return data.reviews;
+}
+
+export async function adminUploadReviewImage(token: string, file: File): Promise<ReviewImage[]> {
+  const form = new FormData();
+  form.append('file', file);
+  const response = await fetch('/api/admin/reviews', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token },
+    body: form,
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ error: response.statusText })) as { error?: string };
+    throw new Error(body.error ?? 'HTTP ' + response.status);
+  }
+  return (await response.json() as { reviews: ReviewImage[] }).reviews;
+}
+
+export async function adminUpdateReviews(token: string, order: string[], captions: Record<string, string>): Promise<ReviewImage[]> {
+  const data = await adminFetch<{ reviews: ReviewImage[] }>('/api/admin/reviews', token, {
+    method: 'PATCH',
+    body: JSON.stringify({ order, captions }),
+  });
+  return data.reviews;
+}
+
+export async function adminDeleteReviewImage(token: string, id: string): Promise<ReviewImage[]> {
+  const data = await adminFetch<{ reviews: ReviewImage[] }>('/api/admin/reviews?id=' + encodeURIComponent(id), token, {
+    method: 'DELETE',
+  });
+  return data.reviews;
 }
 
 // ─── Admin API ────────────────────────────────────────────────────────────────

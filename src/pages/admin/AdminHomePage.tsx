@@ -8,6 +8,7 @@ const adminGroups = [
       { path: '/admin/ranges', label: 'Ranges', tone: 'bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300' },
       { path: '/admin/orders', label: 'Orders', tone: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' },
       { path: '/admin/discount-codes', label: 'Discount Codes', tone: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300' },
+      { path: '/admin/reviews', label: 'Reviews', tone: 'bg-pink-50 text-pink-700 dark:bg-pink-950/40 dark:text-pink-300' },
       { path: '/admin/catalog', label: 'Catalog', tone: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300' },
     ],
   },
